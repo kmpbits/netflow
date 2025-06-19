@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinx.serialization)
+    id("maven-publish")
 }
 
 kotlin {
@@ -43,6 +44,9 @@ kotlin {
     }
 }
 
+group = "com.github.kmpbits"
+version = "0.0.1"
+
 android {
     namespace = "com.kmpbits.netflow_core"
     compileSdk = 35
@@ -52,5 +56,16 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
+    }
+}
+
+publishing {
+    publications {
+        withType<MavenPublication> {
+            pom {
+                name.set("KMP Bits NetFlow")
+                description.set("KMP Library published via JitPack")
+            }
+        }
     }
 }
