@@ -23,28 +23,13 @@ A lightweight, flexible network library for Kotlin Multiplatform. The NetFlow li
 
 ## 📦 Installation
 
-### Step 1: Add JitPack repository
-
-In your root `settings.gradle` file, add the JitPack repository:
-
-```kotlin
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        google()
-        mavenCentral()
-        maven { url = uri("https://jitpack.io") }
-    }
-}
-```
-
-### Step 2: Add the dependencies
+### Add the dependencies
 
 In your app module's `build.gradle` file:
 
 ```kotlin
-dependencies {
-    implementation("com.github.kmpbits.netflow:neflow-core:latest_version")
+dependencies { 
+    implementation("io.github.kmpbits:netflow-core:<latest_version>")
 }
 ```
 
