@@ -44,8 +44,7 @@ In your app module's `build.gradle` file:
 
 ```kotlin
 dependencies {
-    // Core module (required)
-    implementation("com.github.jogcaetano13.netflow:statetalk-core:latest_version")
+    implementation("com.github.kmpbits.netflow:neflow-core:latest_version")
 }
 ```
 
@@ -58,7 +57,7 @@ Replace `latest_version` with the current release version from JitPack.
 Create a client instance in your application class, a singleton, or your dependency injection setup:
 
 ```kotlin
-val client = stateTalkClient {
+val client = netFlowClient {
     baseUrl = "https://api.example.com"
     
     // Optional: Add default headers
@@ -74,7 +73,7 @@ val client = stateTalkClient {
 #### Basic Request
 
 ```kotlin
-val response: stateTalkResponse = client.call {
+val response: netFlowResponse = client.call {
     path = "/users"
     method = HttpMethod.Get
 }.response()
@@ -185,8 +184,8 @@ try {
 } catch (e: stateTalkException) {
     // Handle stateTalk errors
     when (e) {
-        is NetworkException -> // Handle network errors
-        is SerializationException -> // Handle parsing errors
+        is NetworkException -> {} // Handle network errors
+        is SerializationException -> {} // Handle parsing errors
         is HttpException -> {
             // Access HTTP error details
             val statusCode = e.code
