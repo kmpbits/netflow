@@ -1,6 +1,6 @@
 # NetFlow
 
-[![](https://jitpack.io/v/kmpbits/netflow.svg)](https://jitpack.io/#kmpbits/netflow)
+[![Maven Central](https://img.shields.io/maven-central/v/com.github.kmpbits.libraries/netflow-core.svg?label=Maven%20Central)](https://search.maven.org/artifact/com.github.kmpbits.libraries/netflow-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A lightweight, flexible network library for Kotlin Multiplatform. The NetFlow library provides a clean and intuitive API for handling network requests with support for LiveData, Flow and object deserialization.
