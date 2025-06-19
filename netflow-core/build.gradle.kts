@@ -12,7 +12,7 @@ kotlin {
         compilations.all {
             compileTaskProvider.configure {
                 compilerOptions {
-                    jvmTarget.set(JvmTarget.JVM_1_8)
+                    jvmTarget.set(JvmTarget.JVM_11)
                 }
             }
         }
@@ -45,10 +45,10 @@ kotlin {
 }
 
 val artifactCoreId = "neflow-core"
-val groupId = "com.github.joel.libraries"
+val groupGitHubId = "com.github.joel.libraries"
 val libraryVersion = "0.0.1"
 
-group = groupId
+group = groupGitHubId
 version = libraryVersion
 
 android {
@@ -58,15 +58,15 @@ android {
         minSdk = 24
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 }
 
 publishing {
     publications {
         withType<MavenPublication> {
-            groupId = groupId
+            groupId = groupGitHubId
             artifactId = artifactCoreId
             version = libraryVersion
 
