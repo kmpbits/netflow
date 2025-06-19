@@ -1,6 +1,6 @@
-# StateTalk
+# NetFlow
 
-[![JitPack](https://jitpack.io/v/jogcaetano13/communication.svg)](https://jitpack.io/#kmpbits/netflow)
+[![](https://jitpack.io/v/kmpbits/netflow.svg)](https://jitpack.io/#kmpbits/netflow)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A lightweight, flexible network library for Kotlin Multiplatform. The NetFlow library provides a clean and intuitive API for handling network requests with support for LiveData, Flow and object deserialization.
@@ -149,56 +149,6 @@ lifecycleScope.launch {
 }
 ```
 
-### Pagination (Paging Extension)
-
-Easy integration with Android's Paging 3 library:
-
-```kotlin
-val pagedUsers: Flow<PagingData<User>> = client.call {
-    path = "/users"
-    parameter("size" to 20)
-}.responsePaginated {
-    // Use API-only pagination or combine with local storage
-    onlyApiCall = true
-    
-    // Customize the page parameter name (default is "page")
-    pageQueryName = "page"
-    
-    // If using local storage (when onlyApiCall = false)
-    pagingSource { userDao.getPagingSource() }
-    deleteAll { userDao.deleteAll() }
-    insertAll { users -> userDao.insertAll(users) }
-    
-    // Optional: Optimize initial loading state
-    firstItemDatabase { userDao.getFirstUser() }
-}
-```
-
-### Handling Pagination States
-
-```kotlin
-// Observe loading states
-lifecycleScope.launch { 
-    adapter.loadStateFlow.collectLatest { loadState ->
-        // Handle refresh loading state
-        binding.progressBar.isVisible = loadState.refresh is LoadState.Loading
-        
-        // Handle refresh error state
-        if (loadState.refresh is LoadState.Error) {
-            val error = (loadState.refresh as LoadState.Error).error
-            showErrorMessage(error.message)
-        }
-    }
-}
-
-// Add loading footer
-recyclerView.adapter = userAdapter.withLoadStateFooter(
-    footer = LoadingStateAdapter(
-        retry = { userAdapter.retry() }
-    )
-)
-```
-
 ## 📋 Advanced Configuration
 
 ### Custom Headers
@@ -255,12 +205,6 @@ Contributions are welcome! Feel free to open issues or submit pull requests.
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
-
-## 🛠️ Roadmap
-
-- ✅ Android-only release
-- 🚧 Kotlin Multiplatform (KMP) support coming soon
-- 📚 Better docs, samples, and testing utilities
 
 ## 📝 License
 
