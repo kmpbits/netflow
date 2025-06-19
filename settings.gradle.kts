@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "NetFlow"
-include(":netflow-core")
+include(":netflow-core", ":sample")

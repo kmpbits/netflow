@@ -4,6 +4,7 @@ import com.kmpbits.netflow_core.envelope.Envelope
 import com.kmpbits.netflow_core.envelope.EnvelopeList
 import com.kmpbits.netflow_core.response.NetFlowResponse
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 
@@ -22,8 +23,8 @@ internal inline fun <reified T> T.toJson(): String {
 
 @PublishedApi
 internal inline fun <reified T> NetFlowResponse.toList(): List<T> {
-    val envelopeListSerializer: KSerializer<EnvelopeList<T>> = EnvelopeList.serializer(serializer())
-    return json().decodeFromString(envelopeListSerializer, body.orEmpty()).data
+    val listSerializer: KSerializer<List<T>> = ListSerializer(serializer())
+    return json().decodeFromString(listSerializer, body.orEmpty())
 }
 
 @PublishedApi
