@@ -44,8 +44,12 @@ kotlin {
     }
 }
 
-group = "com.github.kmpbits"
-version = "0.0.1"
+val artifactCoreId = "neflow-core"
+val groupId = "com.github.joel.libraries"
+val libraryVersion = "0.0.1"
+
+group = groupId
+version = libraryVersion
 
 android {
     namespace = "com.kmpbits.netflow_core"
@@ -62,6 +66,10 @@ android {
 publishing {
     publications {
         withType<MavenPublication> {
+            groupId = groupId
+            artifactId = artifactCoreId
+            version = libraryVersion
+
             pom {
                 name.set("KMP Bits NetFlow")
                 description.set("KMP Library published via JitPack")
