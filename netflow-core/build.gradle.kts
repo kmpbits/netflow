@@ -46,7 +46,7 @@ kotlin {
 
 val artifactCoreId = "neflow-core"
 val groupGitHubId = "com.github.kmpbits.libraries"
-val libraryVersion = "0.0.1"
+val libraryVersion = "0.0.2"
 
 group = groupGitHubId
 version = libraryVersion
