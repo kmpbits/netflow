@@ -1,10 +1,11 @@
+import com.vanniktech.maven.publish.SonatypeHost
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinx.serialization)
-    id("maven-publish")
+    alias(libs.plugins.maven.publish)
 }
 
 kotlin {
@@ -46,9 +47,9 @@ kotlin {
     }
 }
 
-val artifactCoreId = "neflow-core"
-val groupGitHubId = "com.github.kmpbits.libraries"
-val libraryVersion = "0.0.8"
+val artifactCoreId = "netflow-core"
+val groupGitHubId = "io.github.kmpbits"
+val libraryVersion = "0.0.9-alpha01"
 
 group = groupGitHubId
 version = libraryVersion
@@ -65,39 +66,36 @@ android {
     }
 }
 
-publishing {
-    publications {
-        withType<MavenPublication> {
-            groupId = groupGitHubId
-            artifactId = artifactCoreId
-            version = libraryVersion
+mavenPublishing {
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
 
-            pom {
-                name.set("NetFlow KMP")
-                description.set("Network API library for Kotlin Multiplatform")
-                inceptionYear.set("2025")
-                url.set("https://github.com/kmpbits/netflow")
+    signAllPublications()
 
-                licenses {
-                    license {
-                        name.set("MIT")
-                        url.set("https://opensource.org/licenses/MIT")
-                    }
-                }
+    coordinates(group.toString(), artifactCoreId, version.toString())
 
-                // Specify developers information
-                developers {
-                    developer {
-                        id.set("kmpbits")
-                        name.set("KMP Bits")
-                        email.set("kmpbits@gmail.com")
-                    }
-                }
-
-                scm {
-                    url.set("https://github.com/kmpbits/netflow")
-                }
+    pom {
+        name = "NetFlow KMP"
+        description = "NetFlow Network Library"
+        inceptionYear = "2024"
+        url = "https://github.com/kmpbits/netflow"
+        licenses {
+            license {
+                name = "The Apache License, Version 2.0"
+                url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
+                distribution = "https://www.apache.org/licenses/LICENSE-2.0.txt"
             }
+        }
+        developers {
+            developer {
+                id = "kmpbits"
+                name = "KMP Bits"
+                url = "https://github.com/kmpbits/"
+            }
+        }
+        scm {
+            url = "https://github.com/kmpbits/netflow/"
+            connection = "scm:git:git://github.com/kmpbits/netflow.git"
+            developerConnection = "scm:git:ssh://git@github.com/kmpbits/netflow.git"
         }
     }
 }

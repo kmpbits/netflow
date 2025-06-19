@@ -7,7 +7,7 @@ androidx-activityCompose = "1.10.1"
 kotlinx-coroutines = "1.10.2"
 json = "1.8.1"
 android-okhttp = "4.12.0"
-maven-publish = "0.28.0"
+maven-publish = "0.30.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
