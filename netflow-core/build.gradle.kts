@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinx.serialization)
-    alias(libs.plugins.maven.publish)
+    id("maven-publish")
 }
 
 kotlin {
@@ -48,7 +48,7 @@ kotlin {
 
 val artifactCoreId = "neflow-core"
 val groupGitHubId = "com.github.kmpbits.libraries"
-val libraryVersion = "0.0.6"
+val libraryVersion = "0.0.7"
 
 group = groupGitHubId
 version = libraryVersion
@@ -65,39 +65,12 @@ android {
     }
 }
 
-mavenPublishing {
-    // Define coordinates for the published artifact
-    coordinates(
-        groupId = groupGitHubId,
-        artifactId = artifactCoreId,
-        version = libraryVersion
-    )
-
-    // Configure POM metadata for the published artifact
-    pom {
-        name.set("NetFlow KMP")
-        description.set("Network API library for Kotlin Multiplatform")
-        inceptionYear.set("2024")
-        url.set("https://github.com/kmpbits/netflow")
-
-        licenses {
-            license {
-                name.set("MIT")
-                url.set("https://opensource.org/licenses/MIT")
-            }
-        }
-
-        // Specify developers information
-        developers {
-            developer {
-                id.set("kmpbits")
-                name.set("KMP Bits")
-                email.set("kmpbits@gmail.com")
-            }
-        }
-
-        scm {
-            url.set("https://github.com/kmpbits/netflow")
+publishing {
+    publications {
+        withType<MavenPublication> {
+            groupId = groupGitHubId
+            artifactId = artifactCoreId
+            version = libraryVersion
         }
     }
 }
