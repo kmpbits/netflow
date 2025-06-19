@@ -48,7 +48,7 @@ kotlin {
 
 val artifactCoreId = "neflow-core"
 val groupGitHubId = "com.github.kmpbits.libraries"
-val libraryVersion = "0.0.7"
+val libraryVersion = "0.0.8"
 
 group = groupGitHubId
 version = libraryVersion
@@ -71,6 +71,33 @@ publishing {
             groupId = groupGitHubId
             artifactId = artifactCoreId
             version = libraryVersion
+
+            pom {
+                name.set("NetFlow KMP")
+                description.set("Network API library for Kotlin Multiplatform")
+                inceptionYear.set("2025")
+                url.set("https://github.com/kmpbits/netflow")
+
+                licenses {
+                    license {
+                        name.set("MIT")
+                        url.set("https://opensource.org/licenses/MIT")
+                    }
+                }
+
+                // Specify developers information
+                developers {
+                    developer {
+                        id.set("kmpbits")
+                        name.set("KMP Bits")
+                        email.set("kmpbits@gmail.com")
+                    }
+                }
+
+                scm {
+                    url.set("https://github.com/kmpbits/netflow")
+                }
+            }
         }
     }
 }
