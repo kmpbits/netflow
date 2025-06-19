@@ -7,8 +7,6 @@ plugins {
     alias(libs.plugins.maven.publish)
 }
 
-val isCiBuild = System.getenv("CI") != null
-
 kotlin {
     jvmToolchain(17)
 
@@ -22,17 +20,14 @@ kotlin {
         }
     }
 
-    // ✅ Build iOS targets only when NOT on JitPack
-    if (!isCiBuild) {
-        listOf(
-            iosX64(),
-            iosArm64(),
-            iosSimulatorArm64()
-        ).forEach {
-            it.binaries.framework {
-                baseName = "netflow-core"
-                isStatic = true
-            }
+    listOf(
+        iosX64(),
+        iosArm64(),
+        iosSimulatorArm64()
+    ).forEach {
+        it.binaries.framework {
+            baseName = "netflow-core"
+            isStatic = true
         }
     }
 
@@ -53,7 +48,7 @@ kotlin {
 
 val artifactCoreId = "neflow-core"
 val groupGitHubId = "com.github.kmpbits.libraries"
-val libraryVersion = "0.0.3"
+val libraryVersion = "0.0.4"
 
 group = groupGitHubId
 version = libraryVersion
