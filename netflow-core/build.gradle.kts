@@ -34,7 +34,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             //put your multiplatform dependencies here
-            implementation(libs.kotlinx.coroutines)
+            api(libs.kotlinx.coroutines)
             implementation(libs.json.serialization)
         }
         commonTest.dependencies {
@@ -48,7 +48,7 @@ kotlin {
 
 val artifactCoreId = "neflow-core"
 val groupGitHubId = "com.github.kmpbits.libraries"
-val libraryVersion = "0.0.4"
+val libraryVersion = "0.0.5"
 
 group = groupGitHubId
 version = libraryVersion
