@@ -7,7 +7,11 @@ plugins {
     alias(libs.plugins.maven.publish)
 }
 
+val isCiBuild = System.getenv("CI") != null
+
 kotlin {
+    jvmToolchain(17)
+
     androidTarget {
         compilations.all {
             compileTaskProvider.configure {
@@ -17,15 +21,18 @@ kotlin {
             }
         }
     }
-    
-    listOf(
-        iosX64(),
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach {
-        it.binaries.framework {
-            baseName = "netflow-core"
-            isStatic = true
+
+    // ✅ Build iOS targets only when NOT on JitPack
+    if (!isCiBuild) {
+        listOf(
+            iosX64(),
+            iosArm64(),
+            iosSimulatorArm64()
+        ).forEach {
+            it.binaries.framework {
+                baseName = "netflow-core"
+                isStatic = true
+            }
         }
     }
 
@@ -46,7 +53,7 @@ kotlin {
 
 val artifactCoreId = "neflow-core"
 val groupGitHubId = "com.github.kmpbits.libraries"
-val libraryVersion = "0.0.2"
+val libraryVersion = "0.0.3"
 
 group = groupGitHubId
 version = libraryVersion
@@ -60,15 +67,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-    }
-}
-
-publishing {
-    repositories {
-        maven {
-            name = "githubPackages"
-            url = uri("https://maven.pkg.github.com/kmpbits/netflow")
-        }
     }
 }
 
