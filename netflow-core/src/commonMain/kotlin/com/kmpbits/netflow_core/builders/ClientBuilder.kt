@@ -82,7 +82,7 @@ class ClientBuilder internal constructor() {
 
     internal fun build(): NetFlowClient {
         val client = createClient()
-        return NetFlowClientImpl(client, baseUrl)
+        return NetFlowClientImpl(client, baseUrl, logLevel)
     }
 
     private fun hasHeader(key: HttpHeader) = headers.find { it.first == key } != null

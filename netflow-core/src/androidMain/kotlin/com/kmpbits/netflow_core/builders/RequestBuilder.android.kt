@@ -37,5 +37,5 @@ internal actual suspend fun RequestBuilder.build(): InternalHttpRequestBuilder {
 
     requestBuilder.method(method, requestBody)
 
-    return InternalHttpRequestBuilder(requestBuilder)
+    return InternalHttpRequestBuilder(requestBuilder.build())
 }

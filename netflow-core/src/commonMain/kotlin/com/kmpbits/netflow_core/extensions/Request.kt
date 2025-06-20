@@ -16,7 +16,10 @@ internal fun createUrl(
     baseUrl: String,
     path: String
 ): String {
-    return baseUrl + if (path.startsWith('/') or path.isEmpty()) path else "/$path"
+    val cleanBaseUrl = baseUrl.trimEnd('/')
+    val cleanPath = path.trimStart('/')
+
+    return if (cleanPath.isEmpty()) cleanBaseUrl else "$cleanBaseUrl/$cleanPath"
 }
 
 internal fun urlWithPath(

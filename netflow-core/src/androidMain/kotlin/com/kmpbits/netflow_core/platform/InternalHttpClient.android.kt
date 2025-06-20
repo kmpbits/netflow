@@ -12,7 +12,7 @@ internal actual class InternalHttpClient(
 ) {
 
     actual suspend fun call(requestBuilder: InternalHttpRequestBuilder, builder: RequestBuilder): NetFlowResponse {
-        val request = requestBuilder.requestBuilder.build()
+        val request = requestBuilder.request
 
         return try {
             val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }

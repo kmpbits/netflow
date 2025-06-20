@@ -18,9 +18,6 @@ internal actual class InternalHttpClient {
             val task = NSURLSession.sharedSession.dataTaskWithRequest(
                 request = requestBuilder.request,
                 completionHandler = { data, response, error ->
-                    println("Data: $data")
-                    println("Response: $response")
-                    println("Error $error")
                     when {
                         error != null -> {
                             continuation.resumeWith(Result.success(
