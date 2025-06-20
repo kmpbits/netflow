@@ -11,5 +11,5 @@ interface NetFlowClient {
      * @param builder Have the customization of the request like the path and headers.
      * @return A [NetFlowRequest] that can be used to deserialize the response.
      */
-    suspend fun call(builder: RequestBuilder. () -> Unit = {}): NetFlowRequest
+    fun call(builder: RequestBuilder. () -> Unit = {}): NetFlowRequest
 }

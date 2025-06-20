@@ -12,7 +12,7 @@ import platform.Foundation.NSURL
 import platform.Foundation.setHTTPMethod
 import platform.Foundation.setValue
 
-internal actual suspend fun RequestBuilder.build(): InternalHttpRequestBuilder {
+internal actual fun RequestBuilder.build(): InternalHttpRequestBuilder {
     val completeUrlString = urlWithPath(
         baseUrl = baseUrl,
         path = path,

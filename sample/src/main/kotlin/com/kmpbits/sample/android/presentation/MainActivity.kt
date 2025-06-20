@@ -1,4 +1,4 @@
-package com.kmpbits.sample.android
+package com.kmpbits.sample.android.presentation
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -21,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kmpbits.netflow_core.states.ResultState
+import com.kmpbits.sample.android.data.dto.TodoDto
+import com.kmpbits.sample.android.presentation.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

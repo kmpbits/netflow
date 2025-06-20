@@ -1,4 +1,4 @@
-package com.kmpbits.sample.android
+package com.kmpbits.sample.android.data.dto
 
 import kotlinx.serialization.Serializable
 

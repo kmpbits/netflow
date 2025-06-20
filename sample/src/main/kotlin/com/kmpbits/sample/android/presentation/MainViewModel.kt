@@ -1,4 +1,4 @@
-package com.kmpbits.sample.android
+package com.kmpbits.sample.android.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -7,6 +7,7 @@ import com.kmpbits.netflow_core.enums.LogLevel
 import com.kmpbits.netflow_core.enums.RetryTimes
 import com.kmpbits.netflow_core.extensions.netflowClient
 import com.kmpbits.netflow_core.states.ResultState
+import com.kmpbits.sample.android.data.dto.TodoDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest

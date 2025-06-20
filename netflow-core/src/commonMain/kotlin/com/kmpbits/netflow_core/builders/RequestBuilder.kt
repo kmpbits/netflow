@@ -170,4 +170,4 @@ class RequestBuilder internal constructor(
     private fun hasHeader(key: HttpHeader) = headers.find { it.first == key } != null
 }
 
-internal expect suspend fun RequestBuilder.build(): InternalHttpRequestBuilder
+internal expect fun RequestBuilder.build(): InternalHttpRequestBuilder

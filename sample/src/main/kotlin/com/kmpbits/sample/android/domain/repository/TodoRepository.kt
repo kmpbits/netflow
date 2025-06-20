@@ -1,0 +1,10 @@
+package com.kmpbits.sample.android.domain.repository
+
+import com.kmpbits.netflow_core.states.ResultState
+import com.kmpbits.sample.android.domain.model.Todo
+import kotlinx.coroutines.flow.Flow
+
+interface TodoRepository {
+
+    fun getTodos(): Flow<ResultState<List<Todo>>>
+}

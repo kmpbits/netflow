@@ -10,7 +10,7 @@ import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.internal.http.HttpMethod as OkHttpMethod
 
-internal actual suspend fun RequestBuilder.build(): InternalHttpRequestBuilder {
+internal actual fun RequestBuilder.build(): InternalHttpRequestBuilder {
     val requestBuilder = Request.Builder()
         .url(
             urlWithPath(

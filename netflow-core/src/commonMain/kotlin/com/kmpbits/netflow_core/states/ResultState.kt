@@ -8,3 +8,16 @@ sealed class ResultState<out T> {
     data object Empty : ResultState<Nothing>()
     data class Success<out T>(val data: T) : ResultState<T>()
 }
+
+/**
+ * This function is to map the data inside the [ResultState]
+ * This is usually used in the repository to map the dto to the model
+ */
+fun <T, E> ResultState<T>.map(transform: (T) -> E): ResultState<E> {
+    return when (this) {
+        is ResultState.Error -> ResultState.Error(error, data?.let { transform(it) })
+        is ResultState.Loading -> ResultState.Loading(data?.let { transform(it) })
+        is ResultState.Empty -> ResultState.Empty
+        is ResultState.Success -> ResultState.Success(transform(data))
+    }
+}

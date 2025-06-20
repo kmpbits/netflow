@@ -16,11 +16,11 @@ internal class NetFlowClientImpl(
     private val headers: Headers
 ) : NetFlowClient {
 
-    override suspend fun call(builder: RequestBuilder.() -> Unit): NetFlowRequest {
+    override fun call(builder: RequestBuilder.() -> Unit): NetFlowRequest {
         return request(builder)
     }
 
-    private suspend fun request(builder: RequestBuilder. () -> Unit = {}): NetFlowRequest {
+    private fun request(builder: RequestBuilder. () -> Unit = {}): NetFlowRequest {
         val callBuilder = RequestBuilder(baseUrl, retryBuilder, headers).also(builder)
         val requestBuilder = callBuilder.build()
 
