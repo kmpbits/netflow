@@ -9,7 +9,6 @@ json = "1.8.1"
 android-okhttp = "4.12.0"
 maven-publish = "0.30.0"
 appcompat = "1.7.1"
-serialization-json = "1.8.1"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
