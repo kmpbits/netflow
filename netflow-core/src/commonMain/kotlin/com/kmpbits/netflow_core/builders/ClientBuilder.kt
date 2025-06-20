@@ -12,7 +12,7 @@ import com.kmpbits.netflow_core.platform.InternalHttpClient
 
 @NetFlowMarker
 class ClientBuilder internal constructor() {
-    private val headers: Headers = mutableListOf()
+    internal val headers: Headers = mutableListOf()
     internal val timeoutBuilder = TimeoutBuilder()
     private val retryBuilder = RetryBuilder()
 
@@ -107,7 +107,7 @@ class ClientBuilder internal constructor() {
 
     internal fun build(): NetFlowClient {
         val client = createClient()
-        return NetFlowClientImpl(client, baseUrl, logLevel, retryBuilder)
+        return NetFlowClientImpl(client, baseUrl, logLevel, retryBuilder, headers)
     }
 
     private fun hasHeader(key: HttpHeader) = headers.find { it.first == key } != null

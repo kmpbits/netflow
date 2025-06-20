@@ -1,5 +1,6 @@
 package com.kmpbits.netflow_core.client
 
+import com.kmpbits.netflow_core.alias.Headers
 import com.kmpbits.netflow_core.builders.RequestBuilder
 import com.kmpbits.netflow_core.builders.RetryBuilder
 import com.kmpbits.netflow_core.builders.build
@@ -11,7 +12,8 @@ internal class NetFlowClientImpl(
     private val client: InternalHttpClient,
     private val baseUrl: String,
     private val logLevel: LogLevel,
-    private val retryBuilder: RetryBuilder
+    private val retryBuilder: RetryBuilder,
+    private val headers: Headers
 ) : NetFlowClient {
 
     override suspend fun call(builder: RequestBuilder.() -> Unit): NetFlowRequest {
@@ -19,7 +21,7 @@ internal class NetFlowClientImpl(
     }
 
     private suspend fun request(builder: RequestBuilder. () -> Unit = {}): NetFlowRequest {
-        val callBuilder = RequestBuilder(baseUrl, retryBuilder).also(builder)
+        val callBuilder = RequestBuilder(baseUrl, retryBuilder, headers).also(builder)
         val requestBuilder = callBuilder.build()
 
         return NetFlowRequest(callBuilder, client, requestBuilder, logLevel)

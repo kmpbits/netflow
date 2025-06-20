@@ -14,20 +14,23 @@ internal object Logging {
         val url = request.url
         val method = request.method
         val path = request.path
-        val query = request.query
+        val query = request.query.takeIf { it.isNotEmpty() }?.let { "?$it" } ?: ""
         val host = request.host
         val headers = request.headers
 
         val requestLog = buildString {
-            append("\n---------- REQUEST ---------->\n")
-            append("$url\n\n")
-            append("$method $path?$query HTTP/1.1\n")
-            append("Host: $host\n")
+            append("\n[NETFLOW] ---------- REQUEST ---------->\n")
+            append("[NETFLOW] -> $url\n\n")
+            append("[NETFLOW] -> $method $path$query HTTP/1.1\n")
+            append("[NETFLOW] -> Host: $host\n\n")
 
-            if (logLevel != LogLevel.Basic)
-                append("Headers: ${headers.joinToString(", ") { "${it.first}: ${it.second}" }}")
+            if (logLevel != LogLevel.Basic) {
+                append("[NETFLOW] ----Headers----\n")
+                append(headers.joinToString("\n") { " [NETFLOW]  - ${it.first.header}: ${it.second}" })
+                append("\n\n")
+            }
 
-            append("Attempting...: $attempt\n")
+            append("[NETFLOW] -> Attempting...: ${attempt + 1}\n")
         }
 
         if (logLevel != LogLevel.None)
@@ -41,35 +44,39 @@ internal object Logging {
     ) {
         val url = request.url
         val path = request.path
-        val query = request.query
+        val query = request.query.takeIf { it.isNotEmpty() }?.let { "?$it" } ?: ""
         val host = request.host
         val headers = request.headers
         val statusCode = response.code
 
         val responseLog = buildString {
-            append("\n<---------- RESPONSE ----------\n")
-            append("$url\n\n")
-            append("HTTP $statusCode $path?$query\n")
-            append("Host: $host\n")
+            append("\n[NETFLOW] <---------- RESPONSE ----------\n")
+            append("[NETFLOW] -> $url\n\n")
+            append("[NETFLOW] -> HTTP $statusCode $path$query\n")
+            append("[NETFLOW] -> Host: $host\n\n")
 
-            if (logLevel != LogLevel.Basic)
-                append("Headers: ${headers.joinToString(", ") { "${it.first}: ${it.second}" }}")
+            if (logLevel != LogLevel.Basic) {
+                append("[NETFLOW] ----Headers----\n")
+                append(headers.joinToString("\n") { " - ${it.first.header}: ${it.second}" })
+                append("\n\n")
+            }
 
-            append("Success: ${ if (response.isSuccess) "Yes" else "No" }\n")
+            append("[NETFLOW] -> Success: ${if (response.isSuccess) "Yes" else "No"}\n")
 
             if (logLevel == LogLevel.Body) {
                 response.body?.let {
                     try {
-                        append("\n$it\n")
+                        append("\n[NETFLOW] $it\n")
                     } catch (_: Exception) {
-                        append("\nCan't render body; not UTF-8 encoded\n")
+                        append("\n[NETFLOW] Can't render body; not UTF-8 encoded\n")
                     }
                 }
                 response.errorBody?.let {
-                    append("\nError: ${it}\n")
+                    append("\n[NETFLOW] Error: $it\n")
                 }
             }
-            append("<------------------------\n")
+
+            append("[NETFLOW] <------------------------\n")
         }
 
         if (logLevel != LogLevel.None)

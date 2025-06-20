@@ -13,14 +13,14 @@ import com.kmpbits.netflow_core.platform.InternalHttpRequestBuilder
 @NetFlowMarker
 class RequestBuilder internal constructor(
     internal val baseUrl: String,
-    internal val retryBuilder: RetryBuilder
+    internal val retryBuilder: RetryBuilder,
+    internal val headers: Headers
 ) {
 
     @PublishedApi
     internal var preCall: (() -> Unit)? = null
 
     internal val parameters: Parameters = mutableListOf()
-    internal val headers: Headers = mutableListOf()
 
     internal var body: Map<String, Any>? = null
 
