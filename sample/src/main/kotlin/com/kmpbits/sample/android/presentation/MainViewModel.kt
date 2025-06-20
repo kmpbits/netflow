@@ -2,38 +2,26 @@ package com.kmpbits.sample.android.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kmpbits.netflow_core.deserializables.responseListFlow
-import com.kmpbits.netflow_core.enums.LogLevel
-import com.kmpbits.netflow_core.enums.RetryTimes
-import com.kmpbits.netflow_core.extensions.netflowClient
 import com.kmpbits.netflow_core.states.ResultState
-import com.kmpbits.sample.android.data.dto.TodoDto
+import com.kmpbits.sample.android.domain.model.Todo
+import com.kmpbits.sample.android.domain.repository.TodoRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-class MainViewModel : ViewModel() {
+class MainViewModel(
+    private val repository: TodoRepository
+) : ViewModel() {
 
-    private val _state = MutableStateFlow<ResultState<List<TodoDto>>>(ResultState.Empty)
+    private val _state = MutableStateFlow<ResultState<List<Todo>>>(ResultState.Empty)
     val state = _state.asStateFlow()
 
     init {
         viewModelScope.launch {
-            getClient().call {
-                path = "todos"
-            }.responseListFlow<TodoDto>().collectLatest { response ->
+            repository.getTodos().collectLatest { response ->
                 _state.value = response
             }
-        }
-    }
-
-    private fun getClient() = netflowClient {
-        baseUrl = "https://jsonplaceholder.typicode.com"
-        logLevel = LogLevel.Body
-
-        defaultRetry {
-            times = RetryTimes.THREE
         }
     }
 }

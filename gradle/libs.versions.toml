@@ -9,6 +9,7 @@ json = "1.8.1"
 android-okhttp = "4.12.0"
 maven-publish = "0.30.0"
 appcompat = "1.7.1"
+koin = "4.0.4"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -22,6 +23,17 @@ kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core",
 json-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "json" }
 android-okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "android-okhttp" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+
+# Koin
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
+koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
+koin-composeVM = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
+
+[bundles]
+koin = [
+    "koin-core", "koin-android", "koin-compose", "koin-composeVM"
+]
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

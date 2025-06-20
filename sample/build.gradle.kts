@@ -46,4 +46,5 @@ dependencies {
     implementation(libs.androidx.appcompat)
     debugImplementation(libs.compose.ui.tooling)
     implementation(libs.json.serialization)
+    implementation(libs.bundles.koin)
 }
