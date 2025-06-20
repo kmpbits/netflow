@@ -10,12 +10,14 @@ import platform.Foundation.NSHTTPURLResponse
 import platform.Foundation.NSURLSession
 import platform.Foundation.dataTaskWithRequest
 
-internal actual class InternalHttpClient {
+internal actual class InternalHttpClient(
+    private val session: NSURLSession
+) {
 
     @OptIn(ExperimentalForeignApi::class)
     actual suspend fun call(requestBuilder: InternalHttpRequestBuilder, builder: RequestBuilder): NetFlowResponse {
         return suspendCancellableCoroutine { continuation ->
-            val task = NSURLSession.sharedSession.dataTaskWithRequest(
+            val task = session.dataTaskWithRequest(
                 request = requestBuilder.request,
                 completionHandler = { data, response, error ->
                     when {
