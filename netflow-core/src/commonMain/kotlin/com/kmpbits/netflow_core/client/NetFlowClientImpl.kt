@@ -1,6 +1,7 @@
 package com.kmpbits.netflow_core.client
 
 import com.kmpbits.netflow_core.builders.RequestBuilder
+import com.kmpbits.netflow_core.builders.RetryBuilder
 import com.kmpbits.netflow_core.builders.build
 import com.kmpbits.netflow_core.enums.LogLevel
 import com.kmpbits.netflow_core.logging.Logging
@@ -10,7 +11,8 @@ import com.kmpbits.netflow_core.request.NetFlowRequest
 internal class NetFlowClientImpl(
     private val client: InternalHttpClient,
     private val baseUrl: String,
-    private val logLevel: LogLevel
+    private val logLevel: LogLevel,
+    private val retryBuilder: RetryBuilder
 ) : NetFlowClient {
 
     override suspend fun call(builder: RequestBuilder.() -> Unit): NetFlowRequest {
@@ -18,7 +20,7 @@ internal class NetFlowClientImpl(
     }
 
     private suspend fun request(builder: RequestBuilder. () -> Unit = {}): NetFlowRequest {
-        val callBuilder = RequestBuilder(baseUrl).also(builder)
+        val callBuilder = RequestBuilder(baseUrl, retryBuilder).also(builder)
         val requestBuilder = callBuilder.build()
 
         // Log the request

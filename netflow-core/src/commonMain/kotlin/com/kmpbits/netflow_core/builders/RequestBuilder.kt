@@ -12,7 +12,8 @@ import com.kmpbits.netflow_core.platform.InternalHttpRequestBuilder
 
 @NetFlowMarker
 class RequestBuilder internal constructor(
-    internal val baseUrl: String
+    internal val baseUrl: String,
+    private val retryBuilder: RetryBuilder
 ) {
 
     @PublishedApi
@@ -134,6 +135,10 @@ class RequestBuilder internal constructor(
      */
     fun body(body: Map<String, Any>) {
         this.body = body
+    }
+
+    fun retry(builder: RetryBuilder. () -> Unit) {
+        retryBuilder.also(builder)
     }
 
     private fun parameterByKey(key: String) = parameters.find { it.first == key }

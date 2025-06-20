@@ -14,6 +14,7 @@ import com.kmpbits.netflow_core.platform.InternalHttpClient
 class ClientBuilder internal constructor() {
     private val headers: Headers = mutableListOf()
     internal val timeoutBuilder = TimeoutBuilder()
+    private val retryBuilder = RetryBuilder()
 
     init {
         val defaultHeaders = listOf(
@@ -80,9 +81,33 @@ class ClientBuilder internal constructor() {
         timeoutBuilder.also(builder)
     }
 
+    /**
+     * Configures the retry behavior for the current API call.
+     *
+     * This function accepts a [builder] to specify retry rules,
+     * such as the number of attempts, delay between retries, and an optional condition
+     * to determine whether an exception should trigger a retry.
+     *
+     * Example usage:
+     * ```
+     * retry {
+     *     times = 3                     // Total number of attempts (including the initial try)
+     *     delay = 1.seconds             // Delay between attempts
+     *     retryOn = { throwable ->      // Condition to decide if a retry should occur
+     *         throwable is IOException
+     *     }
+     * }
+     * ```
+     *
+     * @param block Lambda with receiver on [RetryBuilder] to configure retry options.
+     */
+    fun retry(builder: RetryBuilder. () -> Unit) {
+        retryBuilder.also(builder)
+    }
+
     internal fun build(): NetFlowClient {
         val client = createClient()
-        return NetFlowClientImpl(client, baseUrl, logLevel)
+        return NetFlowClientImpl(client, baseUrl, logLevel, retryBuilder)
     }
 
     private fun hasHeader(key: HttpHeader) = headers.find { it.first == key } != null
