@@ -33,7 +33,7 @@ dependencies {
 }
 ```
 
-Replace `latest_version` with the current release version from JitPack.
+Replace `latest_version` with the current release version from Maven Central.
 
 ## 🚀 Getting Started
 
