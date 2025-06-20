@@ -2,6 +2,7 @@ package com.kmpbits.netflow_core.logging
 
 import com.kmpbits.netflow_core.enums.LogLevel
 import com.kmpbits.netflow_core.platform.InternalHttpRequestBuilder
+import com.kmpbits.netflow_core.platform.netflowLogger
 import com.kmpbits.netflow_core.response.NetFlowResponse
 
 internal object Logging {
@@ -19,22 +20,22 @@ internal object Logging {
         val headers = request.headers
 
         val requestLog = buildString {
-            append("\n[NETFLOW] ---------- REQUEST ---------->\n")
-            append("[NETFLOW] -> $url\n\n")
-            append("[NETFLOW] -> $method $path$query HTTP/1.1\n")
-            append("[NETFLOW] -> Host: $host\n\n")
+            append("\n---------- REQUEST ---------->\n")
+            append("-> $url\n\n")
+            append("-> $method $path$query\n")
+            append("-> Host: $host\n\n")
 
             if (logLevel != LogLevel.Basic) {
-                append("[NETFLOW] ----Headers----\n")
-                append(headers.joinToString("\n") { " [NETFLOW]  - ${it.first.header}: ${it.second}" })
+                append("----Headers----\n")
+                append(headers.joinToString("\n") { " - ${it.first.header}: ${it.second}" })
                 append("\n\n")
             }
 
-            append("[NETFLOW] -> Attempting...: ${attempt + 1}\n")
+            append("-> Attempting... ${attempt + 1}\n")
         }
 
         if (logLevel != LogLevel.None)
-            println(requestLog)
+            netflowLogger(requestLog)
     }
 
     fun logResponse(
@@ -50,36 +51,36 @@ internal object Logging {
         val statusCode = response.code
 
         val responseLog = buildString {
-            append("\n[NETFLOW] <---------- RESPONSE ----------\n")
-            append("[NETFLOW] -> $url\n\n")
-            append("[NETFLOW] -> HTTP $statusCode $path$query\n")
-            append("[NETFLOW] -> Host: $host\n\n")
+            append("\n<---------- RESPONSE ----------\n")
+            append("-> $url\n\n")
+            append("-> HTTP $statusCode $path$query\n")
+            append("-> Host: $host\n\n")
 
             if (logLevel != LogLevel.Basic) {
-                append("[NETFLOW] ----Headers----\n")
+                append("----Headers----\n")
                 append(headers.joinToString("\n") { " - ${it.first.header}: ${it.second}" })
                 append("\n\n")
             }
 
-            append("[NETFLOW] -> Success: ${if (response.isSuccess) "Yes" else "No"}\n")
+            append("-> Success: ${if (response.isSuccess) "Yes" else "No"}\n")
 
             if (logLevel == LogLevel.Body) {
                 response.body?.let {
                     try {
-                        append("\n[NETFLOW] $it\n")
+                        append("\n-> $it\n")
                     } catch (_: Exception) {
-                        append("\n[NETFLOW] Can't render body; not UTF-8 encoded\n")
+                        append("\n-> Can't render body; not UTF-8 encoded\n")
                     }
                 }
                 response.errorBody?.let {
-                    append("\n[NETFLOW] Error: $it\n")
+                    append("\n-> Error: $it\n")
                 }
             }
 
-            append("[NETFLOW] <------------------------\n")
+            append("<------------------------\n")
         }
 
         if (logLevel != LogLevel.None)
-            println(responseLog)
+            netflowLogger(responseLog)
     }
 }

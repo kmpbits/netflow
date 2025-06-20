@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kmpbits.netflow_core.deserializables.responseListFlow
 import com.kmpbits.netflow_core.enums.LogLevel
+import com.kmpbits.netflow_core.enums.RetryTimes
 import com.kmpbits.netflow_core.extensions.netflowClient
 import com.kmpbits.netflow_core.states.ResultState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +28,11 @@ class MainViewModel : ViewModel() {
     }
 
     private fun getClient() = netflowClient {
-        baseUrl = "https://jsonplaceholder.typicode.com/"
-        logLevel = LogLevel.Headers
+        baseUrl = "https://jsonplaceholder.typicode.com"
+        logLevel = LogLevel.Body
+
+        defaultRetry {
+            times = RetryTimes.THREE
+        }
     }
 }

@@ -39,8 +39,9 @@ class NetFlowRequest internal constructor(
 
         var lastError: Exception? = null
 
-        repeat(times) { attempt ->
+        for (attempt in 0 until times.times) {
             logRequest(attempt)
+
             try {
                 val response = client.call(requestBuilder, builder)
                 logResponse(response)
@@ -62,11 +63,13 @@ class NetFlowRequest internal constructor(
                     return response
                 }
 
-                delay(retryBuilder.delay)
+                if (attempt < times.times - 1) {
+                    delay(retryBuilder.delay)
+                }
             }
         }
 
-        // If we get here, all attempts failed; return the last known error
+        // If we get here, all attempts failed
         val response = NetFlowResponse(
             code = 500,
             headers = builder.headers,
@@ -77,6 +80,7 @@ class NetFlowRequest internal constructor(
         logResponse(response)
         return response
     }
+
 
     private fun logRequest(attempt: Int) {
         Logging.logRequest(requestBuilder, attempt, logLevel)

@@ -2,6 +2,7 @@ package com.kmpbits.netflow_core.builders
 
 import com.kmpbits.netflow_core.builders.extensions.toJsonString
 import com.kmpbits.netflow_core.builders.extensions.toNSData
+import com.kmpbits.netflow_core.enums.HttpMethod
 import com.kmpbits.netflow_core.extensions.toName
 import com.kmpbits.netflow_core.extensions.urlWithPath
 import com.kmpbits.netflow_core.platform.InternalHttpRequestBuilder
@@ -22,11 +23,13 @@ internal actual suspend fun RequestBuilder.build(): InternalHttpRequestBuilder {
     val mutableRequest = NSMutableURLRequest.requestWithURL(url).apply {
         setHTTPMethod(method.toName())
 
+        val allowsBody = method in setOf(HttpMethod.Post, HttpMethod.Put, HttpMethod.Patch)
+
         headers.forEach {
             setValue(it.second, forHTTPHeaderField = it.first.header)
         }
 
-        if (body != null) {
+        if (body != null && allowsBody) {
             val jsonString = body!!.toJsonString()
             HTTPBody = jsonString.toNSData()
         }
