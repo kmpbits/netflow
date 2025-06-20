@@ -13,7 +13,7 @@ import com.kmpbits.netflow_core.platform.InternalHttpRequestBuilder
 @NetFlowMarker
 class RequestBuilder internal constructor(
     internal val baseUrl: String,
-    private val retryBuilder: RetryBuilder
+    internal val retryBuilder: RetryBuilder
 ) {
 
     @PublishedApi
@@ -137,6 +137,30 @@ class RequestBuilder internal constructor(
         this.body = body
     }
 
+    /**
+     * Configures retry behavior specifically for this request.
+     *
+     * This local configuration **overrides** any global retry settings defined
+     * in [netFlowClient].
+     *
+     * Use it to customize the number of attempts, delay between retries, and
+     * conditional logic to determine if an exception should trigger a retry,
+     * allowing fine-grained control per call.
+     *
+     * Example:
+     * ```
+     * client.call {
+     *     GET("/posts")
+     *     retry {
+     *         times = 4
+     *         delay = 500.milliseconds
+     *         retryOn = { it is IOException }
+     *     }
+     * }
+     * ```
+     *
+     * @param block Lambda with receiver on [RetryBuilder] to configure retry options.
+     */
     fun retry(builder: RetryBuilder. () -> Unit) {
         retryBuilder.also(builder)
     }

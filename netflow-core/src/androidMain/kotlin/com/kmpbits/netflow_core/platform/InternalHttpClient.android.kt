@@ -5,7 +5,6 @@ import com.kmpbits.netflow_core.response.NetFlowResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
-import kotlin.coroutines.cancellation.CancellationException
 
 internal actual class InternalHttpClient(
     private val client: OkHttpClient
@@ -13,36 +12,21 @@ internal actual class InternalHttpClient(
 
     actual suspend fun call(requestBuilder: InternalHttpRequestBuilder, builder: RequestBuilder): NetFlowResponse {
         val request = requestBuilder.request
+        val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
 
-        return try {
-            val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
-
-            if (response.isSuccessful) {
-                NetFlowResponse(
-                    code = response.code,
-                    headers = builder.headers,
-                    body = response.body?.string().orEmpty(),
-                    errorBody = null
-                )
-            } else {
-                NetFlowResponse(
-                    code = response.code,
-                    headers = builder.headers,
-                    body = null,
-                    errorBody = response.body?.string().orEmpty()
-                )
-            }
-
-        } catch (e: Exception) {
-            if (e is CancellationException) {
-                throw e
-            }
-
+        return if (response.isSuccessful) {
             NetFlowResponse(
-                code = 500,
+                code = response.code,
+                headers = builder.headers,
+                body = response.body?.string().orEmpty(),
+                errorBody = null
+            )
+        } else {
+            NetFlowResponse(
+                code = response.code,
                 headers = builder.headers,
                 body = null,
-                errorBody = e.localizedMessage
+                errorBody = response.body?.string().orEmpty()
             )
         }
     }

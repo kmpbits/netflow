@@ -1,23 +1,32 @@
 package com.kmpbits.netflow_core.platform
 
+import com.kmpbits.netflow_core.alias.Header
+import com.kmpbits.netflow_core.alias.Headers
+import com.kmpbits.netflow_core.enums.HttpHeader
 import platform.Foundation.HTTPMethod
 import platform.Foundation.NSMutableURLRequest
+import platform.Foundation.allHTTPHeaderFields
 
 internal actual class InternalHttpRequestBuilder(
     internal val request: NSMutableURLRequest
 ) {
-    actual val url: String
+    internal actual val url: String
         get() = request.URL?.absoluteString.orEmpty()
 
-    actual val method: String
+    internal actual val method: String
         get() = request.HTTPMethod
 
-    actual val path: String
+    internal actual val path: String
         get() = request.URL?.path.orEmpty()
 
-    actual val query: String
+    internal actual val query: String
         get() = request.URL?.query.orEmpty()
 
-    actual val host: String
+    internal actual val host: String
         get() = request.URL?.host.orEmpty()
+
+    internal actual val headers: Headers
+        get() = request.allHTTPHeaderFields?.map {
+            Header(HttpHeader.custom(it.key.toString()), it.value.toString())
+        }?.toMutableList() ?: mutableListOf()
 }

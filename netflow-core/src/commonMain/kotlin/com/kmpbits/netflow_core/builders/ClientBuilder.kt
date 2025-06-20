@@ -99,9 +99,9 @@ class ClientBuilder internal constructor() {
      * }
      * ```
      *
-     * @param block Lambda with receiver on [RetryBuilder] to configure retry options.
+     * @param builder Lambda with receiver on [RetryBuilder] to configure retry options.
      */
-    fun retry(builder: RetryBuilder. () -> Unit) {
+    fun defaultRetry(builder: RetryBuilder. () -> Unit) {
         retryBuilder.also(builder)
     }
 

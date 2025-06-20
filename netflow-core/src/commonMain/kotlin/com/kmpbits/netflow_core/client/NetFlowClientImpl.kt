@@ -4,7 +4,6 @@ import com.kmpbits.netflow_core.builders.RequestBuilder
 import com.kmpbits.netflow_core.builders.RetryBuilder
 import com.kmpbits.netflow_core.builders.build
 import com.kmpbits.netflow_core.enums.LogLevel
-import com.kmpbits.netflow_core.logging.Logging
 import com.kmpbits.netflow_core.platform.InternalHttpClient
 import com.kmpbits.netflow_core.request.NetFlowRequest
 
@@ -23,14 +22,6 @@ internal class NetFlowClientImpl(
         val callBuilder = RequestBuilder(baseUrl, retryBuilder).also(builder)
         val requestBuilder = callBuilder.build()
 
-        // Log the request
-        when(logLevel) {
-            LogLevel.None -> {}
-            LogLevel.Basic -> {}
-            LogLevel.Headers -> {}
-            LogLevel.Body -> Logging.logRequest(requestBuilder)
-        }
-
-        return NetFlowRequest(callBuilder, baseUrl, client, requestBuilder)
+        return NetFlowRequest(callBuilder, client, requestBuilder, logLevel)
     }
 }

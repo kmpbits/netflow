@@ -1,22 +1,30 @@
 package com.kmpbits.netflow_core.platform
 
+import com.kmpbits.netflow_core.alias.Header
+import com.kmpbits.netflow_core.alias.Headers
+import com.kmpbits.netflow_core.enums.HttpHeader
 import okhttp3.Request
 
 internal actual class InternalHttpRequestBuilder(
     val request: Request
 ) {
-    actual val url: String
+    internal actual val url: String
         get() = request.url.toString()
 
-    actual val method: String
+    internal actual val method: String
         get() = request.method
 
-    actual val path: String
+    internal actual val path: String
         get() = request.url.encodedPath
 
-    actual val query: String
+    internal actual val query: String
         get() = request.url.query.orEmpty()
 
-    actual val host: String
+    internal actual val host: String
         get() = request.url.host
+
+    internal actual val headers: Headers
+        get() = request.headers.map {
+            Header(HttpHeader.custom(it.first), it.second)
+        }.toMutableList()
 }

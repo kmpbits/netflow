@@ -28,6 +28,6 @@ class MainViewModel : ViewModel() {
 
     private fun getClient() = netflowClient {
         baseUrl = "https://jsonplaceholder.typicode.com/"
-        logLevel = LogLevel.Body
+        logLevel = LogLevel.Basic
     }
 }

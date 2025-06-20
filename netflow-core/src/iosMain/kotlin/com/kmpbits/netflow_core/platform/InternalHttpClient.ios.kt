@@ -2,6 +2,7 @@ package com.kmpbits.netflow_core.platform
 
 import com.kmpbits.netflow_core.builders.RequestBuilder
 import com.kmpbits.netflow_core.builders.extensions.toByteArray
+import com.kmpbits.netflow_core.exceptions.HttpException
 import com.kmpbits.netflow_core.response.NetFlowResponse
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.convert
@@ -9,6 +10,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.Foundation.NSHTTPURLResponse
 import platform.Foundation.NSURLSession
 import platform.Foundation.dataTaskWithRequest
+import kotlin.coroutines.resumeWithException
 
 internal actual class InternalHttpClient(
     private val session: NSURLSession
@@ -22,14 +24,7 @@ internal actual class InternalHttpClient(
                 completionHandler = { data, response, error ->
                     when {
                         error != null -> {
-                            continuation.resumeWith(Result.success(
-                                NetFlowResponse(
-                                    code = error.code.convert(),
-                                    headers = builder.headers,
-                                    body = null,
-                                    errorBody = error.localizedDescription
-                                )
-                            ))
+                            continuation.resumeWithException(HttpException(error.code.convert(), error.localizedDescription))
                         }
                         data != null && response is NSHTTPURLResponse -> {
                             val bodyByteArray = data.toByteArray()
@@ -47,14 +42,7 @@ internal actual class InternalHttpClient(
                             )
                         }
                         else -> {
-                            continuation.resumeWith(Result.success(
-                                NetFlowResponse(
-                                    code = 500,
-                                    headers = builder.headers,
-                                    body = null,
-                                    errorBody = "Generic Error"
-                                )
-                            ))
+                            continuation.resumeWithException(Throwable("Something went wrong"))
                         }
                     }
                 }

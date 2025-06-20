@@ -1,10 +1,13 @@
 package com.kmpbits.netflow_core.platform
 
+import com.kmpbits.netflow_core.alias.Headers
+
 internal expect class InternalHttpRequestBuilder {
 
-    val url: String
-    val method: String
-    val path: String
-    val query: String
-    val host: String
+    internal val url: String
+    internal val method: String
+    internal val path: String
+    internal val query: String
+    internal val host: String
+    internal val headers: Headers
 }
