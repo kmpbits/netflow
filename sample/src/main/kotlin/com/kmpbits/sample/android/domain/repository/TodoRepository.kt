@@ -12,4 +12,10 @@ interface TodoRepository {
         title: String,
         completed: Boolean
     ): Flow<ResultState<Todo>>
+
+    fun updateTodo(
+        id: Int,
+        title: String,
+        completed: Boolean
+    ): Flow<ResultState<Todo>>
 }

@@ -70,7 +70,6 @@ private fun TodoItemPreview() {
                 id = 1,
                 title = "Todo 1",
                 completed = true,
-                addedTimestamp = System.currentTimeMillis()
             ),
             onCheckChanged = {},
             onDelete = {}

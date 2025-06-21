@@ -29,7 +29,7 @@ class MainViewModel(
         when (action) {
             is TodoAction.AddUpdateTodo -> {
                 action.id?.let {
-                    //updateTodo(it)
+                    updateTodo(it)
                 } ?: run {
                     addTodo()
                 }
@@ -46,7 +46,7 @@ class MainViewModel(
     private fun updateTodoCheck(todo: Todo) {
         updateTitle(todo.title)
         updateIsChecked(!todo.completed) // This is needed because we are only changing the isChecked value
-        //updateTodo(todo.id)
+        updateTodo(todo.id)
     }
 
     private fun updateDialogVisibility(isVisible: Boolean, todo: Todo?) {
@@ -126,44 +126,46 @@ class MainViewModel(
     }
 
     // This API is onlu for testing purpose. On new fetch, the new update Todo will be reverted
-//    private fun updateTodo(id: Int) = viewModelScope.launch {
-//        val title = state.value.todoTitle
-//        val isChecked = state.value.isChecked
-//
-//        repository.updateTodo(
-//            id = id,
-//            title = title,
-//            completed = isChecked
-//        ).collectLatest { response ->
-//            when (response) {
-//                is ResponseState.Error -> {} // Not needed for this demo
-//                ResponseState.Loading -> {} // Not needed for this demo
-//                is ResponseState.Success -> {
-//                    val successState = state.value.todoListState as? ResponseState.Success
-//                    val updatedItem = response.data
-//                    val newList = successState?.data?.let {
-//                        modifyListById(
-//                            list = it,
-//                            id = id,
-//                            operation = ListOperation.UPDATE,
-//                            idSelector = { it.id },
-//                            newItem = updatedItem
-//                        )
-//
-//                    } ?: listOf()
-//
-//                    _state.update {
-//                        it.copy(
-//                            todoListState = ResponseState.Success(newList),
-//                            isAddUpdateDialogVisible = false,
-//                            todoTitle = "",
-//                            isChecked = false
-//                        )
-//                    }
-//                }
-//            }
-//        }
-//    }
+    private fun updateTodo(id: Int) = viewModelScope.launch {
+        val title = state.value.todoTitle
+        val isChecked = state.value.isChecked
+
+        repository.updateTodo(
+            id = id,
+            title = title,
+            completed = isChecked
+        ).collectLatest { response ->
+            when (response) {
+                is ResultState.Error -> {} // Not needed for this demo
+                ResultState.Loading -> {} // Not needed for this demo
+                is ResultState.Success -> {
+                    val successState = state.value.todoListState as? ResultState.Success
+                    val updatedItem = response.data
+                    val newList = successState?.data?.let {
+                        modifyListById(
+                            list = it,
+                            id = id,
+                            operation = ListOperation.UPDATE,
+                            idSelector = { it.id },
+                            newItem = updatedItem
+                        )
+
+                    } ?: listOf()
+
+                    _state.update {
+                        it.copy(
+                            todoListState = ResultState.Success(newList),
+                            isAddUpdateDialogVisible = false,
+                            todoTitle = "",
+                            isChecked = false
+                        )
+                    }
+                }
+
+                ResultState.Empty -> {}
+            }
+        }
+    }
 //
 //    private fun delete(id: Int) = viewModelScope.launch {
 //        repository.deleteTodo(id).collectLatest { response ->

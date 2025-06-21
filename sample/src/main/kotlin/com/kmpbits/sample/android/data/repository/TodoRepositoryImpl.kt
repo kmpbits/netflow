@@ -41,7 +41,7 @@ class TodoRepositoryImpl(
                 database.todoDao().replaceTodos(it.map(TodoDto::toEntity))
             }
         }.map {
-            it.map { it.map { it.toModel() } }
+            it.map { it.map(TodoDto::toModel) }
         }
     }
 
@@ -62,6 +62,29 @@ class TodoRepositoryImpl(
                 // Here is the place to add the item to the local database
                 database.todoDao().upsertTodo(it.toEntity())
             }
+        }.map {
+            it.map(TodoDto::toModel)
+        }
+    }
+
+    override fun updateTodo(id: Int, title: String, completed: Boolean): Flow<ResultState<Todo>> {
+        return client.call {
+            path = "todos/$id"
+            method = HttpMethod.Put
+
+            body(
+                mapOf(
+                    "userId" to 1,
+                    "title" to title,
+                    "completed" to completed
+                )
+            )
+        }.responseFlow<TodoDto> {
+            onNetworkSuccess {
+                // Here is the place to update the item in the local database
+                database.todoDao().upsertTodo(it.toEntity())
+            }
+
         }.map {
             it.map(TodoDto::toModel)
         }
