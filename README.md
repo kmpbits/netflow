@@ -96,6 +96,9 @@ val usersFlow = client.call {
     }
 }
 ```
+⚠️ Important
+The return type from your database must match the network DTO (e.g., UserDto).
+If you're using a different domain model, it won't work for now.
 
 ### Observing Flow
 
