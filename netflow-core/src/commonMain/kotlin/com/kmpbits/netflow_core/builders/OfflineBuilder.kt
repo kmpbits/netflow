@@ -6,15 +6,6 @@ import kotlinx.coroutines.flow.Flow
 @NetFlowMarker
 class OfflineBuilder<T> internal constructor() {
 
-    /**
-     * Whether or not the request should only call a local data source.
-     *
-     * If it's true, the data source will come from both local and remote
-     *
-     * Default is false.
-     */
-    var onlyLocalCall: Boolean = false
-
     @PublishedApi
     internal var call: (suspend () -> T?)? = null
 

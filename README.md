@@ -17,7 +17,6 @@ A lightweight, multiplatform network library for Kotlin – seamless API calls w
 - 🧠 Smart local cache integration with auto-observe
 - 🔁 Built-in error handling and retry logic
 - 🔍 Debug logging with multiple levels (None, Basic, Headers, Body)
-
 ---
 
 ## 📦 Installation
@@ -25,8 +24,8 @@ A lightweight, multiplatform network library for Kotlin – seamless API calls w
 Add the dependency to your `build.gradle.kts`:
 
 ```kotlin
-dependencies {
-  implementation("io.github.kmpbits:netflow-core:<latest_version>")
+dependencies { 
+    implementation("io.github.kmpbits:netflow-core:<latest_version>")
 }
 ```
 
@@ -81,7 +80,7 @@ Customize the flow behavior:
 val usersFlow = client.call {
     path = "/users"
     method = HttpMethod.Get
-}.responseFlow<List<User>> {
+}.responseFlow<List<UserDto>> {
 
     // ✅ Automatically insert into your local database
     onNetworkSuccess { users ->
@@ -93,20 +92,31 @@ val usersFlow = client.call {
         observe {
             userDao.getAllUsers()
         }
-    }, transform = { userEntities ->
-        userEntities.map(UserEntity::toDto)
-    })
-}
-.map {
-    // This is an extension function to map the success response to a different model
-    it.map { it.map { it.toModel() } }
+    }, transform = { it.map { dto -> dto.toModel() } })
 }
 ```
 
-⚠️ **Important**
-- The return type from your database must match the network DTO (e.g., `UserDto`) by default.
-- If you're using a different entity (e.g., `UserEntity`), you can use the new `transform` lambda in `local {}` to map your entities to DTOs.
-- All the response can be mapped at once using the `map` extension on the `ResultState`.
+⚠️ Important:
+- The return type from your database must match the network DTO (e.g., `UserDto`).
+- If you're using a different domain model, use the `transform` parameter inside `local()` to convert to the DTO type.
+- If you only want to fetch local data without a network call, set `onlyLocalCall = true` inside the `local` DSL block.
+
+```kotlin
+local({
+    onlyLocalCall = true
+    call {
+        userDao.getAllUsers()
+    }
+}, transform = { it.map { dto -> dto.toModel() } })
+```
+
+All the responses can be mapped at once using the `map` extension inside `ResultState`:
+
+```kotlin
+.map {
+    it.map { dtoList -> dtoList.map { it.toModel() } }
+}
+```
 
 ### Observing Flow
 
@@ -161,22 +171,22 @@ client.call {
 
 ## ❗ Error Handling
 
-`responseToModel` is the only extension that needs to be used with `try/catch`.
+``responseToModel`` is the only extension that needs to be used with try catch.
 
 ```kotlin
 try {
-    val response = client.call {
-        path = "/might-fail"
-    }.responseToModel<Data>()
+  val response = client.call {
+    path = "/might-fail"
+  }.responseToModel<Data>()
 } catch (e: StateTalkException) {
-    when (e) {
-        is NetworkException -> { /* handle network issues */ }
-        is SerializationException -> { /* handle parsing errors */ }
-        is HttpException -> {
-            val code = e.code
-            val errorBody = e.errorBody
-        }
+  when (e) {
+    is NetworkException -> { /* handle network issues */ }
+    is SerializationException -> { /* handle parsing errors */ }
+    is HttpException -> {
+      val code = e.code
+      val errorBody = e.errorBody
     }
+  }
 }
 ```
 
@@ -186,9 +196,9 @@ try {
 
 ```kotlin
 single {
-    netFlowClient {
-        baseUrl = "https://api.example.com"
-    }
+  netFlowClient {
+    baseUrl = "https://api.example.com"
+  }
 }
 ```
 

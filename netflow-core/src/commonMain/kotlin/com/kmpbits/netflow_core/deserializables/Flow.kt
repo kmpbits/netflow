@@ -2,7 +2,6 @@ package com.kmpbits.netflow_core.deserializables
 
 import com.kmpbits.netflow_core.builders.ResponseBuilder
 import com.kmpbits.netflow_core.enums.ErrorResponseType
-import com.kmpbits.netflow_core.exceptions.NetFlowException
 import com.kmpbits.netflow_core.exceptions.toError
 import com.kmpbits.netflow_core.extensions.toEnvelopeList
 import com.kmpbits.netflow_core.extensions.toList
@@ -27,7 +26,7 @@ import kotlinx.coroutines.withContext
  * It's offline first and it handles the loading and error, then emits the results into a [ResultState]
  */
 inline fun <reified T : Any> NetFlowRequest.responseFlow(
-    crossinline responseBuilder: ResponseBuilder<T>. () -> Unit = {}
+    crossinline responseBuilder: ResponseBuilder<T>.() -> Unit = {}
 ): Flow<ResultState<T>> {
     return toFlow(
         responseBuilder = responseBuilder,
@@ -91,24 +90,21 @@ internal inline fun <reified T : Any> NetFlowRequest.toFlow(
 ): Flow<ResultState<T>> = channelFlow {
     val response = ResponseBuilder<T>().also(responseBuilder)
 
-    if (response.offlineBuilder?.onlyLocalCall == true && (response.offlineBuilder?.callFlow == null && response.offlineBuilder?.call == null))
-        throw NetFlowException("You must invoke the 'call()' functions to make only offline calls!")
-
-    val localCall = withContext(Dispatchers.IO) {
+    val rawLocalCall = withContext(Dispatchers.IO) {
         response.offlineBuilder?.call?.invoke() ?: response.offlineBuilder?.callFlow?.invoke()?.first()
     }
 
-    if (response.offlineBuilder?.onlyLocalCall == true) {
-        localCall?.let {
-            send(ResultState.Success(it))
-        } ?: run {
-            send(ResultState.Error(ErrorResponse(404, "Empty", ErrorResponseType.Empty)))
-        }
+    val localCall: T? = rawLocalCall?.let { response.transform?.invoke(it) } ?: rawLocalCall as? T
 
-        return@channelFlow
+    val shouldEmitLoading = when (localCall) {
+        null -> true
+        is List<*> -> localCall.isEmpty()
+        else -> false
     }
 
-    send(ResultState.Loading(localCall))
+    if (shouldEmitLoading) {
+        send(ResultState.Loading)
+    }
 
     immutableRequestBuilder.preCall?.invoke()
 
@@ -125,38 +121,32 @@ internal inline fun <reified T : Any> NetFlowRequest.toFlow(
 
                 if (response.offlineBuilder?.call == null || response.offlineBuilder?.callFlow == null) {
                     send(ResultState.Success(result))
-
-                } else {
-                    // No-op. It will update from local database
                 }
             } ?: run {
                 send(
                     ResultState.Error(
-                        error = ErrorResponse(
-                            404,
-                            "Response null",
-                            ErrorResponseType.Empty
-                        ),
+                        error = ErrorResponse(404, "Response null", ErrorResponseType.Empty),
                         data = localCall
-                    ))
+                    )
+                )
             }
-
         } else {
             send(
                 ResultState.Error(
                     error = callResponse.toError(),
                     data = localCall
-                ))
+                )
+            )
         }
 
         response.offlineBuilder?.call?.let {
-            it()?.let {
-                ResultState.Success(it)
+            it()?.let { result ->
+                val transformed = response.transform?.invoke(result)
+                send(ResultState.Success(transformed ?: result as T))
             }
         } ?: response.offlineBuilder?.callFlow?.invoke()?.collect {
-            it?.let {
-                send(ResultState.Success(it))
-            }
+            val transformed = response.transform?.invoke(it)
+            send(ResultState.Success(transformed ?: it as T))
         }
 
     } catch (e: Exception) {
@@ -164,6 +154,7 @@ internal inline fun <reified T : Any> NetFlowRequest.toFlow(
             ResultState.Error(
                 error = ErrorResponse(500, e.message, ErrorResponseType.Unknown),
                 data = localCall
-            ))
+            )
+        )
     }
 }

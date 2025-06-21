@@ -7,6 +7,7 @@
         android:name=".App"
         android:allowBackup="false"
         android:supportsRtl="true"
+        android:label="Communication sample"
         android:theme="@style/AppTheme">
         <activity
             android:name=".presentation.MainActivity"

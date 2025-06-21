@@ -3,10 +3,13 @@ package com.kmpbits.netflow_core.builders
 import com.kmpbits.netflow_core.annotations.NetFlowMarker
 
 @NetFlowMarker
-class ResponseBuilder<T> @PublishedApi internal constructor(){
+class ResponseBuilder<T> @PublishedApi internal constructor() {
 
     @PublishedApi
-    internal var offlineBuilder: OfflineBuilder<T>? = null
+    internal var offlineBuilder: OfflineBuilder<*>? = null
+
+    @PublishedApi
+    internal var transform: ((Any?) -> T)? = null
 
     @PublishedApi
     internal var post: (suspend () -> Unit)? = null
@@ -17,8 +20,10 @@ class ResponseBuilder<T> @PublishedApi internal constructor(){
     /**
      * Call this function to access the [OfflineBuilder] and handle local calls.
      */
-    fun local(builder: OfflineBuilder<T>. () -> Unit) {
-        offlineBuilder = OfflineBuilder<T>().also(builder)
+    @Suppress("UNCHECKED_CAST")
+    fun <E> local(builder: OfflineBuilder<E>.() -> Unit, transform: (E) -> T) {
+        offlineBuilder = OfflineBuilder<E>().also(builder)
+        this.transform = { transform(it as E) }
     }
 
     /**

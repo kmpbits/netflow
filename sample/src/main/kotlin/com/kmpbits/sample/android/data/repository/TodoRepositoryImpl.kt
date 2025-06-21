@@ -7,7 +7,10 @@ import com.kmpbits.netflow_core.enums.HttpMethod
 import com.kmpbits.netflow_core.states.ResultState
 import com.kmpbits.netflow_core.states.map
 import com.kmpbits.sample.android.data.database.AppDatabase
+import com.kmpbits.sample.android.data.database.entity.TodoEntity
 import com.kmpbits.sample.android.data.dto.TodoDto
+import com.kmpbits.sample.android.data.mapper.toDto
+import com.kmpbits.sample.android.data.mapper.toEntity
 import com.kmpbits.sample.android.data.mapper.toModel
 import com.kmpbits.sample.android.domain.model.Todo
 import com.kmpbits.sample.android.domain.repository.TodoRepository
@@ -27,15 +30,16 @@ class TodoRepositoryImpl(
         }.responseListFlow<TodoDto>{
             // Keep observing the local database
             // This only works if the localDatabase uses the TodoDto
-            local {
-                observe {
-                    database.todoDao().getTodos()
-                }
-            }
+            local({
+                    observe {
+                        database.todoDao().getTodos()
+                    }
+                }, { it.map(TodoEntity::toDto) }
+            )
 
             // Here is the place to replace all the items in the local database
             onNetworkSuccess {
-                database.todoDao().replaceTodos(it)
+                database.todoDao().replaceTodos(it.map(TodoDto::toEntity))
             }
         }.map {
             it.map { it.map { it.toModel() } }
@@ -58,7 +62,7 @@ class TodoRepositoryImpl(
         }.responseFlow<TodoDto> {
             onNetworkSuccess {
                 // Here is the place to add the item to the local database
-                database.todoDao().upsertTodo(it)
+                database.todoDao().upsertTodo(it.toEntity())
             }
         }.map {
             it.map(TodoDto::toModel)
