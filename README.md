@@ -1,31 +1,28 @@
-# NetFlow KMP
+# NetFlow KMP 🌐
+A lightweight, multiplatform network library for Kotlin – seamless API calls with Flow, LiveData, and native performance.
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.kmpbits/netflow-core.svg?label=Maven%20Central)](https://search.maven.org/artifact/com.github.kmpbits.libraries/netflow-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A lightweight, flexible network library for Kotlin Multiplatform. The NetFlow library provides a clean and intuitive API for handling network requests with support for LiveData, Flow and object deserialization.
+---
 
-## 🌟 Features
+## ✨ Features
 
-- **Multiple Response Types**
-  - Support for LiveData responses
-  - Support for Flow responses
-  - Direct object deserialization
+- 🚀 Kotlin Multiplatform-ready (Android + iOS)
+- 📡 Multiple response strategies:
+  - LiveData
+  - Flow (with UI state handling)
+  - Direct deserialization
+- ⚙️ Customizable requests (headers, parameters, methods)
+- 🧠 Smart local cache integration with auto-observe
+- 🔁 Built-in error handling and retry logic
+- 🔍 Debug logging with multiple levels (None, Basic, Headers, Body)
 
-- **Flexibility**
-  - Customizable headers and parameters
-  - Support for all HTTP methods
-  - Easy to configure base URL
-
-- **Local Data Integration**
-  - Support for caching and local data observation
-  - Callbacks for handling successful network responses
+---
 
 ## 📦 Installation
 
-### Add the dependencies
-
-In your app module's `build.gradle` file:
+Add the dependency to your `build.gradle.kts`:
 
 ```kotlin
 dependencies { 
@@ -33,38 +30,34 @@ dependencies {
 }
 ```
 
-Replace `latest_version` with the current release version from Maven Central.
+Check the latest version on [Maven Central](https://search.maven.org/artifact/com.github.kmpbits.libraries/netflow-core)
+
+---
 
 ## 🚀 Getting Started
 
 ### Initialize the Client
 
-Create a client instance in your application class, a singleton, or your dependency injection setup:
-
 ```kotlin
 val client = netFlowClient {
     baseUrl = "https://api.example.com"
-    
-    // Optional: Add default headers
-    headers {
-        "Content-Type" to "application/json"
-        "Authorization" to "Bearer YOUR_TOKEN"
-    }
+
+    // Optional default headers
+    header(Header(HttpHeader.custom("custom-header"), "This is a custom header"))
+    header(Header(HttpHeader.CONTENT_TYPE), "application/json")
 }
 ```
 
-### Making Simple Requests
-
-#### Basic Request
+### Basic Request
 
 ```kotlin
-val response: netFlowResponse = client.call {
+val response = client.call {
     path = "/users"
     method = HttpMethod.Get
 }.response()
 ```
 
-#### Deserialize to a Model
+### Deserialize to Model
 
 ```kotlin
 val user: User = client.call {
@@ -72,40 +65,41 @@ val user: User = client.call {
 }.responseToModel<User>()
 ```
 
-### Working with Flow
+---
 
-Retrieve data as a Flow with built-in state handling:
+## 🌊 Working with Flow
 
 ```kotlin
-val userFlow: Flow<ResultState<User>> = client.call {
+val userFlow = client.call {
     path = "/users/1"
-    parameter("include" to "details")
-}.responseFlow()
+}.responseFlow<User>()
 ```
 
-You can also customize the flow response behavior:
+Customize the flow behavior:
 
 ```kotlin
 val usersFlow = client.call {
     path = "/users"
     method = HttpMethod.Get
 }.responseFlow<List<User>> {
-    // Handle successful network response
+
+    // ✅ Automatically insert into your local database
     onNetworkSuccess { users ->
-        // Save to local database
         userDao.insertAll(users)
     }
-    
-    // Observe local data source
+
+    // 👁️ Observe the local data source for UI updates
     local {
-        observe { userDao.getAllUsers() }
+        observe {
+            userDao.getAllUsers()
+        }
     }
 }
 ```
 
-### Observing Flow Responses
+### Observing Flow
 
-Using lifecycle-aware collection:
+Using lifecycle:
 
 ```kotlin
 userFlow.observe(viewLifecycleOwner) { state ->
@@ -118,20 +112,17 @@ userFlow.observe(viewLifecycleOwner) { state ->
 }
 ```
 
-Using coroutines:
+Or with coroutines:
 
 ```kotlin
 lifecycleScope.launch {
     userFlow.collectLatest { state ->
-        when(state) {
-            is ResultState.Loading -> showLoading()
-            is ResultState.Success -> showUsers(state.data)
-            is ResultState.Error -> showError(state.exception.message)
-            is ResultState.Empty -> showEmptyState()
-        }
+        // same logic as above
     }
 }
 ```
+
+---
 
 ## 📋 Advanced Configuration
 
@@ -140,14 +131,12 @@ lifecycleScope.launch {
 ```kotlin
 client.call {
     path = "/secure-endpoint"
-    headers {
-        "Authorization" to "Bearer $token"
-        "X-Custom-Header" to "CustomValue"
-    }
+    header(Header(HttpHeader.custom("custom-header"), "This is a custom header"))
+    header(Header(HttpHeader.CONTENT_TYPE), "application/json")
 }.responseFlow<SecureData>()
 ```
 
-### Request Parameters
+### Query Parameters
 
 ```kotlin
 client.call {
@@ -157,38 +146,48 @@ client.call {
 }.responseFlow<List<User>>()
 ```
 
-### Error Handling
+---
 
-The library provides several ways to handle errors:
+## ❗ Error Handling
+
+``responseToModel`` is the only extension that needs to be used with try catch.
 
 ```kotlin
 try {
     val response = client.call {
         path = "/might-fail"
     }.responseToModel<Data>()
-} catch (e: stateTalkException) {
-    // Handle stateTalk errors
+} catch (e: StateTalkException) {
     when (e) {
-        is NetworkException -> {} // Handle network errors
-        is SerializationException -> {} // Handle parsing errors
+        is NetworkException -> { /* handle network issues */ }
+        is SerializationException -> { /* handle parsing errors */ }
         is HttpException -> {
-            // Access HTTP error details
-            val statusCode = e.code
+            val code = e.code
             val errorBody = e.errorBody
         }
     }
 }
 ```
 
-## 🤝 Contributing
+---
 
-Contributions are welcome! Feel free to open issues or submit pull requests.
+## 🧰 Using with DI (e.g. Koin)
 
-1. Fork the project
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+```kotlin
+single {
+    netFlowClient {
+        baseUrl = "https://api.example.com"
+    }
+}
+```
+
+---
+
+## 🧪 Testing
+
+NetFlow is tested across Android and iOS targets. You can find a working sample app in the `sample/` module.
+
+---
 
 ## 📝 License
 
