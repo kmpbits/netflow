@@ -25,8 +25,8 @@ A lightweight, multiplatform network library for Kotlin – seamless API calls w
 Add the dependency to your `build.gradle.kts`:
 
 ```kotlin
-dependencies { 
-    implementation("io.github.kmpbits:netflow-core:<latest_version>")
+dependencies {
+  implementation("io.github.kmpbits:netflow-core:<latest_version>")
 }
 ```
 
@@ -40,11 +40,11 @@ Check the latest version on [Maven Central](https://search.maven.org/artifact/co
 
 ```kotlin
 val client = netFlowClient {
-    baseUrl = "https://api.example.com"
+  baseUrl = "https://api.example.com"
 
-    // Optional default headers
-    header(Header(HttpHeader.custom("custom-header"), "This is a custom header"))
-    header(Header(HttpHeader.CONTENT_TYPE), "application/json")
+  // Optional default headers
+  header(Header(HttpHeader.custom("custom-header"), "This is a custom header"))
+  header(Header(HttpHeader.CONTENT_TYPE), "application/json")
 }
 ```
 
@@ -52,8 +52,8 @@ val client = netFlowClient {
 
 ```kotlin
 val response = client.call {
-    path = "/users"
-    method = HttpMethod.Get
+  path = "/users"
+  method = HttpMethod.Get
 }.response()
 ```
 
@@ -61,7 +61,7 @@ val response = client.call {
 
 ```kotlin
 val user: User = client.call {
-    path = "/users/1"
+  path = "/users/1"
 }.responseToModel<User>()
 ```
 
@@ -71,7 +71,7 @@ val user: User = client.call {
 
 ```kotlin
 val userFlow = client.call {
-    path = "/users/1"
+  path = "/users/1"
 }.responseFlow<User>()
 ```
 
@@ -79,30 +79,84 @@ Customize the flow behavior:
 
 ```kotlin
 val usersFlow = client.call {
-    path = "/users"
-    method = HttpMethod.Get
+  path = "/users"
+  method = HttpMethod.Get
 }.responseFlow<List<User>> {
 
-    // ✅ Automatically insert into your local database
-    onNetworkSuccess { users ->
-        userDao.insertAll(users)
-    }
+  // ✅ Automatically insert into your local database
+  onNetworkSuccess { users ->
+    userDao.insertAll(users)
+  }
 
-    // 👁️ Observe the local data source for UI updates
-    local {
-        observe {
-            userDao.getAllUsers()
-        }
+  // 👁️ Observe the local data source for UI updates
+  local {
+    observe {
+      userDao.getAllUsers()
     }
+  }
 }.map {
-    // This is an extension function to map the success response to a different model
-    it.map { it.map { it.toModel() } }
+  // This is an extension function to map the success response to a different model
+  it.map { it.map { it.toModel() } }
 }
 ```
-⚠️ Important
-The return type from your database must match the network DTO (e.g., UserDto).
-If you're using a different domain model, it won't work for now.
+
+⚠️ **Important**  
+The return type from your database must match the network DTO (e.g., UserDto).  
+If you're using a different domain model, it won't work for now.  
 All the response can be mapped at once with the map extension function inside the ResultState.
+
+---
+
+### 🧩 Local Data Options
+
+Inside the `responseFlow {}` builder, you can attach a local data source integration using the `local {}` DSL. This supports both **live observation** and **one-time retrieval**:
+
+#### ✅ Real-Time Observation with `observe {}`
+
+Watches the local database for changes and emits updates automatically. This requires your DAO to return a `Flow<T>`:
+
+```kotlin
+local {
+    observe {
+        userDao.getAllUsers()
+    }
+}
+```
+
+#### 📦 One-Time Fetch with `call {}`
+
+Fetches a snapshot from your local database only once (non-reactive):
+
+```kotlin
+local {
+    call {
+        userDao.getUserById(1)
+    }
+}
+```
+
+⚠️ **Note**: The return type from your local DB must match the DTO used in the network layer.
+
+```kotlin
+.responseFlow<UserDto> {
+    local {
+        observe { userDao.getUserDto() }
+    }
+}.map { it.map(UserDto::toModel) }
+```
+
+#### ⚡ Default Behavior
+
+When using `observe {}` or `call {}` inside `local {}`, NetFlow will first emit the local database result, and then update it with the network response.  
+To only emit the API result and skip local fallback:
+
+```kotlin
+local {
+    onlyApiCall = true
+}
+```
+
+---
 
 ### Observing Flow
 
@@ -157,22 +211,22 @@ client.call {
 
 ## ❗ Error Handling
 
-``responseToModel`` is the only extension that needs to be used with try catch.
+`responseToModel` is the only extension that needs to be used with try-catch.
 
 ```kotlin
 try {
-    val response = client.call {
-        path = "/might-fail"
-    }.responseToModel<Data>()
+  val response = client.call {
+    path = "/might-fail"
+  }.responseToModel<Data>()
 } catch (e: StateTalkException) {
-    when (e) {
-        is NetworkException -> { /* handle network issues */ }
-        is SerializationException -> { /* handle parsing errors */ }
-        is HttpException -> {
-            val code = e.code
-            val errorBody = e.errorBody
-        }
+  when (e) {
+    is NetworkException -> { /* handle network issues */ }
+    is SerializationException -> { /* handle parsing errors */ }
+    is HttpException -> {
+      val code = e.code
+      val errorBody = e.errorBody
     }
+  }
 }
 ```
 
@@ -182,9 +236,9 @@ try {
 
 ```kotlin
 single {
-    netFlowClient {
-        baseUrl = "https://api.example.com"
-    }
+  netFlowClient {
+    baseUrl = "https://api.example.com"
+  }
 }
 ```
 
