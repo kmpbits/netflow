@@ -123,6 +123,31 @@ local {
 }
 ```
 
+> ⚠️ **Important Limitation: Local Data Type Must Match DTO**
+>
+> When using `local.observe` or `local.call` inside `responseFlow<T>()`, the object returned from your local database **must be the same type** as the DTO (`T`) used in the response.
+>
+> For example, if your `responseFlow<UserDto>()` expects `UserDto`, then your local database must return `Flow<UserDto>` or `UserDto`.  
+> You **cannot** return a different entity type (like `UserEntity`) or a domain model (`User`) directly from your local DAO.
+>
+> This is due to type inference and generic constraints—mismatched types will cause a compilation error.
+>
+> ### ✅ Planned Improvement
+>
+> Future versions of NetFlow KMP may support a mapping function, allowing you to convert local data into the correct DTO form like this:
+>
+> ```kotlin
+> local {
+>     observe {
+>         userDao.getAllUserEntities()
+>     }
+>     map { entities -> entities.map { it.toDto() } }
+> }
+> ```
+>
+> For now, please ensure your local storage layer returns the same type used in the `responseFlow<T>()`.
+
+
 #### 📦 One-Time Fetch with `call {}`
 
 Fetches a snapshot from your local database only once (non-reactive):
