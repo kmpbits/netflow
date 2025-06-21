@@ -49,7 +49,7 @@ kotlin {
 
 val artifactCoreId = "netflow-core"
 val groupGitHubId = "io.github.kmpbits"
-val libraryVersion = "0.0.13-alpha01"
+val libraryVersion = "0.0.14-alpha01"
 
 group = groupGitHubId
 version = libraryVersion
@@ -71,7 +71,7 @@ mavenPublishing {
 
     signAllPublications()
 
-    coordinates(group.toString(), artifactCoreId, version.toString())
+    coordinates(groupGitHubId, artifactCoreId, libraryVersion)
 
     pom {
         name = "NetFlow KMP"
