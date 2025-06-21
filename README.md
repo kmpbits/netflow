@@ -94,11 +94,15 @@ val usersFlow = client.call {
             userDao.getAllUsers()
         }
     }
+}.map {
+    // This is an extension function to map the success response to a different model
+    it.map { it.map { it.toModel() } }
 }
 ```
 ⚠️ Important
 The return type from your database must match the network DTO (e.g., UserDto).
 If you're using a different domain model, it won't work for now.
+All the response can be mapped at once with the map extension function inside the ResultState.
 
 ### Observing Flow
 
