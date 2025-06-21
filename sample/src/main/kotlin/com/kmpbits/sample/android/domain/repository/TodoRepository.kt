@@ -7,4 +7,9 @@ import kotlinx.coroutines.flow.Flow
 interface TodoRepository {
 
     fun getTodos(): Flow<ResultState<List<Todo>>>
+
+    fun addTodo(
+        title: String,
+        completed: Boolean
+    ): Flow<ResultState<Todo>>
 }
