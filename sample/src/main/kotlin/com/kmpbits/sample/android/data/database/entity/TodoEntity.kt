@@ -9,5 +9,6 @@ data class TodoEntity(
     val id: Int,
     val userId: Int,
     val title: String,
-    val completed: Boolean
+    val completed: Boolean,
+    val addedTimestamp: Long = System.currentTimeMillis()
 )

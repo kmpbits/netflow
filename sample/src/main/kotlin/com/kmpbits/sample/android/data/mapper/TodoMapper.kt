@@ -8,7 +8,8 @@ fun TodoDto.toModel() = Todo(
     id = id,
     userId = userId,
     title = title,
-    completed = completed
+    completed = completed,
+    addedTimestamp = System.currentTimeMillis()
 )
 
 fun TodoEntity.toDto() = TodoDto(

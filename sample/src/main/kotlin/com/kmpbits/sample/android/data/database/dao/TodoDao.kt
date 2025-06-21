@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TodoDao {
 
-    @Query("SELECT * FROM todos")
+    @Query("SELECT * FROM todos ORDER BY addedTimestamp DESC")
     fun getTodos(): Flow<List<TodoEntity>>
 
     @Upsert

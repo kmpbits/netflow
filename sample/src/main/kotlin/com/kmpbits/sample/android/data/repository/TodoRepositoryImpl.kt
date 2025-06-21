@@ -16,7 +16,6 @@ import com.kmpbits.sample.android.domain.model.Todo
 import com.kmpbits.sample.android.domain.repository.TodoRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlin.random.Random
 
 class TodoRepositoryImpl(
     private val client: NetFlowClient,
@@ -54,7 +53,6 @@ class TodoRepositoryImpl(
             body(
                 mapOf(
                     "userId" to 1,
-                    "id" to Random.nextInt(),
                     "title" to title,
                     "completed" to completed
                 )
