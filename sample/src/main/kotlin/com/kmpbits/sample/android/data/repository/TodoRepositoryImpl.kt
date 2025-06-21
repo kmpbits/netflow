@@ -1,9 +1,11 @@
 package com.kmpbits.sample.android.data.repository
 
 import com.kmpbits.netflow_core.client.NetFlowClient
+import com.kmpbits.netflow_core.deserializables.responseAsync
 import com.kmpbits.netflow_core.deserializables.responseFlow
 import com.kmpbits.netflow_core.deserializables.responseListFlow
 import com.kmpbits.netflow_core.enums.HttpMethod
+import com.kmpbits.netflow_core.states.AsyncState
 import com.kmpbits.netflow_core.states.ResultState
 import com.kmpbits.netflow_core.states.map
 import com.kmpbits.sample.android.data.database.AppDatabase
@@ -87,6 +89,18 @@ class TodoRepositoryImpl(
 
         }.map {
             it.map(TodoDto::toModel)
+        }
+    }
+
+    override suspend fun deleteTodo(id: Int): AsyncState<Unit> {
+        return client.call {
+            path = "todos/$id"
+            method = HttpMethod.Delete
+        }.responseAsync {
+            onNetworkSuccess {
+                // Here is the place to delete the item in the local database
+                database.todoDao().deleteTodo(id)
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.kmpbits.sample.android.domain.repository
 
+import com.kmpbits.netflow_core.states.AsyncState
 import com.kmpbits.netflow_core.states.ResultState
 import com.kmpbits.sample.android.domain.model.Todo
 import kotlinx.coroutines.flow.Flow
@@ -18,4 +19,6 @@ interface TodoRepository {
         title: String,
         completed: Boolean
     ): Flow<ResultState<Todo>>
+
+    suspend fun deleteTodo(id: Int): AsyncState<Unit>
 }

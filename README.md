@@ -17,6 +17,23 @@ A lightweight, multiplatform network library for Kotlin – seamless API calls w
 - 🧠 Smart local cache integration with auto-observe
 - 🔁 Built-in error handling and retry logic
 - 🔍 Debug logging with multiple levels (None, Basic, Headers, Body)
+
+---
+
+## 💡 Why NetFlow?
+
+Managing network calls, caching, and syncing with local databases can become a repetitive mess in every project.
+
+NetFlow KMP was built to **solve these common problems**:
+
+- 🔁 **No more syncing logic** – When your API updates the data, NetFlow can automatically update your local database and trigger observers.
+- 🔍 **No more boilerplate** – Just define what to do on success and what to observe locally, and you're done.
+- 🧠 **Smart caching and local-first approach** – Responses are loaded from the local database immediately (if available), while the network updates in the background.
+- 🛠️ **Flexible by design** – You can work with your domain models using transformations, or skip them entirely and use DTOs.
+- 📱 **Multiplatform-ready** – Designed for KMP, works with Android/iOS out of the box.
+
+> ✅ All of this with just a few lines of Kotlin code – no manual list mutations, no state juggling, and no complicated observer logic.
+
 ---
 
 ## 📦 Installation
@@ -82,12 +99,10 @@ val usersFlow = client.call {
     method = HttpMethod.Get
 }.responseFlow<List<UserDto>> {
 
-    // ✅ Automatically insert into your local database
     onNetworkSuccess { users ->
         userDao.insertAll(users)
     }
 
-    // 👁️ Observe the local data source for UI updates
     local({
         observe {
             userDao.getAllUsers()
@@ -140,6 +155,25 @@ lifecycleScope.launch {
     userFlow.collectLatest { state ->
         // same logic as above
     }
+}
+```
+
+---
+
+## ⚡ Working with Async
+
+NetFlow also supports suspending requests for simpler APIs where observation is not required.
+
+```kotlin
+suspend fun deleteUser(id: Int): AsyncState<User> {
+    return client.call {
+        path = "users/$id"
+        method = HttpMethod.Delete
+    }.responseAsync<UserDto> {
+        onNetworkSuccess {
+            userDao.deleteUser(id)
+        }
+    }.map(UserDto::toModel)
 }
 ```
 
