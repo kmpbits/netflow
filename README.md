@@ -97,7 +97,7 @@ Customize the flow behavior:
 val usersFlow = client.call {
   path = "/users"
   method = HttpMethod.Get
-}.responseFlow<List<UserDto>> {
+}.responseFlow<List<User>> {
 
   onNetworkSuccess { usersDto ->
     // Convert DTO to Entity table
