@@ -99,15 +99,20 @@ val usersFlow = client.call {
     method = HttpMethod.Get
 }.responseFlow<List<UserDto>> {
 
-    onNetworkSuccess { users ->
-        userDao.insertAll(users)
+    onNetworkSuccess { usersDto ->
+        // Convert DTO to Entity table
+        userDao.insertAll(users.map(UserDto::toEntity))
     }
 
     local({
         observe {
             userDao.getAllUsers()
         }
-    }, transform = { it.map { dto -> dto.toModel() } })
+      // Convert Entity to DTO because the return type from your database must match the network DTO
+    }, transform = { it.map(UserEntity::ToDto) })
+}.map {
+    // Convert all of the response to models as it is the return type of the function
+  it.map { it.map(UserDto::toModel) }
 }
 ```
 
