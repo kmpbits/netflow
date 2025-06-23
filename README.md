@@ -95,23 +95,24 @@ Customize the flow behavior:
 
 ```kotlin
 val usersFlow = client.call {
-    path = "/users"
-    method = HttpMethod.Get
+  path = "/users"
+  method = HttpMethod.Get
 }.responseFlow<List<UserDto>> {
 
-    onNetworkSuccess { usersDto ->
-        // Convert DTO to Entity table
-        userDao.insertAll(users.map(UserDto::toEntity))
-    }
+  onNetworkSuccess { usersDto ->
+    // Convert DTO to Entity table
+    userDao.insertAll(users.map(UserDto::toEntity))
+  }
 
-    local({
-        observe {
-            userDao.getAllUsers()
-        }
-      // Convert Entity to DTO because the return type from your database must match the network DTO
-    }, transform = { it.map(UserEntity::ToDto) })
+  local({
+    observe {
+      userDao.getAllUsers()
+    }
+    // Convert Entity to DTO, if the database object is different than the network 
+    // because the return type from your database must match the network DTO
+  }, transform = { it.map(UserEntity::ToDto) })
 }.map {
-    // Convert all of the response to models as it is the return type of the function
+  // Convert all of the response to models as it is the return type of the function
   it.map { it.map(UserDto::toModel) }
 }
 ```
