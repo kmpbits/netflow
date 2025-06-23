@@ -119,7 +119,8 @@ val usersFlow = client.call {
 
 ⚠️ Important:
 - The return type from your database must match the network DTO (e.g., `UserDto`).
-- If you're using a different entity class, use the `transform` parameter inside `local()` to convert to the DTO type.
+- If you're using a different entity class, use the `transform` parameter inside `local()` to convert to the DTO type,
+otherwise, you will get a `ClassCastException`.
 - If you only want to fetch local data without a network call, set `onlyLocalCall = true` inside the `local` DSL block.
 
 ```kotlin

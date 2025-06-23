@@ -21,9 +21,12 @@ class ResponseBuilder<T> @PublishedApi internal constructor() {
      * Call this function to access the [OfflineBuilder] and handle local calls.
      */
     @Suppress("UNCHECKED_CAST")
-    fun <E> local(builder: OfflineBuilder<E>.() -> Unit, transform: (E) -> T) {
+    fun <E> local(builder: OfflineBuilder<E>.() -> Unit, transform: ((E) -> T)? = null) {
         offlineBuilder = OfflineBuilder<E>().also(builder)
-        this.transform = { transform(it as E) }
+
+        transform?.let {
+            this.transform = { it(it as E) }
+        }
     }
 
     /**

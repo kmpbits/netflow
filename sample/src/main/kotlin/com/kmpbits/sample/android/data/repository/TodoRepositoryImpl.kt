@@ -30,7 +30,7 @@ class TodoRepositoryImpl(
 
         }.responseListFlow<TodoDto>{
             // Keep observing the local database
-            // This only works if the localDatabase uses the TodoDto
+            // This only works if the localDatabase uses the same class as the network DTO
             local({
                     observe {
                         database.todoDao().getTodos()
