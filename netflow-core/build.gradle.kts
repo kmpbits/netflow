@@ -49,7 +49,7 @@ kotlin {
 
 val artifactCoreId = "netflow-core"
 val groupGitHubId = "io.github.kmpbits"
-val libraryVersion = "0.0.14-alpha01"
+val libraryVersion = "0.0.15-alpha"
 
 group = groupGitHubId
 version = libraryVersion
