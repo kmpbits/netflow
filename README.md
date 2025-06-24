@@ -247,7 +247,7 @@ single {
 
 ## 🧪 Testing
 
-NetFlow is tested across Android and iOS targets. You can find a working sample app in the `sample/` module.
+Will be imolemented soon.
 
 ---
 
