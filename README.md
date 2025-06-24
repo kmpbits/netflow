@@ -247,7 +247,7 @@ single {
 
 ## 🧪 Testing
 
-Will be imolemented soon.
+Will be implemented soon.
 
 ---
 
