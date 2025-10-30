@@ -13,7 +13,7 @@ internal class CustomHeaderInterceptor(
         val authenticateRequest = request.newBuilder()
 
         headers.forEach {
-            authenticateRequest.addHeader(it.first.header, it.second)
+            authenticateRequest.header(it.first.header, it.second)
         }
 
         return chain.proceed(authenticateRequest.build())
