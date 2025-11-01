@@ -13,6 +13,15 @@ class OfflineBuilder<T> internal constructor() {
     internal var callFlow: (() -> Flow<T?>)? = null
 
     /**
+     * Whether or not the request should only call a local data source.
+     *
+     * If it's true, the data source will come from both local and remote
+     *
+     * Default is false.
+     */
+    var onlyLocalCall: Boolean = false
+
+    /**
      * Call this function to handle the local call. It can be from any local database
      *
      * @param call The query from the local data source. It expects to receive an object of type [T].

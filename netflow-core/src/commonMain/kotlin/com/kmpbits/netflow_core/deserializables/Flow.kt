@@ -2,6 +2,7 @@ package com.kmpbits.netflow_core.deserializables
 
 import com.kmpbits.netflow_core.builders.ResponseBuilder
 import com.kmpbits.netflow_core.enums.ErrorResponseType
+import com.kmpbits.netflow_core.exceptions.NetFlowException
 import com.kmpbits.netflow_core.exceptions.toError
 import com.kmpbits.netflow_core.extensions.toEnvelopeList
 import com.kmpbits.netflow_core.extensions.toList
@@ -90,11 +91,24 @@ internal inline fun <reified T : Any> NetFlowRequest.toFlow(
 ): Flow<ResultState<T>> = channelFlow {
     val response = ResponseBuilder<T>().also(responseBuilder)
 
+    if (response.offlineBuilder?.onlyLocalCall == true && (response.offlineBuilder?.callFlow == null && response.offlineBuilder?.call == null))
+        throw NetFlowException("You must invoke the 'call()' functions to make only offline calls!")
+
     val rawLocalCall = withContext(Dispatchers.IO) {
         response.offlineBuilder?.call?.invoke() ?: response.offlineBuilder?.callFlow?.invoke()?.first()
     }
 
     val localCall: T? = rawLocalCall?.let { response.transform?.invoke(it) } ?: rawLocalCall as? T
+
+    if (response.offlineBuilder?.onlyLocalCall == true) {
+        localCall?.let {
+            send(ResultState.Success(it))
+        } ?: run {
+            send(ResultState.Error(ErrorResponse(404, "Empty", ErrorResponseType.Empty)))
+        }
+
+        return@channelFlow
+    }
 
     val shouldEmitLoading = when (localCall) {
         null -> true
