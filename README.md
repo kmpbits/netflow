@@ -1,7 +1,7 @@
 # NetFlow KMP 🌐
 A lightweight, multiplatform network library for Kotlin – seamless API calls with Flow, LiveData, and native performance.
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.kmpbits/netflow-core.svg?label=Maven%20Central)](https://search.maven.org/artifact/com.github.kmpbits.libraries/netflow-core)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.kmpbits/netflow-core.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.kmpbits/netflow-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
