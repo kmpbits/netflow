@@ -7,7 +7,7 @@ import androidx.paging.PagingData
 import com.kmpbits.netflow_core.deserializables.responseAsync
 import com.kmpbits.netflow_core.exceptions.NetFlowException
 import com.kmpbits.netflow_core.request.NetFlowRequest
-import com.kmpbits.netflow_paging.PagingBuilder
+import com.kmpbits.netflow_paging.builder.PagingBuilder
 import com.kmpbits.netflow_paging.model.PagingModel
 import com.kmpbits.netflow_paging.source.NetworkPagingSource
 import com.kmpbits.netflow_paging.source.RemoteAndLocalPagingSource

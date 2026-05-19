@@ -4,7 +4,7 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.kmpbits.netflow_core.envelope.EnvelopeList
 import com.kmpbits.netflow_core.states.AsyncState
-import com.kmpbits.netflow_paging.PagingBuilder
+import com.kmpbits.netflow_paging.builder.PagingBuilder
 import com.kmpbits.netflow_paging.model.PagingModel
 
 @PublishedApi

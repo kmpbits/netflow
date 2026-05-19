@@ -1,8 +1,9 @@
-package com.kmpbits.netflow_paging
+package com.kmpbits.netflow_paging.builder
 
 import androidx.paging.PagingSource
 import com.kmpbits.netflow_core.annotations.NetFlowMarker
 import com.kmpbits.netflow_paging.model.PagingModel
+import com.kmpbits.netflow_paging.source.MappedPagingSource
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 
@@ -10,7 +11,7 @@ import kotlin.time.Duration.Companion.hours
 class PagingBuilder<T : PagingModel> @PublishedApi internal constructor() {
 
     /**
-     * The page size to load at once from [PagingSource].
+     * The page size to load at once from [androidx.paging.PagingSource].
      *
      * Default is 10.
      */
@@ -24,7 +25,7 @@ class PagingBuilder<T : PagingModel> @PublishedApi internal constructor() {
     var deleteOnRefresh: Boolean = true
 
     /**
-     * Whether if the [PagingSource] comes only from api source.
+     * Whether if the [androidx.paging.PagingSource] comes only from api source.
      *
      * If true, it's calling the [NetworkPagingSource], otherwise, [RemoteAndLocalPagingSource].
      *
@@ -58,7 +59,7 @@ class PagingBuilder<T : PagingModel> @PublishedApi internal constructor() {
     var refresh: Boolean = false
 
     @PublishedApi
-    internal var itemsDataSource:(() -> PagingSource<Int, T>)? = null
+    internal var itemsDataSource: (() -> PagingSource<Int, T>)? = null
 
     @PublishedApi
     internal var lastUpdatedTimestamp: (suspend () -> Long?)? = null
@@ -94,10 +95,28 @@ class PagingBuilder<T : PagingModel> @PublishedApi internal constructor() {
     }
 
     /**
+     * Call this function to get items from local data source with a transform to map from
+     * the local entity type [E] to the paging model type [T].
+     *
+     * <b>Warning:</b> this function is mandatory if [onlyApiCall] is false.
+     */
+    fun <E : Any> localSource(pagingSource: () -> PagingSource<Int, E>, transform: (E) -> T) {
+        this.itemsDataSource = { MappedPagingSource(pagingSource(), transform) }
+    }
+
+    /**
      * Call this function to get the first item from local data source.
      * <b>Warning:</b> this functions is necessary if you don't want to refresh content when open the app.
      */
     fun firstItemDatabase(itemDatabase: suspend () -> T?) {
         lastUpdatedTimestamp = { itemDatabase()?.lastUpdatedTimestamp }
+    }
+
+    /**
+     * Call this function to get the first item from local data source when using a custom entity type [E].
+     * <b>Warning:</b> this functions is necessary if you don't want to refresh content when open the app.
+     */
+    fun <E> firstItemDatabase(itemDatabase: suspend () -> E?, timestamp: (E) -> Long?) {
+        lastUpdatedTimestamp = { itemDatabase()?.let { timestamp(it) } }
     }
 }

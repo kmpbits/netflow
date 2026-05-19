@@ -7,6 +7,7 @@ import com.kmpbits.netflow_core.enums.HttpHeader
 import com.kmpbits.netflow_core.extensions.urlWithPath
 import platform.Foundation.HTTPMethod
 import platform.Foundation.NSMutableURLRequest
+import platform.Foundation.NSURL
 import platform.Foundation.allHTTPHeaderFields
 
 internal actual class InternalHttpRequestBuilder(
@@ -33,11 +34,12 @@ internal actual class InternalHttpRequestBuilder(
         }?.toMutableList() ?: mutableListOf()
 
     internal actual fun updateUrl(builder: RequestBuilder) {
-        val url = urlWithPath(
+        val newUrl = urlWithPath(
             url,
             builder.path,
             builder.method,
             builder.parameters
         )
+        request.setURL(NSURL.URLWithString(newUrl))
     }
 }

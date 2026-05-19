@@ -7,7 +7,7 @@ import androidx.paging.RemoteMediator
 import com.kmpbits.netflow_core.envelope.EnvelopeList
 import com.kmpbits.netflow_core.exceptions.NetFlowException
 import com.kmpbits.netflow_core.states.AsyncState
-import com.kmpbits.netflow_paging.PagingBuilder
+import com.kmpbits.netflow_paging.builder.PagingBuilder
 import com.kmpbits.netflow_paging.model.PagingModel
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime

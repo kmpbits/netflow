@@ -28,7 +28,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":netflow-core"))
-            implementation(libs.androidx.paging.common)
+            api(libs.androidx.paging.common)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

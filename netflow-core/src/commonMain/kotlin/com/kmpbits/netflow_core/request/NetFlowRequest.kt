@@ -33,6 +33,10 @@ class NetFlowRequest internal constructor(
     val headers: List<Pair<HttpHeader, String>>
         get() = builder.headers
 
+    fun updateUrl() {
+        requestBuilder.updateUrl(builder)
+    }
+
     suspend fun response(): NetFlowResponse {
         val retryBuilder = builder.retryBuilder
         val times = retryBuilder.times

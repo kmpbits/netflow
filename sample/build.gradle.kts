@@ -40,6 +40,7 @@ android {
 
 dependencies {
     implementation(project(":netflow-core"))
+    implementation(project(":netflow-paging"))
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
