@@ -8,37 +8,39 @@ import com.kmpbits.netflow_paging.builder.PagingBuilder
 import com.kmpbits.netflow_paging.model.PagingModel
 
 @PublishedApi
-internal class NetworkPagingSource<T : PagingModel>(
-    private val builder: PagingBuilder<T>,
-    private val doApiCall: suspend (page: Int) -> AsyncState<EnvelopeList<T>>
-) : PagingSource<Int, T>() {
+internal class NetworkPagingSource<ApiType : PagingModel, DisplayType : Any>(
+    private val builder: PagingBuilder<ApiType, DisplayType>,
+    private val doApiCall: suspend (page: Int) -> AsyncState<EnvelopeList<ApiType>>
+) : PagingSource<Int, DisplayType>() {
 
-    override fun getRefreshKey(state: PagingState<Int, T>): Int? {
-        return state.lastItemOrNull()?.page
-    }
+    private var lastLoadedPage: Int = 1
 
-    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, T> {
+    override fun getRefreshKey(state: PagingState<Int, DisplayType>): Int? = lastLoadedPage
+
+    @Suppress("UNCHECKED_CAST")
+    private fun ApiType.toDisplayType(): DisplayType =
+        builder.networkTransform?.invoke(this) ?: this as DisplayType
+
+    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, DisplayType> {
         val page = params.key ?: 1
 
         return try {
             val resultState = doApiCall(page)
             val nextPage = page + 1
 
-            return when(resultState) {
+            return when (resultState) {
                 AsyncState.Empty -> LoadResult.Error(Throwable("Empty data"))
                 is AsyncState.Error -> LoadResult.Error(Throwable(resultState.error.errorBody))
                 is AsyncState.Success -> {
                     val envelopeList = resultState.data
-                    envelopeList.data.forEach {
-                        it.page = nextPage
-                    }
+                    envelopeList.data.forEach { it.page = nextPage }
 
-                    builder.insertAll?.let {
-                        it(envelopeList.data)
-                    }
+                    builder.insertAll?.let { it(envelopeList.data) }
+
+                    lastLoadedPage = page
 
                     LoadResult.Page(
-                        data = envelopeList.data,
+                        data = envelopeList.data.map { it.toDisplayType() },
                         prevKey = null,
                         nextKey = if (envelopeList.data.size < builder.defaultPageSize)
                             null

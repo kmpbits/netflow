@@ -10,7 +10,7 @@ import okhttp3.Request
 internal actual class InternalHttpRequestBuilder(
     val requestBuilder: Request.Builder
 ) {
-    private val request: Request
+    internal val request: Request
         get() = requestBuilder.build()
 
     internal actual val url: String

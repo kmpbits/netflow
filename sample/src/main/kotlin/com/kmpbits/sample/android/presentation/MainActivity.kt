@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CircularProgressIndicator
@@ -28,7 +27,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.kmpbits.netflow_core.states.ResultState
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
 import com.kmpbits.sample.android.presentation.components.AddUpdateTodoDialog
 import com.kmpbits.sample.android.presentation.components.TodoItem
 import com.kmpbits.sample.android.presentation.theme.MyApplicationTheme
@@ -42,6 +43,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val viewModel = koinViewModel<MainViewModel>()
             val state by viewModel.state.collectAsStateWithLifecycle()
+            val todos = viewModel.todos.collectAsLazyPagingItems()
 
             var idClicked by remember {
                 mutableStateOf<Int?>(null)
@@ -81,42 +83,44 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) { values ->
-                    when(val response = state.todoListState) {
-                        is ResultState.Error -> Text(response.error.errorBody ?: "Error")
-                        ResultState.Loading -> Box(
+                    when (todos.loadState.refresh) {
+                        is LoadState.Loading -> Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
                             CircularProgressIndicator()
                         }
-                        is ResultState.Success -> {
-                            val todos = response.data
-
-                            LazyColumn(
-                                modifier = Modifier.fillMaxSize()
-                                    .padding(horizontal = 16.dp),
-                                contentPadding = values,
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                items(todos, key = { it.id }) { todo ->
-                                    TodoItem(
-                                        modifier = Modifier.fillMaxWidth()
-                                            .animateItem() // This is to animate when delete an item
-                                            .clickable {
-                                                idClicked = todo.id
-                                                viewModel.onAction(TodoAction.ShowAddUpdateDialog(todo))
-                                            },
-                                        todo = todo,
-                                        onCheckChanged = {
-                                            viewModel.onAction(TodoAction.UpdateTodoCheck(todo))
+                        is LoadState.Error -> Text(
+                            (todos.loadState.refresh as LoadState.Error).error.message ?: "Error"
+                        )
+                        else -> LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp),
+                            contentPadding = values,
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(
+                                count = todos.itemCount,
+                                key = todos.itemKey { it.id }
+                            ) { index ->
+                                val todo = todos[index] ?: return@items
+                                TodoItem(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .animateItem()
+                                        .clickable {
+                                            idClicked = todo.id
+                                            viewModel.onAction(TodoAction.ShowAddUpdateDialog(todo))
                                         },
-                                        onDelete = { viewModel.onAction(TodoAction.DeleteTodo(todo.id)) }
-                                    )
-                                }
+                                    todo = todo,
+                                    onCheckChanged = {
+                                        viewModel.onAction(TodoAction.UpdateTodoCheck(todo))
+                                    },
+                                    onDelete = { viewModel.onAction(TodoAction.DeleteTodo(todo.id)) }
+                                )
                             }
                         }
-
-                        ResultState.Empty -> {}
                     }
                 }
             }

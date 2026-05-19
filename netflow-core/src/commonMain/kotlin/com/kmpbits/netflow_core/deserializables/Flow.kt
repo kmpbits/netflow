@@ -22,46 +22,44 @@ import kotlinx.coroutines.withContext
 /**
  * Deserialize the request into a [Flow].
  *
- * This method receives a [ResponseBuilder] as parameter to customize the response.
- *
- * It's offline first and it handles the loading and error, then emits the results into a [ResultState]
+ * [ApiType] is the type the API response is deserialized into.
+ * [DisplayType] is the type emitted in [ResultState] — use [ResponseBuilder.apiTransform] to map
+ * between the two. When both are the same, specify the type once: `responseFlow<MyType, MyType>`.
  */
-inline fun <reified T : Any> NetFlowRequest.responseFlow(
-    crossinline responseBuilder: ResponseBuilder<T>.() -> Unit = {}
-): Flow<ResultState<T>> {
+inline fun <reified ApiType : Any, DisplayType : Any> NetFlowRequest.responseFlow(
+    crossinline responseBuilder: ResponseBuilder<ApiType, DisplayType>.() -> Unit = {}
+): Flow<ResultState<DisplayType>> {
     return toFlow(
         responseBuilder = responseBuilder,
-        deserializeBlock = { it.toModel<T>() }
+        deserializeBlock = { it.toModel<ApiType>() }
     )
 }
 
 /**
  * Deserialize the request into a [Flow] wrapped by the data json object.
- * The list wrapped in json object response should be called "data".
+ * The object wrapped in json object response should be called "data".
  *
- * This method receives a [ResponseBuilder] as parameter to customize the response.
- *
- * It's offline first and it handles the loading and error, then emits the results into a [ResultState]
+ * [ApiType] is the type the API response is deserialized into.
+ * [DisplayType] is the type emitted in [ResultState] — use [ResponseBuilder.apiTransform] to map between the two.
  */
-inline fun <reified T : Any> NetFlowRequest.responseWrappedFlow(
-    crossinline responseBuilder: ResponseBuilder<T>.() -> Unit = {}
-): Flow<ResultState<T>> {
+inline fun <reified ApiType : Any, DisplayType : Any> NetFlowRequest.responseWrappedFlow(
+    crossinline responseBuilder: ResponseBuilder<ApiType, DisplayType>.() -> Unit = {}
+): Flow<ResultState<DisplayType>> {
     return toFlow(
         responseBuilder = responseBuilder,
-        deserializeBlock = { it.toModelWrapped<T>() }
+        deserializeBlock = { it.toModelWrapped<ApiType>() }
     )
 }
 
 /**
  * Deserialize the request into a [Flow] list.
  *
- * This method receives a [ResponseBuilder] as parameter to customize the response.
- *
- * It's offline first and it handles the loading and error, then emits the results into a [ResultState]
+ * [ApiItem] is the item type the API response is deserialized into.
+ * [DisplayItem] is the item type emitted in [ResultState] — use [ResponseBuilder.apiTransform] to map between the two.
  */
-inline fun <reified T : Any> NetFlowRequest.responseListFlow(
-    crossinline responseBuilder: ResponseBuilder<List<T>>.() -> Unit = {}
-): Flow<ResultState<List<T>>> {
+inline fun <reified ApiItem : Any, DisplayItem : Any> NetFlowRequest.responseListFlow(
+    crossinline responseBuilder: ResponseBuilder<List<ApiItem>, List<DisplayItem>>.() -> Unit = {}
+): Flow<ResultState<List<DisplayItem>>> {
     return toFlow(
         responseBuilder = responseBuilder,
         deserializeBlock = { it.toList() }
@@ -71,25 +69,25 @@ inline fun <reified T : Any> NetFlowRequest.responseListFlow(
 /**
  * Deserialize the request into a [Flow] list wrapped by the data json object.
  *
- * This method receives a [ResponseBuilder] as parameter to customize the response.
- *
- * It's offline first and it handles the loading and error, then emits the results into a [ResultState]
+ * [ApiItem] is the item type the API response is deserialized into.
+ * [DisplayItem] is the item type emitted in [ResultState] — use [ResponseBuilder.apiTransform] to map between the two.
  */
-inline fun <reified T : Any> NetFlowRequest.responseWrappedListFlow(
-    crossinline responseBuilder: ResponseBuilder<List<T>>.() -> Unit = {}
-): Flow<ResultState<List<T>>> {
+inline fun <reified ApiItem : Any, DisplayItem : Any> NetFlowRequest.responseWrappedListFlow(
+    crossinline responseBuilder: ResponseBuilder<List<ApiItem>, List<DisplayItem>>.() -> Unit = {}
+): Flow<ResultState<List<DisplayItem>>> {
     return toFlow(
         responseBuilder = responseBuilder,
-        deserializeBlock = { it.toEnvelopeList<T>().data }
+        deserializeBlock = { it.toEnvelopeList<ApiItem>().data }
     )
 }
 
 @PublishedApi
-internal inline fun <reified T : Any> NetFlowRequest.toFlow(
-    crossinline responseBuilder: ResponseBuilder<T>.() -> Unit,
-    crossinline deserializeBlock: (NetFlowResponse) -> T?
-): Flow<ResultState<T>> = channelFlow {
-    val response = ResponseBuilder<T>().also(responseBuilder)
+@Suppress("UNCHECKED_CAST")
+internal inline fun <reified ApiType : Any, DisplayType : Any> NetFlowRequest.toFlow(
+    crossinline responseBuilder: ResponseBuilder<ApiType, DisplayType>.() -> Unit,
+    crossinline deserializeBlock: (NetFlowResponse) -> ApiType?
+): Flow<ResultState<DisplayType>> = channelFlow {
+    val response = ResponseBuilder<ApiType, DisplayType>().also(responseBuilder)
 
     if (response.offlineBuilder?.onlyLocalCall == true && (response.offlineBuilder?.callFlow == null && response.offlineBuilder?.call == null))
         throw NetFlowException("You must invoke the 'call()' functions to make only offline calls!")
@@ -98,7 +96,7 @@ internal inline fun <reified T : Any> NetFlowRequest.toFlow(
         response.offlineBuilder?.call?.invoke() ?: response.offlineBuilder?.callFlow?.invoke()?.first()
     }
 
-    val localCall: T? = rawLocalCall?.let { response.transform?.invoke(it) } ?: rawLocalCall as? T
+    val localCall: DisplayType? = rawLocalCall?.let { response.transform?.invoke(it) } ?: rawLocalCall as? DisplayType
 
     if (response.offlineBuilder?.onlyLocalCall == true) {
         localCall?.let {
@@ -128,13 +126,15 @@ internal inline fun <reified T : Any> NetFlowRequest.toFlow(
         response.post?.invoke()
 
         if (callResponse.isSuccess) {
-            val result = deserializeBlock(callResponse)
+            val apiResult = deserializeBlock(callResponse)
 
-            result?.let {
-                withContext(Dispatchers.IO) { response.onNetworkSuccess?.invoke(result) }
+            apiResult?.let {
+                withContext(Dispatchers.IO) { response.onNetworkSuccess?.invoke(it) }
+
+                val displayResult: DisplayType = response.apiTransform?.invoke(it) ?: it as DisplayType
 
                 if (response.offlineBuilder?.call == null && response.offlineBuilder?.callFlow == null) {
-                    send(ResultState.Success(result))
+                    send(ResultState.Success(displayResult))
                 }
             } ?: run {
                 send(
@@ -153,14 +153,14 @@ internal inline fun <reified T : Any> NetFlowRequest.toFlow(
             )
         }
 
-        response.offlineBuilder?.call?.let {
-            it()?.let { result ->
+        response.offlineBuilder?.call?.let { call ->
+            call()?.let { result ->
                 val transformed = response.transform?.invoke(result)
-                send(ResultState.Success(transformed ?: result as T))
+                send(ResultState.Success(transformed ?: result as DisplayType))
             }
         } ?: response.offlineBuilder?.callFlow?.invoke()?.collect {
             val transformed = response.transform?.invoke(it)
-            send(ResultState.Success(transformed ?: it as T))
+            send(ResultState.Success(transformed ?: it as DisplayType))
         }
 
     } catch (e: Exception) {

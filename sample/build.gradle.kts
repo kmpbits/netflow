@@ -51,5 +51,6 @@ dependencies {
     implementation(libs.bundles.koin)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
+    implementation(libs.androidx.paging.compose)
     ksp(libs.room.compiler)
 }

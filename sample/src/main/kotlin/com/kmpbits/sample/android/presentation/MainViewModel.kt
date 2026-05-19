@@ -2,6 +2,7 @@ package com.kmpbits.sample.android.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.cachedIn
 import com.kmpbits.netflow_core.states.AsyncState
 import com.kmpbits.netflow_core.states.ResultState
 import com.kmpbits.sample.android.domain.model.Todo
@@ -20,9 +21,7 @@ class MainViewModel(
     private val _state = MutableStateFlow(TodoState())
     val state: StateFlow<TodoState> = _state.asStateFlow()
 
-    init {
-        getTodos()
-    }
+    val todos = repository.getTodos().cachedIn(viewModelScope)
 
     fun onAction(action: TodoAction) {
         when (action) {
@@ -73,16 +72,6 @@ class MainViewModel(
             it.copy(
                 isChecked = isChecked
             )
-        }
-    }
-
-    private fun getTodos() = viewModelScope.launch {
-        repository.getTodos().collectLatest { responseState ->
-            _state.update {
-                it.copy(
-                    todoListState = responseState
-                )
-            }
         }
     }
 

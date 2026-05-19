@@ -33,5 +33,5 @@ internal actual fun RequestBuilder.build(): InternalHttpRequestBuilder {
 
     requestBuilder.method(method, requestBody)
 
-    return InternalHttpRequestBuilder(requestBuilder.build())
+    return InternalHttpRequestBuilder(requestBuilder)
 }

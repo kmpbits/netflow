@@ -15,10 +15,10 @@ import kotlin.time.ExperimentalTime
 @OptIn(ExperimentalTime::class)
 @ExperimentalPagingApi
 @PublishedApi
-internal class RemoteAndLocalPagingSource<T : PagingModel>(
-    private val builder: PagingBuilder<T>,
-    private val doApiCall: suspend (page: Int) -> AsyncState<EnvelopeList<T>>
-) : RemoteMediator<Int, T>() {
+internal class RemoteAndLocalPagingSource<ApiType : PagingModel, DisplayType : Any>(
+    private val builder: PagingBuilder<ApiType, DisplayType>,
+    private val doApiCall: suspend (page: Int) -> AsyncState<EnvelopeList<ApiType>>
+) : RemoteMediator<Int, DisplayType>() {
 
     override suspend fun initialize(): InitializeAction {
         return if (builder.lastUpdatedTimestamp?.invoke() != null &&
@@ -31,36 +31,27 @@ internal class RemoteAndLocalPagingSource<T : PagingModel>(
             InitializeAction.LAUNCH_INITIAL_REFRESH
     }
 
-    override suspend fun load(loadType: LoadType, state: PagingState<Int, T>): MediatorResult {
-        val loadPage = when (loadType) {
-            LoadType.REFRESH -> null
-            LoadType.PREPEND ->
-                return MediatorResult.Success(endOfPaginationReached = true)
+    override suspend fun load(loadType: LoadType, state: PagingState<Int, DisplayType>): MediatorResult {
+        val page = when (loadType) {
+            LoadType.REFRESH -> 1
+            LoadType.PREPEND -> return MediatorResult.Success(endOfPaginationReached = true)
             LoadType.APPEND -> {
-                val lastItem = state.lastItemOrNull()
-                    ?: return MediatorResult.Success(
-                        endOfPaginationReached = false
-                    )
-
-                lastItem.page
+                state.pages.lastOrNull()?.nextKey
+                    ?: return MediatorResult.Success(endOfPaginationReached = false)
             }
         }
-
-        val page = loadPage ?: 1
 
         val resultState = doApiCall(page)
         val nextPage = page + 1
 
         return try {
-            when(resultState) {
+            when (resultState) {
                 AsyncState.Empty -> MediatorResult.Error(Throwable("Empty data"))
                 is AsyncState.Error -> MediatorResult.Error(Throwable(resultState.error.errorBody))
                 is AsyncState.Success -> {
                     val envelopeList = resultState.data
 
-                    envelopeList.data.forEach {
-                        it.page = nextPage
-                    }
+                    envelopeList.data.forEach { it.page = nextPage }
 
                     if (loadType == LoadType.REFRESH) {
                         envelopeList.data.forEach {

@@ -8,12 +8,12 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 
 @NetFlowMarker
-class PagingBuilder<T : PagingModel> @PublishedApi internal constructor() {
+class PagingBuilder<ApiType : PagingModel, DisplayType : Any> @PublishedApi internal constructor() {
 
     /**
      * The page size to load at once from [androidx.paging.PagingSource].
      *
-     * Default is 10.
+     * Default is 20.
      */
     var defaultPageSize: Int = 20
 
@@ -59,13 +59,16 @@ class PagingBuilder<T : PagingModel> @PublishedApi internal constructor() {
     var refresh: Boolean = false
 
     @PublishedApi
-    internal var itemsDataSource: (() -> PagingSource<Int, T>)? = null
+    internal var itemsDataSource: (() -> PagingSource<Int, DisplayType>)? = null
 
     @PublishedApi
     internal var lastUpdatedTimestamp: (suspend () -> Long?)? = null
 
-    internal var deleteAll: ( suspend () -> Unit)? = null
-    internal var insertAll: ( suspend (items: List<T>) -> Unit)? = null
+    @PublishedApi
+    internal var networkTransform: ((ApiType) -> DisplayType)? = null
+
+    internal var deleteAll: (suspend () -> Unit)? = null
+    internal var insertAll: (suspend (items: List<ApiType>) -> Unit)? = null
 
     /**
      * Call this to delete all data from local data source.
@@ -81,17 +84,17 @@ class PagingBuilder<T : PagingModel> @PublishedApi internal constructor() {
      *
      * <b>Warning:</b> this function is mandatory if [onlyApiCall] is false.
      */
-    fun insertAll(onSuccess: suspend (items: List<T>) -> Unit) {
+    fun insertAll(onSuccess: suspend (items: List<ApiType>) -> Unit) {
         this.insertAll = onSuccess
     }
 
     /**
      * Call this function to insert all the data in the local data source with a transform to map
-     * from the api model type [T] to the local entity type [E] before inserting.
+     * from the api model type [ApiType] to the local entity type [E] before inserting.
      *
      * <b>Warning:</b> this function is mandatory if [onlyApiCall] is false.
      */
-    fun <E> insertAll(transform: (T) -> E, onSuccess: suspend (items: List<E>) -> Unit) {
+    fun <E> insertAll(transform: (ApiType) -> E, onSuccess: suspend (items: List<E>) -> Unit) {
         this.insertAll = { items -> onSuccess(items.map(transform)) }
     }
 
@@ -100,31 +103,40 @@ class PagingBuilder<T : PagingModel> @PublishedApi internal constructor() {
      *
      * <b>Warning:</b> this function is mandatory if [onlyApiCall] is false.
      */
-    fun localSource(pagingSource: () -> PagingSource<Int, T>) {
+    fun localSource(pagingSource: () -> PagingSource<Int, DisplayType>) {
         this.itemsDataSource = pagingSource
     }
 
     /**
      * Call this function to get items from local data source with a transform to map from
-     * the local entity type [E] to the paging model type [T].
+     * the local entity type [E] to the display type [DisplayType].
      *
      * <b>Warning:</b> this function is mandatory if [onlyApiCall] is false.
      */
-    fun <E : Any> localSource(pagingSource: () -> PagingSource<Int, E>, transform: (E) -> T) {
+    fun <E : Any> localSource(pagingSource: () -> PagingSource<Int, E>, transform: (E) -> DisplayType) {
         this.itemsDataSource = { MappedPagingSource(pagingSource(), transform) }
     }
 
     /**
-     * Call this function to get the first item from local data source.
-     * <b>Warning:</b> this functions is necessary if you don't want to refresh content when open the app.
+     * Call this function to map the api response type [ApiType] to [DisplayType] when using [onlyApiCall].
+     *
+     * <b>Warning:</b> this function is mandatory if [onlyApiCall] is true and [ApiType] != [DisplayType].
      */
-    fun firstItemDatabase(itemDatabase: suspend () -> T?) {
+    fun networkTransform(transform: (ApiType) -> DisplayType) {
+        this.networkTransform = transform
+    }
+
+    /**
+     * Call this function to get the first item from local data source.
+     * <b>Warning:</b> this function is necessary if you don't want to refresh content when open the app.
+     */
+    fun firstItemDatabase(itemDatabase: suspend () -> ApiType?) {
         lastUpdatedTimestamp = { itemDatabase()?.lastUpdatedTimestamp }
     }
 
     /**
      * Call this function to get the first item from local data source when using a custom entity type [E].
-     * <b>Warning:</b> this functions is necessary if you don't want to refresh content when open the app.
+     * <b>Warning:</b> this function is necessary if you don't want to refresh content when open the app.
      */
     fun <E> firstItemDatabase(itemDatabase: suspend () -> E?, timestamp: (E) -> Long?) {
         lastUpdatedTimestamp = { itemDatabase()?.let { timestamp(it) } }

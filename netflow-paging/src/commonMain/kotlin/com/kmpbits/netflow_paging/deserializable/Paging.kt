@@ -5,6 +5,7 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import com.kmpbits.netflow_core.deserializables.responseAsync
+import com.kmpbits.netflow_core.envelope.EnvelopeList
 import com.kmpbits.netflow_core.exceptions.NetFlowException
 import com.kmpbits.netflow_core.request.NetFlowRequest
 import com.kmpbits.netflow_paging.builder.PagingBuilder
@@ -13,11 +14,18 @@ import com.kmpbits.netflow_paging.source.NetworkPagingSource
 import com.kmpbits.netflow_paging.source.RemoteAndLocalPagingSource
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Deserializes the request into a paginated [Flow] of [PagingData].
+ *
+ * [ApiType] is the type the API response is deserialized into (must extend [PagingModel]).
+ * [DisplayType] is the type exposed in [PagingData] — use this to return domain models
+ * directly without an extra [kotlinx.coroutines.flow.Flow.map] on the call site.
+ */
 @ExperimentalPagingApi
-inline fun <reified T : PagingModel> NetFlowRequest.responsePaginated(
-    crossinline builder: PagingBuilder<T>. () -> Unit = {}
-): Flow<PagingData<T>> {
-    val pagingBuilder = PagingBuilder<T>().also(builder)
+inline fun <reified ApiType : PagingModel, DisplayType : Any> NetFlowRequest.responsePaginated(
+    crossinline builder: PagingBuilder<ApiType, DisplayType>.() -> Unit = {}
+): Flow<PagingData<DisplayType>> {
+    val pagingBuilder = PagingBuilder<ApiType, DisplayType>().also(builder)
 
     if (pagingBuilder.onlyApiCall.not() && pagingBuilder.itemsDataSource == null)
         throw NetFlowException("Items datasource must not be null!")
@@ -28,27 +36,24 @@ inline fun <reified T : PagingModel> NetFlowRequest.responsePaginated(
         Pager(
             config = PagingConfig(pagingBuilder.defaultPageSize),
             pagingSourceFactory = {
-                NetworkPagingSource(
-                    pagingBuilder
-                ) {
+                NetworkPagingSource(pagingBuilder) {
                     updateUrlPage(pagingBuilder.pageQueryName, it)
-                    this@responsePaginated.responseAsync()
+                    this@responsePaginated.responseAsync<EnvelopeList<ApiType>, EnvelopeList<ApiType>>()
                 }
             }
         ).flow
     } else {
         Pager(
             config = PagingConfig(pagingBuilder.defaultPageSize),
-            remoteMediator = RemoteAndLocalPagingSource(
-                pagingBuilder
-            ) {
+            remoteMediator = RemoteAndLocalPagingSource(pagingBuilder) {
                 updateUrlPage(pagingBuilder.pageQueryName, it)
-                this@responsePaginated.responseAsync()
+                this@responsePaginated.responseAsync<EnvelopeList<ApiType>, EnvelopeList<ApiType>>()
             },
             pagingSourceFactory = pagingBuilder.itemsDataSource!!
         ).flow
     }
 }
+
 
 @PublishedApi
 internal fun NetFlowRequest.updateUrlPage(pageQueryName: String, page: Int) {

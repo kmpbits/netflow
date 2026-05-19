@@ -16,37 +16,30 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 
 /**
- * Deserialize the request into a [AsyncState].
+ * Deserialize the request into an [AsyncState].
  *
- * This method receives a [ResponseBuilder] as parameter to customize the response.
- *
- * This is a suspend functions, so you need to call it from a coroutine or from another suspend function.
- * The dispatcher is handled by the function, so it can be called from any thread.
- *
- * @return [AsyncState] with success (with data as [T]) or error (with error as [ErrorResponse]).
+ * [ApiType] is the type the API response is deserialized into.
+ * [DisplayType] is the type wrapped in [AsyncState] — use [ResponseBuilder.apiTransform] to map
+ * between the two. When both are the same, specify the type once: `responseAsync<MyType, MyType>`.
  */
-suspend inline fun <reified T : Any> NetFlowRequest.responseAsync(
-    crossinline responseBuilder: ResponseBuilder<T>. () -> Unit = {}
-): AsyncState<T> {
+suspend inline fun <reified ApiType : Any, DisplayType : Any> NetFlowRequest.responseAsync(
+    crossinline responseBuilder: ResponseBuilder<ApiType, DisplayType>.() -> Unit = {}
+): AsyncState<DisplayType> {
     return toAsync(
         responseBuilder = responseBuilder,
-        deserializeBlock = { it.toModel<T>() }
+        deserializeBlock = { it.toModel<ApiType>() }
     )
 }
 
 /**
- * Deserialize the request into a [AsyncState] list.
+ * Deserialize the request into an [AsyncState] list.
  *
- * This method receives a [ResponseBuilder] as parameter to customize the response.
- *
- * This is a suspend functions, so you need to call it from a coroutine or from another suspend function.
- * The dispatcher is handled by the function, so it can be called from any thread.
- *
- * @return [AsyncState] with success (with data as [List] of type [T]) or error (with error as [ErrorResponse]).
+ * [ApiItem] is the item type the API response is deserialized into.
+ * [DisplayItem] is the item type wrapped in [AsyncState] — use [ResponseBuilder.apiTransform] to map between the two.
  */
-suspend inline fun <reified T : Any> NetFlowRequest.responseListAsync(
-    crossinline responseBuilder: ResponseBuilder<List<T>>. () -> Unit = {}
-): AsyncState<List<T>> {
+suspend inline fun <reified ApiItem : Any, DisplayItem : Any> NetFlowRequest.responseListAsync(
+    crossinline responseBuilder: ResponseBuilder<List<ApiItem>, List<DisplayItem>>.() -> Unit = {}
+): AsyncState<List<DisplayItem>> {
     return toAsync(
         responseBuilder = responseBuilder,
         deserializeBlock = { it.toList() }
@@ -54,51 +47,44 @@ suspend inline fun <reified T : Any> NetFlowRequest.responseListAsync(
 }
 
 /**
- * Deserialize the request into a [AsyncState] list wrapped by the data json object.
- * The list wrapped in json object response should be called "data"
+ * Deserialize the request into an [AsyncState] list wrapped by the data json object.
+ * The list wrapped in json object response should be called "data".
  *
- * This method receives a [ResponseBuilder] as parameter to customize the response.
- *
- * This is a suspend functions, so you need to call it from a coroutine or from another suspend function.
- * The dispatcher is handled by the function, so it can be called from any thread.
- *
- * @return [AsyncState] with success (with data as [List] of type [T]) or error (with error as [ErrorResponse]).
+ * [ApiItem] is the item type the API response is deserialized into.
+ * [DisplayItem] is the item type wrapped in [AsyncState] — use [ResponseBuilder.apiTransform] to map between the two.
  */
-suspend inline fun <reified T : Any> NetFlowRequest.responseWrappedListAsync(
-    crossinline responseBuilder: ResponseBuilder<List<T>>. () -> Unit = {}
-): AsyncState<List<T>> {
+suspend inline fun <reified ApiItem : Any, DisplayItem : Any> NetFlowRequest.responseWrappedListAsync(
+    crossinline responseBuilder: ResponseBuilder<List<ApiItem>, List<DisplayItem>>.() -> Unit = {}
+): AsyncState<List<DisplayItem>> {
     return toAsync(
         responseBuilder = responseBuilder,
-        deserializeBlock = { it.toEnvelopeList<T>().data }
+        deserializeBlock = { it.toEnvelopeList<ApiItem>().data }
     )
 }
 
 /**
- * Deserialize the request into a [AsyncState] wrapped by the data json object.
- * The object wrapped in json object response should be called "data"
+ * Deserialize the request into an [AsyncState] wrapped by the data json object.
+ * The object wrapped in json object response should be called "data".
  *
- * This method receives a [ResponseBuilder] as parameter to customize the response.
- *
- * This is a suspend functions, so you need to call it from a coroutine or from another suspend function.
- * The dispatcher is handled by the function, so it can be called from any thread.
- *
- * @return [AsyncState] with success (with data as [T]) or error (with error as [ErrorResponse]).
+ * [ApiType] is the type the API response is deserialized into.
+ * [DisplayType] is the type wrapped in [AsyncState] — use [ResponseBuilder.apiTransform] to map between the two.
  */
-suspend inline fun <reified T: Any> NetFlowRequest.responseWrappedAsync(
-    crossinline responseBuilder: ResponseBuilder<T>. () -> Unit = {}
-): AsyncState<T> {
+suspend inline fun <reified ApiType : Any, DisplayType : Any> NetFlowRequest.responseWrappedAsync(
+    crossinline responseBuilder: ResponseBuilder<ApiType, DisplayType>.() -> Unit = {}
+): AsyncState<DisplayType> {
     return toAsync(
         responseBuilder = responseBuilder,
-        deserializeBlock = { it.toModelWrapped<T>() }
+        deserializeBlock = { it.toModelWrapped<ApiType>() }
     )
 }
 
 @PublishedApi
-internal suspend inline fun <reified T: Any> NetFlowRequest.toAsync(
-    crossinline responseBuilder: ResponseBuilder<T>. () -> Unit,
-    deserializeBlock: (NetFlowResponse) -> T?
-): AsyncState<T> {
-    val response = ResponseBuilder<T>().also(responseBuilder)
+@Suppress("UNCHECKED_CAST")
+internal suspend inline fun <reified ApiType : Any, DisplayType : Any> NetFlowRequest.toAsync(
+    crossinline responseBuilder: ResponseBuilder<ApiType, DisplayType>.() -> Unit,
+    deserializeBlock: (NetFlowResponse) -> ApiType?
+): AsyncState<DisplayType> {
+    val response = ResponseBuilder<ApiType, DisplayType>().also(responseBuilder)
 
     immutableRequestBuilder.preCall?.invoke()
 
@@ -107,12 +93,12 @@ internal suspend inline fun <reified T: Any> NetFlowRequest.toAsync(
     response.post?.invoke()
 
     return if (callResponse.isSuccess) {
-        val result = deserializeBlock(callResponse)
-        result?.let {
+        val apiResult = deserializeBlock(callResponse)
+        apiResult?.let {
             withContext(Dispatchers.IO) { response.onNetworkSuccess?.invoke(it) }
-            AsyncState.Success(it)
+            val displayResult: DisplayType = response.apiTransform?.invoke(it) ?: it as DisplayType
+            AsyncState.Success(displayResult)
         } ?: AsyncState.Error(ErrorResponse(404, "Not found", ErrorResponseType.Empty))
-
     } else {
         AsyncState.Error(callResponse.toError())
     }

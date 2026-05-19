@@ -2,14 +2,12 @@ package com.kmpbits.sample.android.data.repository
 
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.PagingData
-import androidx.paging.map
 import com.kmpbits.netflow_core.client.NetFlowClient
 import com.kmpbits.netflow_core.deserializables.responseAsync
 import com.kmpbits.netflow_core.deserializables.responseFlow
 import com.kmpbits.netflow_core.enums.HttpMethod
 import com.kmpbits.netflow_core.states.AsyncState
 import com.kmpbits.netflow_core.states.ResultState
-import com.kmpbits.netflow_core.states.map
 import com.kmpbits.netflow_paging.deserializable.responsePaginated
 import com.kmpbits.sample.android.data.database.AppDatabase
 import com.kmpbits.sample.android.data.dto.TodoDto
@@ -20,7 +18,6 @@ import com.kmpbits.sample.android.domain.model.Todo
 import com.kmpbits.sample.android.domain.repository.TodoRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 
 class TodoRepositoryImpl(
     private val client: NetFlowClient,
@@ -29,13 +26,13 @@ class TodoRepositoryImpl(
 
     @OptIn(ExperimentalPagingApi::class)
     override fun getTodos(): Flow<PagingData<Todo>> {
-        val response = client.call {
+        return client.call {
             path = "todos"
-
-        }
-
-        return response.responsePaginated<TodoDto> {
-            localSource { LocalPagingSource(database.todoDao()) }
+        }.responsePaginated<TodoDto, Todo> {
+            localSource(
+                pagingSource = { LocalPagingSource(database.todoDao()) },
+                transform = { it.toModel() }
+            )
 
             deleteAll { database.todoDao().deleteTodos() }
             insertAll(transform = { it.toEntity() }) { database.todoDao().replaceTodos(it) }
@@ -44,8 +41,6 @@ class TodoRepositoryImpl(
                 itemDatabase = { database.todoDao().getTodos().first().firstOrNull() },
                 timestamp = { it.lastUpdatedTimestamp }
             )
-        }.map {
-            it.map { it.toModel() }
         }
     }
 
@@ -61,13 +56,9 @@ class TodoRepositoryImpl(
                     "completed" to completed
                 )
             )
-        }.responseFlow<TodoDto> {
-            onNetworkSuccess {
-                // Here is the place to add the item to the local database
-                database.todoDao().upsertTodo(it.toEntity())
-            }
-        }.map {
-            it.map(TodoDto::toModel)
+        }.responseFlow<TodoDto, Todo> {
+            onNetworkSuccess { database.todoDao().upsertTodo(it.toEntity()) }
+            apiTransform { it.toModel() }
         }
     }
 
@@ -83,14 +74,9 @@ class TodoRepositoryImpl(
                     "completed" to completed
                 )
             )
-        }.responseFlow<TodoDto> {
-            onNetworkSuccess {
-                // Here is the place to update the item in the local database
-                database.todoDao().upsertTodo(it.toEntity())
-            }
-
-        }.map {
-            it.map(TodoDto::toModel)
+        }.responseFlow<TodoDto, Todo> {
+            onNetworkSuccess { database.todoDao().upsertTodo(it.toEntity()) }
+            apiTransform { it.toModel() }
         }
     }
 
@@ -98,11 +84,8 @@ class TodoRepositoryImpl(
         return client.call {
             path = "todos/$id"
             method = HttpMethod.Delete
-        }.responseAsync {
-            onNetworkSuccess {
-                // Here is the place to delete the item in the local database
-                database.todoDao().deleteTodo(id)
-            }
+        }.responseAsync<Unit, Unit> {
+            onNetworkSuccess { database.todoDao().deleteTodo(id) }
         }
     }
 }
