@@ -1,4 +1,6 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
+import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -6,6 +8,7 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlinx.serialization)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.touchlab.skie)
 }
 
 kotlin {
@@ -21,16 +24,30 @@ kotlin {
         }
     }
 
-    iosArm64()
-    iosSimulatorArm64()
+    val xcframework = XCFramework("netflowSample")
+
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64()
+    ).forEach {
+        it.binaries.framework {
+            baseName = "netflowSample"
+            isStatic = true
+            export(project(":netflow-core"))
+            export(project(":netflow-paging"))
+            binaryOption("bundleId", "com.kmpbits.netflowSample")
+            xcframework.add(this)
+        }
+    }
 
     sourceSets {
         commonMain.dependencies {
-            implementation(project(":netflow-core"))
-            implementation(project(":netflow-paging"))
+            api(project(":netflow-core"))
+            api(project(":netflow-paging"))
             implementation(libs.kotlinx.coroutines)
             implementation(libs.json.serialization)
             implementation(libs.koin.core)
+            implementation(libs.koin.viewmodel)
             implementation(libs.lifecycle.viewmodel)
             implementation(libs.room.runtime)
         }
@@ -56,6 +73,10 @@ kotlin {
             implementation(libs.kotlin.test)
         }
     }
+}
+
+composeCompiler {
+    targetKotlinPlatforms = setOf(KotlinPlatformType.androidJvm)
 }
 
 android {

@@ -12,8 +12,8 @@
 		A1000001000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002000000000000002 /* ContentView.swift */; };
 		A1000001000000000000008 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1000002000000000000008 /* Assets.xcassets */; };
 		A1000001000000000000009 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1000002000000000000009 /* Preview Assets.xcassets */; };
-		A100000100000000000000A /* netflowPaging.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = A100000200000000000000A /* netflowPaging.xcframework */; };
-		A100000100000000000000B /* netflowPaging.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A100000200000000000000A /* netflowPaging.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A100000100000000000000A /* netflowSample.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = A100000200000000000000A /* netflowSample.xcframework */; };
+		A100000100000000000000B /* netflowSample.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A100000200000000000000A /* netflowSample.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -23,7 +23,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				A100000100000000000000B /* netflowPaging.xcframework in Embed Frameworks */,
+				A100000100000000000000B /* netflowSample.xcframework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -36,7 +36,7 @@
 		A1000002000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A1000002000000000000008 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1000002000000000000009 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		A100000200000000000000A /* netflowPaging.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = netflowPaging.xcframework; path = "../netflow-paging/build/XCFrameworks/debug/netflowPaging.xcframework"; sourceTree = "<group>"; };
+		A100000200000000000000A /* netflowSample.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = netflowSample.xcframework; path = "../sample/build/XCFrameworks/debug/netflowSample.xcframework"; sourceTree = "<group>"; };
 		A100000200000000000000B /* iosApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iosApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -45,7 +45,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A100000100000000000000A /* netflowPaging.xcframework in Frameworks */,
+				A100000100000000000000A /* netflowSample.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,7 +72,7 @@
 		A1000005000000000000002 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				A100000200000000000000A /* netflowPaging.xcframework */,
+				A100000200000000000000A /* netflowSample.xcframework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
