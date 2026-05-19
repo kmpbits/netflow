@@ -27,7 +27,7 @@ kotlin {
         iosSimulatorArm64()
     ).forEach {
         it.binaries.framework {
-            baseName = "netflow-core"
+            baseName = "NetflowCore"
             isStatic = true
         }
     }
