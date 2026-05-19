@@ -15,7 +15,7 @@ class PagingBuilder<T : PagingModel> @PublishedApi internal constructor() {
      *
      * Default is 10.
      */
-    var defaultPageSize: Int = 10
+    var defaultPageSize: Int = 20
 
     /**
      * Whether or not delete all the items when [LoadType] is [LoadType.REFRESH] state.
@@ -83,6 +83,16 @@ class PagingBuilder<T : PagingModel> @PublishedApi internal constructor() {
      */
     fun insertAll(onSuccess: suspend (items: List<T>) -> Unit) {
         this.insertAll = onSuccess
+    }
+
+    /**
+     * Call this function to insert all the data in the local data source with a transform to map
+     * from the api model type [T] to the local entity type [E] before inserting.
+     *
+     * <b>Warning:</b> this function is mandatory if [onlyApiCall] is false.
+     */
+    fun <E> insertAll(transform: (T) -> E, onSuccess: suspend (items: List<E>) -> Unit) {
+        this.insertAll = { items -> onSuccess(items.map(transform)) }
     }
 
     /**

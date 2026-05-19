@@ -133,7 +133,7 @@ internal inline fun <reified T : Any> NetFlowRequest.toFlow(
             result?.let {
                 withContext(Dispatchers.IO) { response.onNetworkSuccess?.invoke(result) }
 
-                if (response.offlineBuilder?.call == null || response.offlineBuilder?.callFlow == null) {
+                if (response.offlineBuilder?.call == null && response.offlineBuilder?.callFlow == null) {
                     send(ResultState.Success(result))
                 }
             } ?: run {

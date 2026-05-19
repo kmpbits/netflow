@@ -13,6 +13,9 @@ interface TodoDao {
     @Query("SELECT * FROM todos")
     fun getTodos(): Flow<List<TodoEntity>>
 
+    @Query("SELECT * FROM todos LIMIT :limit OFFSET :offset")
+    suspend fun getTodosPaged(limit: Int, offset: Int): List<TodoEntity>
+
     @Upsert
     suspend fun upsertTodo(todo: TodoEntity)
 

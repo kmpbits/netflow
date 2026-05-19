@@ -9,5 +9,7 @@ data class TodoEntity(
     val id: Int,
     val userId: Int,
     val title: String,
-    val completed: Boolean
+    val completed: Boolean,
+    val page: Int = 1,
+    val lastUpdatedTimestamp: Long? = null
 )

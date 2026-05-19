@@ -11,16 +11,28 @@ fun TodoDto.toModel() = Todo(
     completed = completed
 )
 
-fun TodoEntity.toDto() = TodoDto(
+fun TodoEntity.toModel() = Todo(
     id = id,
     userId = userId,
     title = title,
     completed = completed
 )
 
-fun TodoDto.toEntity() = TodoEntity(
+fun TodoEntity.toDto() = TodoDto(
     id = id,
     userId = userId,
     title = title,
     completed = completed
+).also {
+    it.page = page
+    it.lastUpdatedTimestamp = lastUpdatedTimestamp
+}
+
+fun TodoDto.toEntity() = TodoEntity(
+    id = id,
+    userId = userId,
+    title = title,
+    completed = completed,
+    page = page,
+    lastUpdatedTimestamp = lastUpdatedTimestamp
 )

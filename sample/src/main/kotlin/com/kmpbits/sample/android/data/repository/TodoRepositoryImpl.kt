@@ -1,22 +1,26 @@
 package com.kmpbits.sample.android.data.repository
 
+import androidx.paging.ExperimentalPagingApi
+import androidx.paging.PagingData
+import androidx.paging.map
 import com.kmpbits.netflow_core.client.NetFlowClient
 import com.kmpbits.netflow_core.deserializables.responseAsync
 import com.kmpbits.netflow_core.deserializables.responseFlow
-import com.kmpbits.netflow_core.deserializables.responseListFlow
 import com.kmpbits.netflow_core.enums.HttpMethod
 import com.kmpbits.netflow_core.states.AsyncState
 import com.kmpbits.netflow_core.states.ResultState
 import com.kmpbits.netflow_core.states.map
+import com.kmpbits.netflow_paging.deserializable.responsePaginated
 import com.kmpbits.sample.android.data.database.AppDatabase
-import com.kmpbits.sample.android.data.database.entity.TodoEntity
 import com.kmpbits.sample.android.data.dto.TodoDto
 import com.kmpbits.sample.android.data.mapper.toDto
 import com.kmpbits.sample.android.data.mapper.toEntity
 import com.kmpbits.sample.android.data.mapper.toModel
+import com.kmpbits.sample.android.data.source.LocalPagingSource
 import com.kmpbits.sample.android.domain.model.Todo
 import com.kmpbits.sample.android.domain.repository.TodoRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 class TodoRepositoryImpl(
@@ -24,26 +28,28 @@ class TodoRepositoryImpl(
     private val database: AppDatabase
 ) : TodoRepository {
 
-    override fun getTodos(): Flow<ResultState<List<Todo>>> {
-        return client.call {
+    @OptIn(ExperimentalPagingApi::class)
+    override fun getTodos(): Flow<PagingData<Todo>> {
+        val response = client.call {
             path = "todos"
 
-        }.responseListFlow<TodoDto>{
-            // Keep observing the local database
-            // This only works if the localDatabase uses the same class as the network DTO
-            local({
-                    observe {
-                        database.todoDao().getTodos()
-                    }
-                }, { it.map(TodoEntity::toDto) }
+        }
+
+        return response.responsePaginated<TodoDto> {
+            localSource(
+                pagingSource = { LocalPagingSource(database.todoDao()) },
+                transform = { it.toDto() }
             )
 
-            // Here is the place to replace all the items in the local database
-            onNetworkSuccess {
-                database.todoDao().replaceTodos(it.map(TodoDto::toEntity))
-            }
+            deleteAll { database.todoDao().deleteTodos() }
+            insertAll(transform = { it.toEntity() }) { database.todoDao().replaceTodos(it) }
+
+            firstItemDatabase(
+                itemDatabase = { database.todoDao().getTodos().first().firstOrNull() },
+                timestamp = { it.lastUpdatedTimestamp }
+            )
         }.map {
-            it.map { it.map(TodoDto::toModel) }
+            it.map { it.toModel() }
         }
     }
 
