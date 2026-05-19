@@ -1,42 +1,40 @@
-# NetFlow KMP 🌐
-A lightweight, multiplatform network library for Kotlin – seamless API calls with Flow, LiveData, and native performance.
+# NetFlow KMP
+A lightweight networking library for Kotlin Multiplatform that provides a simple API for Flow, LiveData, and direct suspending calls.
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.kmpbits/netflow-core.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.kmpbits/netflow-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
-## ✨ Features
+## Features
 
-- 🚀 Kotlin Multiplatform-ready (Android + iOS)
-- 📡 Multiple response strategies:
+- Kotlin Multiplatform support (Android and iOS)
+- Multiple response strategies:
   - LiveData
   - Flow (with UI state handling)
   - Direct deserialization
-- ⚙️ Customizable requests (headers, parameters, methods)
-- 🧠 Smart local cache integration with auto-observe
-- 🔁 Built-in error handling and retry logic
-- 🔍 Debug logging with multiple levels (None, Basic, Headers, Body)
+- Customizable requests (headers, parameters, methods)
+- Local cache integration with observation support
+- Built-in error handling and retry logic
+- Debug logging with multiple levels (None, Basic, Headers, Body)
 
 ---
 
-## 💡 Why NetFlow?
+## Overview
 
-Managing network calls, caching, and syncing with local databases can become a repetitive mess in every project.
+NetFlow KMP simplifies network requests, caching, and local data synchronization in Kotlin Multiplatform projects.
 
-NetFlow KMP was built to **solve these common problems**:
+Key benefits:
 
-- 🔁 **No more syncing logic** – When your API updates the data, NetFlow can automatically update your local database and trigger observers.
-- 🔍 **No more boilerplate** – Just define what to do on success and what to observe locally, and you're done.
-- 🧠 **Smart caching and local-first approach** – Responses are loaded from the local database immediately (if available), while the network updates in the background.
-- 🛠️ **Flexible by design** – You can work with your domain models using transformations, or skip them entirely and use DTOs.
-- 📱 **Multiplatform-ready** – Designed for KMP, works with Android/iOS out of the box.
-
-> ✅ All of this with just a few lines of Kotlin code – no manual list mutations, no state juggling, and no complicated observer logic.
+- **Automatic synchronization**: Update local databases when API calls succeed to trigger observers automatically.
+- **Reduced boilerplate**: Define network success and local observation logic in a single block.
+- **Offline-first approach**: Load from local storage while refreshing from the network in the background.
+- **Data transformations**: Work with domain models using transformations or use DTOs directly.
+- **Multiplatform**: Designed for KMP, supporting Android and iOS.
 
 ---
 
-## 📦 Installation
+## Installation
 
 Add the dependency to your `build.gradle.kts`:
 
@@ -50,7 +48,7 @@ Check the latest version on [Maven Central](https://search.maven.org/artifact/co
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Initialize the Client
 
@@ -83,7 +81,7 @@ val user: User = client.call {
 
 ---
 
-## 🌊 Working with Flow
+## Working with Flow
 
 ```kotlin
 val userFlow = client.call {
@@ -117,10 +115,9 @@ val usersFlow = client.call {
 }
 ```
 
-⚠️ Important:
+Important:
 - The return type from your database must match the network DTO (e.g., `UserDto`).
-- If you're using a different entity class, use the `transform` parameter inside `local()` to convert to the DTO type,
-otherwise, you will get a `ClassCastException`.
+- If you're using a different entity class, use the `transform` parameter inside `local()` to convert to the DTO type, otherwise, you will get a `ClassCastException`.
 - If you only want to fetch local data without a network call, set `onlyLocalCall = true` inside the `local` DSL block.
 
 ```kotlin
@@ -167,9 +164,9 @@ lifecycleScope.launch {
 
 ---
 
-## ⚡ Working with Async
+## Working with Async
 
-NetFlow also supports suspending requests for simpler APIs where observation is not required.
+NetFlow also supports suspending requests for scenarios where observation is not required.
 
 ```kotlin
 suspend fun deleteUser(id: Int): AsyncState<User> {
@@ -186,7 +183,7 @@ suspend fun deleteUser(id: Int): AsyncState<User> {
 
 ---
 
-## 📋 Advanced Configuration
+## Advanced Configuration
 
 ### Custom Headers
 
@@ -210,9 +207,9 @@ client.call {
 
 ---
 
-## ❗ Error Handling
+## Error Handling
 
-``responseToModel`` is the only extension that needs to be used with try catch.
+`responseToModel` is the only extension that requires a try-catch block.
 
 ```kotlin
 try {
@@ -233,7 +230,7 @@ try {
 
 ---
 
-## 🧰 Using with DI (e.g. Koin)
+## Using with DI (e.g. Koin)
 
 ```kotlin
 single {
@@ -245,12 +242,12 @@ single {
 
 ---
 
-## 🧪 Testing
+## Testing
 
-Will be implemented soon.
+Testing support is under development.
 
 ---
 
-## 📝 License
+## License
 
 This project is licensed under the MIT License.
