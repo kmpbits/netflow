@@ -2,7 +2,7 @@
 A lightweight networking library for Kotlin Multiplatform that provides a simple API for Flow and direct suspending calls — with optional Jetpack Paging 3 support.
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.kmpbits/netflow-core.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.kmpbits/netflow-core)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ---
 
@@ -241,49 +241,7 @@ fun getPosts(): Flow<PagingData<Post>> = client.call {
 }
 ```
 
-`PostPagingSource` is a custom `PagingSource<Int, PostEntity>` that queries SQLDelight and uses a `Query.Listener` to invalidate itself when the table changes:
-
-```kotlin
-class PostPagingSource(
-    private val database: AppDatabase
-) : PagingSource<Int, PostEntity>() {
-
-    private val query = database.postQueries.getPosts()
-
-    private val listener = object : Query.Listener {
-        override fun queryResultsChanged() {
-            invalidate()
-            query.removeListener(this)
-        }
-    }
-
-    init { query.addListener(listener) }
-
-    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, PostEntity> {
-        return try {
-            val page = params.key ?: 0
-            val limit = params.loadSize
-            val offset = (page * limit).toLong()
-            val items = database.postQueries
-                .getPostsPaged(limit = limit.toLong(), offset = offset)
-                .executeAsList()
-            LoadResult.Page(
-                data = items,
-                prevKey = if (page == 0) null else page - 1,
-                nextKey = if (items.size < limit) null else page + 1
-            )
-        } catch (e: Exception) {
-            LoadResult.Error(e)
-        }
-    }
-
-    override fun getRefreshKey(state: PagingState<Int, PostEntity>): Int? =
-        state.anchorPosition?.let { anchor ->
-            state.closestPageToPosition(anchor)?.prevKey?.plus(1)
-                ?: state.closestPageToPosition(anchor)?.nextKey?.minus(1)
-        }
-}
-```
+`pagingSource` is a custom `PagingSource<Int, YourEntity>` backed by your local database. It should use a listener (e.g. SQLDelight's `Query.Listener`) to call `invalidate()` when the underlying data changes, so the UI stays in sync after a network refresh.
 
 ### PagingBuilder options
 
@@ -573,6 +531,14 @@ single {
 
 ---
 
+## Roadmap
+
+- Unit tests for `netflow-core` and `netflow-paging` modules
+- Multipart / form-data support
+- WebSocket support
+
+---
+
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the Apache License, Version 2.0.

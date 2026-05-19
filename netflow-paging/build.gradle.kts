@@ -53,10 +53,10 @@ kotlin {
 
 val artifactId = "netflow-paging"
 val groupGitHubId = "io.github.kmpbits"
-val libraryVersion = "0.0.18-alpha"
+val neflowLibrary: String by project
 
 group = groupGitHubId
-version = libraryVersion
+version = neflowLibrary
 
 android {
     namespace = "com.kmpbits.netflow_paging"
@@ -75,7 +75,7 @@ mavenPublishing {
 
     signAllPublications()
 
-    coordinates(groupGitHubId, artifactId, libraryVersion)
+    coordinates(groupGitHubId, artifactId, neflowLibrary)
 
     pom {
         name = "NetFlow Paging KMP"
