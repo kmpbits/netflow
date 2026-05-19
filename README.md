@@ -18,6 +18,8 @@ A lightweight networking library for Kotlin Multiplatform that provides a simple
 - Local cache integration with observation support
 - Built-in error handling
 - Debug logging with multiple levels (None, Basic, Headers, Body)
+- `MockNetFlowClient` for testing — no real network calls, with response delays and request history
+- iOS paging support via `PagingCollectionViewController`
 
 ---
 
@@ -110,10 +112,10 @@ val usersFlow = client.call {
     apiTransform { it.toModel() }
 
     onNetworkSuccess { dto ->
-        queries.insertTodo(dto.toEntity())
+        queries.insertUser(dto.toEntity())
     }
 
-    local({ observe { queries.getTodo() } }, transform = { it.toDto() })
+    local({ observe { queries.getUser() } }, transform = { it.toDto() })
 }
 ```
 
@@ -186,7 +188,7 @@ suspend fun getUser(id: Int): AsyncState<User> {
 
 ## Working with Paging (netflow-paging)
 
-`responsePaginated` integrates Jetpack Paging 3, supporting both network-only and remote+local (SQLDelight) strategies.
+`responsePaginated` integrates Jetpack Paging 3, supporting both network-only and remote+local strategies.
 
 Your API response model must implement `PagingModel`:
 
@@ -197,7 +199,7 @@ data class PostDto(
     val title: String,
     override var page: Int = 0,
     override var lastUpdatedTimestamp: Long = 0L
-) : PagingModel
+) : PagingModel()
 ```
 
 ### Network-only paging
@@ -205,7 +207,6 @@ data class PostDto(
 ```kotlin
 fun getPosts(): Flow<PagingData<Post>> = client.call {
     path = "/posts"
-    parameter("page" to 1)
 }.responsePaginated<PostDto, Post> {
     onlyApiCall = true
     networkTransform { it.toModel() }
@@ -214,33 +215,73 @@ fun getPosts(): Flow<PagingData<Post>> = client.call {
 
 ### Remote + local paging (SQLDelight)
 
+Wrap delete and insert in a **single transaction** so the paging source is invalidated exactly once — after all data is ready.
+
 ```kotlin
 fun getPosts(): Flow<PagingData<Post>> = client.call {
     path = "/posts"
-    parameter("page" to 1)
 }.responsePaginated<PostDto, Post> {
     localSource(
-        pagingSource = {
-            QueryPagingSource(
-                countQuery = queries.countPosts(),
-                transacter = queries,
-                context = Dispatchers.IO,
-                queryProvider = queries::getPostsPaged
-            )
-        },
+        pagingSource = { PostPagingSource(database) },
         transform = { it.toModel() }
     )
+
+    deleteOnRefresh = false // handled inside insertAll
     insertAll(transform = { it.toEntity() }) { posts ->
-        queries.transaction {
-            queries.deleteAll()
-            posts.forEach { queries.insertPost(it) }
+        database.postQueries.transaction {
+            database.postQueries.deleteAll()
+            posts.forEach { database.postQueries.insertPost(it) }
         }
     }
-    deleteAll { queries.deleteAll() }
+
     firstItemDatabase(
-        itemDatabase = { queries.getFirstPost().executeAsOneOrNull() },
+        itemDatabase = { database.postQueries.getFirstPost().executeAsOneOrNull() },
         timestamp = { it.lastUpdatedTimestamp }
     )
+}
+```
+
+`PostPagingSource` is a custom `PagingSource<Int, PostEntity>` that queries SQLDelight and uses a `Query.Listener` to invalidate itself when the table changes:
+
+```kotlin
+class PostPagingSource(
+    private val database: AppDatabase
+) : PagingSource<Int, PostEntity>() {
+
+    private val query = database.postQueries.getPosts()
+
+    private val listener = object : Query.Listener {
+        override fun queryResultsChanged() {
+            invalidate()
+            query.removeListener(this)
+        }
+    }
+
+    init { query.addListener(listener) }
+
+    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, PostEntity> {
+        return try {
+            val page = params.key ?: 0
+            val limit = params.loadSize
+            val offset = (page * limit).toLong()
+            val items = database.postQueries
+                .getPostsPaged(limit = limit.toLong(), offset = offset)
+                .executeAsList()
+            LoadResult.Page(
+                data = items,
+                prevKey = if (page == 0) null else page - 1,
+                nextKey = if (items.size < limit) null else page + 1
+            )
+        } catch (e: Exception) {
+            LoadResult.Error(e)
+        }
+    }
+
+    override fun getRefreshKey(state: PagingState<Int, PostEntity>): Int? =
+        state.anchorPosition?.let { anchor ->
+            state.closestPageToPosition(anchor)?.prevKey?.plus(1)
+                ?: state.closestPageToPosition(anchor)?.nextKey?.minus(1)
+        }
 }
 ```
 
@@ -252,7 +293,7 @@ fun getPosts(): Flow<PagingData<Post>> = client.call {
 | `pageQueryName` | `"page"` | URL query parameter name for the page number |
 | `onlyApiCall` | `false` | `true` for network-only (no local DB) |
 | `wrappedResponse` | `false` | `true` when API returns `{ "data": [...] }` |
-| `deleteOnRefresh` | `true` | Clear local DB on `REFRESH` load type |
+| `deleteOnRefresh` | `true` | Clear local DB before inserting on `REFRESH`. Set to `false` when handling delete inside `insertAll` |
 | `refresh` | `false` | Force refresh on start, ignoring cache timeout |
 | `cacheTimeout` | `1 hour` | How long before re-fetching from the network |
 
@@ -262,7 +303,7 @@ fun getPosts(): Flow<PagingData<Post>> = client.call {
 val posts = repository.getPosts().cachedIn(viewModelScope)
 ```
 
-### Consuming in Compose
+### Consuming in Compose (Android)
 
 ```kotlin
 val posts = viewModel.posts.collectAsLazyPagingItems()
@@ -273,6 +314,187 @@ LazyColumn {
     }
 }
 ```
+
+### Consuming on iOS (SwiftUI)
+
+`netflow-paging` ships `PagingCollectionViewController` — a KMP class that bridges paging data to Swift. It is designed to be used with [SKIE](https://skie.touchlab.co) for async sequence support.
+
+**ViewModel (Swift)**
+
+```swift
+import netflowCore // or your KMP framework name
+
+@MainActor
+final class PostListViewModel: ObservableObject {
+    private let viewModel = // your KMP ViewModel from DI
+
+    @Published private(set) var posts: [Post] = []
+    @Published private(set) var isLoading: Bool = false
+
+    private let delegate = PagingCollectionViewController<Post>()
+
+    init() {
+        observeData()
+        observeLoadStates()
+        observePagingData()
+    }
+
+    func loadNextPage() { delegate.loadNextPage() }
+
+    private func observePagingData() {
+        Task {
+            for await pagingData in viewModel.posts {
+                delegate.submitData(pagingData: pagingData)
+            }
+        }
+    }
+
+    private func observeData() {
+        Task {
+            for await _ in delegate.onPagesUpdatedFlow {
+                self.posts = delegate.getItems()
+                self.isLoading = false
+            }
+        }
+    }
+
+    private func observeLoadStates() {
+        Task {
+            for await loadState in delegate.loadStateFlow {
+                guard let loadState else { continue }
+                switch loadState.refresh {
+                case _ as Paging_commonLoadStateLoading:
+                    self.isLoading = true
+                default:
+                    self.isLoading = false
+                }
+            }
+        }
+    }
+
+    deinit { delegate.clearScope() }
+}
+```
+
+**View (SwiftUI)**
+
+```swift
+struct PostListView: View {
+    @StateObject private var viewModel = PostListViewModel()
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if viewModel.isLoading && viewModel.posts.isEmpty {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List {
+                        ForEach(viewModel.posts, id: \.id) { post in
+                            PostItemView(post: post)
+                                .onAppear {
+                                    if post.id == viewModel.posts.last?.id {
+                                        viewModel.loadNextPage()
+                                    }
+                                }
+                        }
+                    }
+                    .listStyle(.plain)
+                }
+            }
+            .navigationTitle("Posts")
+        }
+    }
+}
+```
+
+---
+
+## Testing with MockNetFlowClient
+
+`MockNetFlowClient` implements `NetFlowClient` and intercepts all requests without making any real network calls. It supports response delays, request recording, and assertion helpers.
+
+```kotlin
+val mockClient = MockNetFlowClient { request ->
+    when {
+        request.path == "posts" && request.method == HttpMethod.Get ->
+            NetFlowMockResponse.success("""[{"id":1,"title":"Hello","completed":false}]""")
+
+        request.path.startsWith("posts/") && request.method == HttpMethod.Delete ->
+            NetFlowMockResponse.success()
+
+        request.path == "posts" && request.method == HttpMethod.Post ->
+            NetFlowMockResponse.success("""{"id":101,"title":"New Post","completed":false}""")
+
+        else -> NetFlowMockResponse.notFound()
+    }
+}
+```
+
+### Simulating delays
+
+```kotlin
+NetFlowMockResponse.success(
+    body = """[...]""",
+    delay = 2.seconds   // simulates slow network
+)
+```
+
+### Simulating errors
+
+```kotlin
+NetFlowMockResponse.error(code = 401, errorBody = "Unauthorized")
+NetFlowMockResponse.serverError("Something went wrong")
+NetFlowMockResponse.notFound()
+```
+
+### Asserting calls
+
+```kotlin
+// Called at least once
+mockClient.assertCalled("posts", HttpMethod.Get)
+
+// Called exactly N times
+mockClient.assertCalledTimes("posts/1", HttpMethod.Delete, times = 1)
+
+// Never called
+mockClient.assertNotCalled("posts", HttpMethod.Post)
+```
+
+### Inspecting recorded requests
+
+```kotlin
+val request = mockClient.recordedRequests.first()
+assertEquals(HttpMethod.Post, request.method)
+assertEquals(mapOf("title" to "New Post"), request.body)
+
+mockClient.clearRecordedRequests()
+```
+
+### Using with a repository
+
+```kotlin
+@Test
+fun `delete removes item from local database`() = runTest {
+    val mockClient = MockNetFlowClient { _ -> NetFlowMockResponse.success() }
+    val repository = PostRepositoryImpl(mockClient, database)
+
+    repository.deletePost(id = 1)
+
+    mockClient.assertCalled("posts/1", HttpMethod.Delete)
+}
+```
+
+### MockNetFlowResponse helpers
+
+| Helper | Code | Description |
+|---|---|---|
+| `NetFlowMockResponse.success(body)` | `200` | Successful response with optional body |
+| `NetFlowMockResponse.error(code, errorBody)` | custom | Client error |
+| `NetFlowMockResponse.notFound()` | `404` | Not found |
+| `NetFlowMockResponse.serverError(errorBody)` | `500` | Server error |
+
+All helpers accept an optional `delay: Duration` parameter.
 
 ---
 
@@ -299,6 +521,19 @@ client.call {
 }.responseFlow<UserDto, User> {
     apiTransform { it.toModel() }
 }
+```
+
+### Retry
+
+```kotlin
+client.call {
+    path = "/unstable-endpoint"
+    retry {
+        times = RetryTimes.THREE
+        delay = 1.seconds
+        retryOn = { it is IOException }
+    }
+}.responseFlow<DataDto, Data> { apiTransform { it.toModel() } }
 ```
 
 ---
