@@ -1,9 +1,61 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
+    alias(libs.plugins.kotlinMultiplatform)
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlinx.serialization)
     alias(libs.plugins.ksp)
+}
+
+kotlin {
+    jvmToolchain(17)
+
+    androidTarget {
+        compilations.all {
+            compileTaskProvider.configure {
+                compilerOptions {
+                    jvmTarget.set(JvmTarget.JVM_11)
+                }
+            }
+        }
+    }
+
+    iosArm64()
+    iosSimulatorArm64()
+
+    sourceSets {
+        commonMain.dependencies {
+            implementation(project(":netflow-core"))
+            implementation(project(":netflow-paging"))
+            implementation(libs.kotlinx.coroutines)
+            implementation(libs.json.serialization)
+            implementation(libs.koin.core)
+            implementation(libs.lifecycle.viewmodel)
+            implementation(libs.room.runtime)
+        }
+
+        androidMain.dependencies {
+            implementation(libs.compose.ui)
+            implementation(libs.compose.ui.tooling.preview)
+            implementation(libs.compose.material3)
+            implementation(libs.androidx.activity.compose)
+            implementation(libs.androidx.appcompat)
+            implementation(libs.koin.android)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.composeVM)
+            implementation(libs.room.ktx)
+            implementation(libs.androidx.paging.compose)
+        }
+
+        iosMain.dependencies {
+            implementation(libs.sqlite.bundled)
+        }
+
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+        }
+    }
 }
 
 android {
@@ -33,24 +85,11 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
 }
 
 dependencies {
-    implementation(project(":netflow-core"))
-    implementation(project(":netflow-paging"))
-    implementation(libs.compose.ui)
-    implementation(libs.compose.ui.tooling.preview)
-    implementation(libs.compose.material3)
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.appcompat)
     debugImplementation(libs.compose.ui.tooling)
-    implementation(libs.json.serialization)
-    implementation(libs.bundles.koin)
-    implementation(libs.room.runtime)
-    implementation(libs.room.ktx)
-    implementation(libs.androidx.paging.compose)
-    ksp(libs.room.compiler)
+    add("kspAndroid", libs.room.compiler)
+    add("kspIosArm64", libs.room.compiler)
+    add("kspIosSimulatorArm64", libs.room.compiler)
 }
