@@ -110,10 +110,10 @@ val usersFlow = client.call {
     apiTransform { it.toModel() }
 
     onNetworkSuccess { dto ->
-        userDao.insertAll(listOf(dto.toEntity()))
+        queries.insertTodo(dto.toEntity())
     }
 
-    local({ observe { userDao.getUser() } }, transform = { it.toDto() })
+    local({ observe { queries.getTodo() } }, transform = { it.toDto() })
 }
 ```
 
@@ -124,7 +124,7 @@ The `transform` inside `local()` maps from the database entity type to `ApiType`
 ```kotlin
 local({
     onlyLocalCall = true
-    call { userDao.getAllUsers() }
+    call { queries.getAllUsers() }
 }, transform = { it.toDto() })
 ```
 
@@ -165,7 +165,7 @@ suspend fun deleteUser(id: Int): AsyncState<Unit> {
         path = "users/$id"
         method = HttpMethod.Delete
     }.responseAsync<Unit, Unit> {
-        onNetworkSuccess { userDao.deleteUser(id) }
+        onNetworkSuccess { queries.deleteUser(id) }
     }
 }
 ```
@@ -186,7 +186,7 @@ suspend fun getUser(id: Int): AsyncState<User> {
 
 ## Working with Paging (netflow-paging)
 
-`responsePaginated` integrates Jetpack Paging 3, supporting both network-only and remote+local (Room) strategies.
+`responsePaginated` integrates Jetpack Paging 3, supporting both network-only and remote+local (SQLDelight) strategies.
 
 Your API response model must implement `PagingModel`:
 
@@ -212,17 +212,35 @@ fun getPosts(): Flow<PagingData<Post>> = client.call {
 }
 ```
 
-### Remote + local paging (Room)
+### Remote + local paging (SQLDelight)
 
 ```kotlin
 fun getPosts(): Flow<PagingData<Post>> = client.call {
     path = "/posts"
     parameter("page" to 1)
 }.responsePaginated<PostDto, Post> {
-    localSource(pagingSource = { dao.getPosts() }, transform = { it.toModel() })
-    insertAll(transform = { it.toEntity() }) { dao.insertAll(it) }
-    deleteAll { dao.deleteAll() }
-    firstItemDatabase(itemDatabase = { dao.getFirstPost() }, timestamp = { it.lastUpdatedTimestamp })
+    localSource(
+        pagingSource = {
+            QueryPagingSource(
+                countQuery = queries.countPosts(),
+                transacter = queries,
+                context = Dispatchers.IO,
+                queryProvider = queries::getPostsPaged
+            )
+        },
+        transform = { it.toModel() }
+    )
+    insertAll(transform = { it.toEntity() }) { posts ->
+        queries.transaction {
+            queries.deleteAll()
+            posts.forEach { queries.insertPost(it) }
+        }
+    }
+    deleteAll { queries.deleteAll() }
+    firstItemDatabase(
+        itemDatabase = { queries.getFirstPost().executeAsOneOrNull() },
+        timestamp = { it.lastUpdatedTimestamp }
+    )
 }
 ```
 

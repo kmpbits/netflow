@@ -13,11 +13,10 @@ import com.kmpbits.sample.android.data.database.AppDatabase
 import com.kmpbits.sample.android.data.dto.TodoDto
 import com.kmpbits.sample.android.data.mapper.toEntity
 import com.kmpbits.sample.android.data.mapper.toModel
-import com.kmpbits.sample.android.data.source.LocalPagingSource
+import com.kmpbits.sample.android.data.source.TodoPagingSource
 import com.kmpbits.sample.android.domain.model.Todo
 import com.kmpbits.sample.android.domain.repository.TodoRepository
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 
 class TodoRepositoryImpl(
     private val client: NetFlowClient,
@@ -30,15 +29,20 @@ class TodoRepositoryImpl(
             path = "todos"
         }.responsePaginated<TodoDto, Todo> {
             localSource(
-                pagingSource = { LocalPagingSource(database.todoDao()) },
+                pagingSource = { TodoPagingSource(database) },
                 transform = { it.toModel() }
             )
 
-            deleteAll { database.todoDao().deleteTodos() }
-            insertAll(transform = { it.toEntity() }) { database.todoDao().replaceTodos(it) }
+            deleteOnRefresh = false
+            insertAll(transform = { it.toEntity() }) { todos ->
+                database.todoQueries.transaction {
+                    database.todoQueries.deleteTodos()
+                    todos.forEach { database.todoQueries.insertTodo(it) }
+                }
+            }
 
             firstItemDatabase(
-                itemDatabase = { database.todoDao().getTodos().first().firstOrNull() },
+                itemDatabase = { database.todoQueries.getFirstTodo().executeAsOneOrNull() },
                 timestamp = { it.lastUpdatedTimestamp }
             )
         }
@@ -57,7 +61,7 @@ class TodoRepositoryImpl(
                 )
             )
         }.responseFlow<TodoDto, Todo> {
-            onNetworkSuccess { database.todoDao().upsertTodo(it.toEntity()) }
+            onNetworkSuccess { database.todoQueries.insertTodo(it.toEntity()) }
             apiTransform { it.toModel() }
         }
     }
@@ -75,7 +79,7 @@ class TodoRepositoryImpl(
                 )
             )
         }.responseFlow<TodoDto, Todo> {
-            onNetworkSuccess { database.todoDao().upsertTodo(it.toEntity()) }
+            onNetworkSuccess { database.todoQueries.insertTodo(it.toEntity()) }
             apiTransform { it.toModel() }
         }
     }
@@ -85,7 +89,7 @@ class TodoRepositoryImpl(
             path = "todos/$id"
             method = HttpMethod.Delete
         }.responseAsync<Unit, Unit> {
-            onNetworkSuccess { database.todoDao().deleteTodo(id) }
+            onNetworkSuccess { database.todoQueries.deleteTodo(id.toLong()) }
         }
     }
 }

@@ -3,6 +3,7 @@ package com.kmpbits.netflow_paging.builder
 import androidx.paging.PagingSource
 import com.kmpbits.netflow_core.annotations.NetFlowMarker
 import com.kmpbits.netflow_paging.model.PagingModel
+import com.kmpbits.netflow_paging.source.LongKeyedPagingSourceWrapper
 import com.kmpbits.netflow_paging.source.MappedPagingSource
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
@@ -124,6 +125,14 @@ class PagingBuilder<ApiType : PagingModel, DisplayType : Any> @PublishedApi inte
      */
     fun <E : Any> localSource(pagingSource: () -> PagingSource<Int, E>, transform: (E) -> DisplayType) {
         this.itemsDataSource = { MappedPagingSource(pagingSource(), transform) }
+    }
+
+    /**
+     * Variant of [localSource] for [PagingSource] implementations that use [Long] keys (e.g. SQLDelight's QueryPagingSource).
+     * Keys are automatically bridged to [Int] internally.
+     */
+    fun <E : Any> localSourceLong(pagingSource: () -> PagingSource<Long, E>, transform: (E) -> DisplayType) {
+        this.itemsDataSource = { LongKeyedPagingSourceWrapper(pagingSource(), transform) }
     }
 
     /**

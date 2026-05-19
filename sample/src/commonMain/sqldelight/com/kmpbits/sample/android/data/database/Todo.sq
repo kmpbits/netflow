@@ -1,0 +1,32 @@
+import kotlin.Boolean;
+
+CREATE TABLE TodoEntity (
+    id INTEGER NOT NULL PRIMARY KEY,
+    userId INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    completed INTEGER AS Boolean NOT NULL DEFAULT 0,
+    page INTEGER NOT NULL DEFAULT 1,
+    lastUpdatedTimestamp INTEGER
+);
+
+getTodos:
+SELECT * FROM TodoEntity;
+
+getFirstTodo:
+SELECT * FROM TodoEntity LIMIT 1;
+
+countTodos:
+SELECT count(*) FROM TodoEntity;
+
+getTodosPaged:
+SELECT * FROM TodoEntity LIMIT :limit OFFSET :offset;
+
+insertTodo:
+INSERT OR REPLACE INTO TodoEntity (id, userId, title, completed, page, lastUpdatedTimestamp)
+VALUES ?;
+
+deleteTodos:
+DELETE FROM TodoEntity;
+
+deleteTodo:
+DELETE FROM TodoEntity WHERE id = :id;

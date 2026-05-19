@@ -10,13 +10,13 @@ android-okhttp = "4.12.0"
 maven-publish = "0.30.0"
 appcompat = "1.7.1"
 koin = "4.0.4"
-room = "2.7.0"
 sqlite = "2.5.0"
 ksp = "2.1.21-2.0.1"
 paging = "3.5.0"
 paging-kmp = "3.3.0"
 lifecycle = "2.8.7"
 touchlab-skie = "0.10.6"
+sqldelight = "2.0.2"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -42,10 +42,11 @@ koin-viewmodel = { module = "io.insert-koin:koin-core-viewmodel", version.ref = 
 koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
 koin-composeVM = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
 
-# Rom
-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
+# SQLDelight
+sqldelight-android-driver = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }
+sqldelight-native-driver = { module = "app.cash.sqldelight:native-driver", version.ref = "sqldelight" }
+sqldelight-coroutines-extensions = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
+sqldelight-paging3-extensions = { module = "app.cash.sqldelight:androidx-paging3-extensions", version.ref = "sqldelight" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
@@ -58,3 +59,4 @@ kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", vers
 maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 touchlab-skie = { id = "co.touchlab.skie", version.ref = "touchlab-skie" }
+sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }

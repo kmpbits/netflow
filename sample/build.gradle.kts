@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.kotlinx.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.touchlab.skie)
+    alias(libs.plugins.sqldelight)
 }
 
 kotlin {
@@ -49,7 +50,8 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.koin.viewmodel)
             implementation(libs.lifecycle.viewmodel)
-            implementation(libs.room.runtime)
+            implementation(libs.sqldelight.coroutines.extensions)
+            implementation(libs.sqldelight.paging3.extensions)
         }
 
         androidMain.dependencies {
@@ -61,12 +63,13 @@ kotlin {
             implementation(libs.koin.android)
             implementation(libs.koin.compose)
             implementation(libs.koin.composeVM)
-            implementation(libs.room.ktx)
+            implementation(libs.sqldelight.android.driver)
             implementation(libs.androidx.paging.compose)
         }
 
         iosMain.dependencies {
             implementation(libs.sqlite.bundled)
+            implementation(libs.sqldelight.native.driver)
         }
 
         commonTest.dependencies {
@@ -110,7 +113,12 @@ android {
 
 dependencies {
     debugImplementation(libs.compose.ui.tooling)
-    add("kspAndroid", libs.room.compiler)
-    add("kspIosArm64", libs.room.compiler)
-    add("kspIosSimulatorArm64", libs.room.compiler)
+}
+
+sqldelight {
+    databases {
+        create("AppDatabase") {
+            packageName.set("com.kmpbits.sample.android.data.database")
+        }
+    }
 }

@@ -1,6 +1,6 @@
 package com.kmpbits.sample.android.data.mapper
 
-import com.kmpbits.sample.android.data.database.entity.TodoEntity
+import com.kmpbits.sample.android.data.database.TodoEntity
 import com.kmpbits.sample.android.data.dto.TodoDto
 import com.kmpbits.sample.android.domain.model.Todo
 
@@ -12,27 +12,27 @@ fun TodoDto.toModel() = Todo(
 )
 
 fun TodoEntity.toModel() = Todo(
-    id = id,
-    userId = userId,
+    id = id.toInt(),
+    userId = userId.toInt(),
     title = title,
     completed = completed
 )
 
 fun TodoEntity.toDto() = TodoDto(
-    id = id,
-    userId = userId,
+    id = id.toInt(),
+    userId = userId.toInt(),
     title = title,
     completed = completed
 ).also {
-    it.page = page
+    it.page = page.toInt()
     it.lastUpdatedTimestamp = lastUpdatedTimestamp
 }
 
 fun TodoDto.toEntity() = TodoEntity(
-    id = id,
-    userId = userId,
+    id = id.toLong(),
+    userId = userId.toLong(),
     title = title,
     completed = completed,
-    page = page,
+    page = page.toLong(),
     lastUpdatedTimestamp = lastUpdatedTimestamp
 )
