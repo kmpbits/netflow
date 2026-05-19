@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "NetFlow"
-include(":netflow-core", ":sample")
+include(":netflow-core", ":netflow-paging", ":sample")

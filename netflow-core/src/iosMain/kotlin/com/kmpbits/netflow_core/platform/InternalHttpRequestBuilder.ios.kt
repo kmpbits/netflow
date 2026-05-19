@@ -2,7 +2,9 @@ package com.kmpbits.netflow_core.platform
 
 import com.kmpbits.netflow_core.alias.Header
 import com.kmpbits.netflow_core.alias.Headers
+import com.kmpbits.netflow_core.builders.RequestBuilder
 import com.kmpbits.netflow_core.enums.HttpHeader
+import com.kmpbits.netflow_core.extensions.urlWithPath
 import platform.Foundation.HTTPMethod
 import platform.Foundation.NSMutableURLRequest
 import platform.Foundation.allHTTPHeaderFields
@@ -29,4 +31,13 @@ internal actual class InternalHttpRequestBuilder(
         get() = request.allHTTPHeaderFields?.map {
             Header(HttpHeader.custom(it.key.toString()), it.value.toString())
         }?.toMutableList() ?: mutableListOf()
+
+    internal actual fun updateUrl(builder: RequestBuilder) {
+        val url = urlWithPath(
+            url,
+            builder.path,
+            builder.method,
+            builder.parameters
+        )
+    }
 }

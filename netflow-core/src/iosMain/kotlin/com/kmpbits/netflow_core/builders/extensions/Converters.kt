@@ -1,6 +1,7 @@
 package com.kmpbits.netflow_core.builders.extensions
 
 import com.kmpbits.netflow_core.exceptions.NetFlowException
+import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.refTo
@@ -28,6 +29,7 @@ internal fun Map<String, Any>.toJsonString(): String {
     return Json.encodeToString(JsonObject(jsonMap))
 }
 
+@OptIn(BetaInteropApi::class)
 internal fun String.toNSData(): NSData {
     return NSString.create(string = this).dataUsingEncoding(NSUTF8StringEncoding)!!
 }
