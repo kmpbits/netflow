@@ -5,7 +5,7 @@ import com.kmpbits.netflow_core.enums.HttpHeader
 import com.kmpbits.netflow_core.enums.HttpMethod
 import com.kmpbits.netflow_core.enums.LogLevel
 import com.kmpbits.netflow_core.logging.Logging
-import com.kmpbits.netflow_core.platform.InternalHttpClient
+import com.kmpbits.netflow_core.platform.HttpEngineAdapter
 import com.kmpbits.netflow_core.platform.InternalHttpRequestBuilder
 import com.kmpbits.netflow_core.response.NetFlowResponse
 import kotlinx.coroutines.delay
@@ -15,7 +15,7 @@ class NetFlowRequest internal constructor(
     @PublishedApi
     internal val builder: RequestBuilder,
     @PublishedApi
-    internal val client: InternalHttpClient,
+    internal val client: HttpEngineAdapter,
     @PublishedApi
     internal val requestBuilder: InternalHttpRequestBuilder,
     @PublishedApi
