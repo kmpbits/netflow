@@ -99,7 +99,12 @@ internal suspend inline fun <reified ApiType : Any, DisplayType : Any> NetFlowRe
     response.post?.invoke()
 
     return if (callResponse.isSuccess) {
-        val apiResult = deserializeBlock(callResponse)
+        val apiResult = if (ApiType::class == Unit::class && callResponse.body.isNullOrEmpty()) {
+            @Suppress("UNCHECKED_CAST")
+            Unit as ApiType
+        } else {
+            deserializeBlock(callResponse)
+        }
         apiResult?.let {
             withContext(Dispatchers.IO) { response.onNetworkSuccess?.invoke(it) }
             val displayResult: DisplayType = response.apiTransform?.invoke(it) ?: it as DisplayType

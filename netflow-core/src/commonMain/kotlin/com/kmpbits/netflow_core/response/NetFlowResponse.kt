@@ -9,5 +9,5 @@ class NetFlowResponse internal constructor(
     val errorBody: String?
 ) {
     val isSuccess: Boolean
-        get() = code in (200..299) && body != null
+        get() = code in (200..299)
 }

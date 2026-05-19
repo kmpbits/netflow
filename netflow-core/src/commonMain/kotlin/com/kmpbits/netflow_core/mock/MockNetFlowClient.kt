@@ -70,7 +70,7 @@ class MockNetFlowClient(
     }
 
     override fun call(builder: RequestBuilder.() -> Unit): NetFlowRequest {
-        val callBuilder = RequestBuilder("", RetryBuilder(), mutableListOf()).also(builder)
+        val callBuilder = RequestBuilder("https://mock", RetryBuilder(), mutableListOf()).also(builder)
         val requestBuilder = callBuilder.build()
 
         val engine = object : HttpEngineAdapter {
