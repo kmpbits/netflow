@@ -25,13 +25,16 @@ import kotlinx.coroutines.withContext
  * [ApiType] is the type the API response is deserialized into.
  * [DisplayType] is the type emitted in [ResultState] — use [ResponseBuilder.apiTransform] to map
  * between the two. When both are the same, specify the type once: `responseFlow<MyType, MyType>`.
+ *
+ * Set [ResponseBuilder.wrappedResponse] to true when the API returns `{ "data": ... }`.
  */
 inline fun <reified ApiType : Any, DisplayType : Any> NetFlowRequest.responseFlow(
     crossinline responseBuilder: ResponseBuilder<ApiType, DisplayType>.() -> Unit = {}
 ): Flow<ResultState<DisplayType>> {
+    val wrapped = ResponseBuilder<ApiType, DisplayType>().also(responseBuilder).wrappedResponse
     return toFlow(
         responseBuilder = responseBuilder,
-        deserializeBlock = { it.toModel<ApiType>() }
+        deserializeBlock = { if (wrapped) it.toModelWrapped<ApiType>() else it.toModel<ApiType>() }
     )
 }
 
@@ -56,13 +59,16 @@ inline fun <reified ApiType : Any, DisplayType : Any> NetFlowRequest.responseWra
  *
  * [ApiItem] is the item type the API response is deserialized into.
  * [DisplayItem] is the item type emitted in [ResultState] — use [ResponseBuilder.apiTransform] to map between the two.
+ *
+ * Set [ResponseBuilder.wrappedResponse] to true when the API returns `{ "data": [...] }`.
  */
 inline fun <reified ApiItem : Any, DisplayItem : Any> NetFlowRequest.responseListFlow(
     crossinline responseBuilder: ResponseBuilder<List<ApiItem>, List<DisplayItem>>.() -> Unit = {}
 ): Flow<ResultState<List<DisplayItem>>> {
+    val wrapped = ResponseBuilder<List<ApiItem>, List<DisplayItem>>().also(responseBuilder).wrappedResponse
     return toFlow(
         responseBuilder = responseBuilder,
-        deserializeBlock = { it.toList() }
+        deserializeBlock = { if (wrapped) it.toEnvelopeList<ApiItem>().data else it.toList() }
     )
 }
 

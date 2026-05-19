@@ -1,5 +1,5 @@
 # NetFlow KMP
-A lightweight networking library for Kotlin Multiplatform that provides a simple API for Flow, LiveData, and direct suspending calls.
+A lightweight networking library for Kotlin Multiplatform that provides a simple API for Flow and direct suspending calls — with optional Jetpack Paging 3 support.
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.kmpbits/netflow-core.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.kmpbits/netflow-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -10,41 +10,39 @@ A lightweight networking library for Kotlin Multiplatform that provides a simple
 
 - Kotlin Multiplatform support (Android and iOS)
 - Multiple response strategies:
-  - LiveData
   - Flow (with UI state handling)
-  - Direct deserialization
-- Customizable requests (headers, parameters, methods)
+  - Async (suspending, one-shot)
+  - Paginated (Jetpack Paging 3 via `netflow-paging`)
+- Two-type API: separate deserialization type (`ApiType`) from display type (`DisplayType`) — no trailing `.map` needed
+- `wrappedResponse` flag for APIs that return `{ "data": ... }` envelopes
 - Local cache integration with observation support
-- Built-in error handling and retry logic
+- Built-in error handling
 - Debug logging with multiple levels (None, Basic, Headers, Body)
-
----
-
-## Overview
-
-NetFlow KMP simplifies network requests, caching, and local data synchronization in Kotlin Multiplatform projects.
-
-Key benefits:
-
-- **Automatic synchronization**: Update local databases when API calls succeed to trigger observers automatically.
-- **Reduced boilerplate**: Define network success and local observation logic in a single block.
-- **Offline-first approach**: Load from local storage while refreshing from the network in the background.
-- **Data transformations**: Work with domain models using transformations or use DTOs directly.
-- **Multiplatform**: Designed for KMP, supporting Android and iOS.
 
 ---
 
 ## Installation
 
-Add the dependency to your `build.gradle.kts`:
+### Core module
 
 ```kotlin
-dependencies { 
+dependencies {
     implementation("io.github.kmpbits:netflow-core:<latest_version>")
 }
 ```
 
-Check the latest version on [Maven Central](https://search.maven.org/artifact/com.github.kmpbits.libraries/netflow-core)
+### Paging module (optional)
+
+Adds `responsePaginated` with Jetpack Paging 3 support.
+
+```kotlin
+dependencies {
+    implementation("io.github.kmpbits:netflow-core:<latest_version>")
+    implementation("io.github.kmpbits:netflow-paging:<latest_version>")
+}
+```
+
+Check the latest versions on [Maven Central](https://central.sonatype.com/artifact/io.github.kmpbits/netflow-core).
 
 ---
 
@@ -56,8 +54,7 @@ Check the latest version on [Maven Central](https://search.maven.org/artifact/co
 val client = netFlowClient {
     baseUrl = "https://api.example.com"
 
-    // Optional default headers
-    header(Header(HttpHeader.custom("custom-header"), "This is a custom header"))
+    header(Header(HttpHeader.custom("custom-header"), "value"))
     header(Header(HttpHeader.CONTENT_TYPE), "application/json")
 }
 ```
@@ -83,81 +80,75 @@ val user: User = client.call {
 
 ## Working with Flow
 
+The two type parameters are `<ApiType, DisplayType>`:
+- `ApiType` — the type the JSON is deserialized into (your DTO).
+- `DisplayType` — the type emitted to the UI (your domain model).
+
+When both are the same, pass the same type twice.
+
 ```kotlin
-val userFlow = client.call {
+// Same type — no mapping needed
+val flow = client.call {
     path = "/users/1"
-}.responseFlow<User>()
-```
+}.responseFlow<UserDto, UserDto>()
 
-Customize the flow behavior:
-
-```kotlin
-val usersFlow = client.call {
-  path = "/users"
-  method = HttpMethod.Get
-}.responseFlow<List<User>> {
-
-  onNetworkSuccess { usersDto ->
-    // Convert DTO to Entity table
-    userDao.insertAll(users.map(UserDto::toEntity))
-  }
-
-  local({
-    observe {
-      userDao.getAllUsers()
-    }
-    // Convert Entity to DTO, if the database object is different than the network 
-    // because the return type from your database must match the network DTO
-  }, transform = { it.map(UserEntity::ToDto) })
-}.map {
-  // Convert all of the response to models as it is the return type of the function
-  it.map { it.map(UserDto::toModel) }
+// Different types — map inside the builder, no .map() at the call site
+val flow = client.call {
+    path = "/users/1"
+}.responseFlow<UserDto, User> {
+    apiTransform { it.toModel() }
 }
 ```
 
-Important:
-- The return type from your database must match the network DTO (e.g., `UserDto`).
-- If you're using a different entity class, use the `transform` parameter inside `local()` to convert to the DTO type, otherwise, you will get a `ClassCastException`.
-- If you only want to fetch local data without a network call, set `onlyLocalCall = true` inside the `local` DSL block.
+### With local cache
+
+```kotlin
+val usersFlow = client.call {
+    path = "/users"
+    method = HttpMethod.Get
+}.responseFlow<UserDto, User> {
+    apiTransform { it.toModel() }
+
+    onNetworkSuccess { dto ->
+        userDao.insertAll(listOf(dto.toEntity()))
+    }
+
+    local({ observe { userDao.getUser() } }, transform = { it.toDto() })
+}
+```
+
+The `transform` inside `local()` maps from the database entity type to `ApiType` (the DTO). `apiTransform` then maps from `ApiType` to `DisplayType` before the value is emitted.
+
+### Offline-only
 
 ```kotlin
 local({
     onlyLocalCall = true
-    call {
-        userDao.getAllUsers()
-    }
-}, transform = { it.map { dto -> dto.toModel() } })
+    call { userDao.getAllUsers() }
+}, transform = { it.toDto() })
 ```
 
-All the responses can be mapped at once using the `map` extension inside `ResultState`:
+### Wrapped API responses
+
+For APIs that return `{ "data": { ... } }` instead of a plain object:
 
 ```kotlin
-.map {
-    it.map { dtoList -> dtoList.map { it.toModel() } }
+responseFlow<UserDto, User> {
+    wrappedResponse = true
+    apiTransform { it.toModel() }
 }
 ```
 
 ### Observing Flow
 
-Using lifecycle:
-
-```kotlin
-userFlow.observe(viewLifecycleOwner) { state ->
-    when(state) {
-        is ResultState.Loading -> showLoading()
-        is ResultState.Success -> showUsers(state.data)
-        is ResultState.Error -> showError(state.exception.message)
-        is ResultState.Empty -> showEmptyState()
-    }
-}
-```
-
-Or with coroutines:
-
 ```kotlin
 lifecycleScope.launch {
-    userFlow.collectLatest { state ->
-        // same logic as above
+    usersFlow.collectLatest { state ->
+        when (state) {
+            is ResultState.Loading -> showLoading()
+            is ResultState.Success -> showUsers(state.data)
+            is ResultState.Error -> showError(state.error.message)
+        }
     }
 }
 ```
@@ -166,18 +157,102 @@ lifecycleScope.launch {
 
 ## Working with Async
 
-NetFlow also supports suspending requests for scenarios where observation is not required.
+For one-shot suspending calls (no observation needed).
 
 ```kotlin
-suspend fun deleteUser(id: Int): AsyncState<User> {
+suspend fun deleteUser(id: Int): AsyncState<Unit> {
     return client.call {
         path = "users/$id"
         method = HttpMethod.Delete
-    }.responseAsync<UserDto> {
-        onNetworkSuccess {
-            userDao.deleteUser(id)
-        }
-    }.map(UserDto::toModel)
+    }.responseAsync<Unit, Unit> {
+        onNetworkSuccess { userDao.deleteUser(id) }
+    }
+}
+```
+
+With type mapping:
+
+```kotlin
+suspend fun getUser(id: Int): AsyncState<User> {
+    return client.call {
+        path = "users/$id"
+    }.responseAsync<UserDto, User> {
+        apiTransform { it.toModel() }
+    }
+}
+```
+
+---
+
+## Working with Paging (netflow-paging)
+
+`responsePaginated` integrates Jetpack Paging 3, supporting both network-only and remote+local (Room) strategies.
+
+Your API response model must implement `PagingModel`:
+
+```kotlin
+@Serializable
+data class PostDto(
+    val id: Int,
+    val title: String,
+    override var page: Int = 0,
+    override var lastUpdatedTimestamp: Long = 0L
+) : PagingModel
+```
+
+### Network-only paging
+
+```kotlin
+fun getPosts(): Flow<PagingData<Post>> = client.call {
+    path = "/posts"
+    parameter("page" to 1)
+}.responsePaginated<PostDto, Post> {
+    onlyApiCall = true
+    networkTransform { it.toModel() }
+}
+```
+
+### Remote + local paging (Room)
+
+```kotlin
+fun getPosts(): Flow<PagingData<Post>> = client.call {
+    path = "/posts"
+    parameter("page" to 1)
+}.responsePaginated<PostDto, Post> {
+    localSource(pagingSource = { dao.getPosts() }, transform = { it.toModel() })
+    insertAll(transform = { it.toEntity() }) { dao.insertAll(it) }
+    deleteAll { dao.deleteAll() }
+    firstItemDatabase(itemDatabase = { dao.getFirstPost() }, timestamp = { it.lastUpdatedTimestamp })
+}
+```
+
+### PagingBuilder options
+
+| Property | Default | Description |
+|---|---|---|
+| `defaultPageSize` | `20` | Items loaded per page |
+| `pageQueryName` | `"page"` | URL query parameter name for the page number |
+| `onlyApiCall` | `false` | `true` for network-only (no local DB) |
+| `wrappedResponse` | `false` | `true` when API returns `{ "data": [...] }` |
+| `deleteOnRefresh` | `true` | Clear local DB on `REFRESH` load type |
+| `refresh` | `false` | Force refresh on start, ignoring cache timeout |
+| `cacheTimeout` | `1 hour` | How long before re-fetching from the network |
+
+### Consuming in the ViewModel
+
+```kotlin
+val posts = repository.getPosts().cachedIn(viewModelScope)
+```
+
+### Consuming in Compose
+
+```kotlin
+val posts = viewModel.posts.collectAsLazyPagingItems()
+
+LazyColumn {
+    items(count = posts.itemCount, key = posts.itemKey { it.id }) { index ->
+        posts[index]?.let { PostItem(it) }
+    }
 }
 ```
 
@@ -190,9 +265,10 @@ suspend fun deleteUser(id: Int): AsyncState<User> {
 ```kotlin
 client.call {
     path = "/secure-endpoint"
-    header(Header(HttpHeader.custom("custom-header"), "This is a custom header"))
-    header(Header(HttpHeader.CONTENT_TYPE), "application/json")
-}.responseFlow<SecureData>()
+    header(Header(HttpHeader.custom("Authorization"), "Bearer $token"))
+}.responseFlow<SecureDataDto, SecureData> {
+    apiTransform { it.toModel() }
+}
 ```
 
 ### Query Parameters
@@ -202,29 +278,31 @@ client.call {
     path = "/users"
     parameter("role" to "admin")
     parameter("active" to true)
-}.responseFlow<List<User>>()
+}.responseFlow<UserDto, User> {
+    apiTransform { it.toModel() }
+}
 ```
 
 ---
 
 ## Error Handling
 
-`responseToModel` is the only extension that requires a try-catch block.
+`responseToModel` is the only extension that throws — all other extensions return a sealed state.
 
 ```kotlin
 try {
-  val response = client.call {
-    path = "/might-fail"
-  }.responseToModel<Data>()
-} catch (e: StateTalkException) {
-  when (e) {
-    is NetworkException -> { /* handle network issues */ }
-    is SerializationException -> { /* handle parsing errors */ }
-    is HttpException -> {
-      val code = e.code
-      val errorBody = e.errorBody
+    val response = client.call {
+        path = "/might-fail"
+    }.responseToModel<Data>()
+} catch (e: NetFlowException) {
+    when (e) {
+        is NetworkException -> { /* handle network issues */ }
+        is SerializationException -> { /* handle parsing errors */ }
+        is HttpException -> {
+            val code = e.code
+            val errorBody = e.errorBody
+        }
     }
-  }
 }
 ```
 
@@ -234,17 +312,11 @@ try {
 
 ```kotlin
 single {
-  netFlowClient {
-    baseUrl = "https://api.example.com"
-  }
+    netFlowClient {
+        baseUrl = "https://api.example.com"
+    }
 }
 ```
-
----
-
-## Testing
-
-Testing support is under development.
 
 ---
 

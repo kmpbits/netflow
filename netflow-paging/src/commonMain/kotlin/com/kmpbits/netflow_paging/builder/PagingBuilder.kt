@@ -39,6 +39,15 @@ class PagingBuilder<ApiType : PagingModel, DisplayType : Any> @PublishedApi inte
     var pageQueryName = "page"
 
     /**
+     * Whether the API response is wrapped in a data json object.
+     *
+     * Set to true when the API returns `{ "data": [...] }` instead of a plain array `[...]`.
+     *
+     * Default is false.
+     */
+    var wrappedResponse: Boolean = false
+
+    /**
      * The time for the [RemoteAndLocalPagingSource] to refresh the data.
      *
      * After the time is reached, [RemoteAndLocalPagingSource] will call the api again and replace all the data.

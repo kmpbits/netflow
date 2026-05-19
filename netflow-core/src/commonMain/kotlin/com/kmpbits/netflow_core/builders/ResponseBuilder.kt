@@ -21,6 +21,15 @@ class ResponseBuilder<ApiType, DisplayType> @PublishedApi internal constructor()
     internal var onNetworkSuccess: (suspend (model: ApiType) -> Unit)? = null
 
     /**
+     * Whether the API response is wrapped in a data json object.
+     *
+     * Set to true when the API returns `{ "data": ... }` instead of a plain object/array.
+     *
+     * Default is false.
+     */
+    var wrappedResponse: Boolean = false
+
+    /**
      * Call this function to access the [OfflineBuilder] and handle local calls.
      *
      * The optional [transform] maps the local entity type [E] to [DisplayType].

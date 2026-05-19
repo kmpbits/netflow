@@ -4,7 +4,6 @@ import androidx.paging.ExperimentalPagingApi
 import androidx.paging.LoadType
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
-import com.kmpbits.netflow_core.envelope.EnvelopeList
 import com.kmpbits.netflow_core.exceptions.NetFlowException
 import com.kmpbits.netflow_core.states.AsyncState
 import com.kmpbits.netflow_paging.builder.PagingBuilder
@@ -17,7 +16,7 @@ import kotlin.time.ExperimentalTime
 @PublishedApi
 internal class RemoteAndLocalPagingSource<ApiType : PagingModel, DisplayType : Any>(
     private val builder: PagingBuilder<ApiType, DisplayType>,
-    private val doApiCall: suspend (page: Int) -> AsyncState<EnvelopeList<ApiType>>
+    private val doApiCall: suspend (page: Int) -> AsyncState<List<ApiType>>
 ) : RemoteMediator<Int, DisplayType>() {
 
     override suspend fun initialize(): InitializeAction {
@@ -49,12 +48,12 @@ internal class RemoteAndLocalPagingSource<ApiType : PagingModel, DisplayType : A
                 AsyncState.Empty -> MediatorResult.Error(Throwable("Empty data"))
                 is AsyncState.Error -> MediatorResult.Error(Throwable(resultState.error.errorBody))
                 is AsyncState.Success -> {
-                    val envelopeList = resultState.data
+                    val items = resultState.data
 
-                    envelopeList.data.forEach { it.page = nextPage }
+                    items.forEach { it.page = nextPage }
 
                     if (loadType == LoadType.REFRESH) {
-                        envelopeList.data.forEach {
+                        items.forEach {
                             it.lastUpdatedTimestamp = Clock.System.now().toEpochMilliseconds()
                         }
                     }
@@ -69,9 +68,9 @@ internal class RemoteAndLocalPagingSource<ApiType : PagingModel, DisplayType : A
                     if (builder.insertAll == null)
                         throw NetFlowException("You must implement 'insertAll()' function!")
 
-                    builder.insertAll?.invoke(envelopeList.data)
+                    builder.insertAll?.invoke(items)
 
-                    MediatorResult.Success(envelopeList.data.isEmpty())
+                    MediatorResult.Success(items.isEmpty())
                 }
             }
         } catch (e: Exception) {

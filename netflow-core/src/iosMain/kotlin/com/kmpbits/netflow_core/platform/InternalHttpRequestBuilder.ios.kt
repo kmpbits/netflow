@@ -35,7 +35,7 @@ internal actual class InternalHttpRequestBuilder(
 
     internal actual fun updateUrl(builder: RequestBuilder) {
         val newUrl = urlWithPath(
-            url,
+            builder.baseUrl,
             builder.path,
             builder.method,
             builder.parameters

@@ -2,7 +2,6 @@ package com.kmpbits.netflow_paging.source
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
-import com.kmpbits.netflow_core.envelope.EnvelopeList
 import com.kmpbits.netflow_core.states.AsyncState
 import com.kmpbits.netflow_paging.builder.PagingBuilder
 import com.kmpbits.netflow_paging.model.PagingModel
@@ -10,7 +9,7 @@ import com.kmpbits.netflow_paging.model.PagingModel
 @PublishedApi
 internal class NetworkPagingSource<ApiType : PagingModel, DisplayType : Any>(
     private val builder: PagingBuilder<ApiType, DisplayType>,
-    private val doApiCall: suspend (page: Int) -> AsyncState<EnvelopeList<ApiType>>
+    private val doApiCall: suspend (page: Int) -> AsyncState<List<ApiType>>
 ) : PagingSource<Int, DisplayType>() {
 
     private var lastLoadedPage: Int = 1
@@ -32,20 +31,17 @@ internal class NetworkPagingSource<ApiType : PagingModel, DisplayType : Any>(
                 AsyncState.Empty -> LoadResult.Error(Throwable("Empty data"))
                 is AsyncState.Error -> LoadResult.Error(Throwable(resultState.error.errorBody))
                 is AsyncState.Success -> {
-                    val envelopeList = resultState.data
-                    envelopeList.data.forEach { it.page = nextPage }
+                    val items = resultState.data
+                    items.forEach { it.page = nextPage }
 
-                    builder.insertAll?.let { it(envelopeList.data) }
+                    builder.insertAll?.let { it(items) }
 
                     lastLoadedPage = page
 
                     LoadResult.Page(
-                        data = envelopeList.data.map { it.toDisplayType() },
+                        data = items.map { it.toDisplayType() },
                         prevKey = null,
-                        nextKey = if (envelopeList.data.size < builder.defaultPageSize)
-                            null
-                        else
-                            nextPage
+                        nextKey = if (items.size < builder.defaultPageSize) null else nextPage
                     )
                 }
             }

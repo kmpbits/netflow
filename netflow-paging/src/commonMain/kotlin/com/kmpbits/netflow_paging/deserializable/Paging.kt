@@ -4,10 +4,11 @@ import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
-import com.kmpbits.netflow_core.deserializables.responseAsync
-import com.kmpbits.netflow_core.envelope.EnvelopeList
+import com.kmpbits.netflow_core.deserializables.responseListAsync
+import com.kmpbits.netflow_core.deserializables.responseWrappedListAsync
 import com.kmpbits.netflow_core.exceptions.NetFlowException
 import com.kmpbits.netflow_core.request.NetFlowRequest
+import com.kmpbits.netflow_core.states.AsyncState
 import com.kmpbits.netflow_paging.builder.PagingBuilder
 import com.kmpbits.netflow_paging.model.PagingModel
 import com.kmpbits.netflow_paging.source.NetworkPagingSource
@@ -32,13 +33,20 @@ inline fun <reified ApiType : PagingModel, DisplayType : Any> NetFlowRequest.res
 
     this@responsePaginated.immutableRequestBuilder.preCall?.invoke()
 
+    val apiCall: suspend () -> AsyncState<List<ApiType>> = {
+        if (pagingBuilder.wrappedResponse)
+            this@responsePaginated.responseWrappedListAsync<ApiType, ApiType>()
+        else
+            this@responsePaginated.responseListAsync<ApiType, ApiType>()
+    }
+
     return if (pagingBuilder.onlyApiCall) {
         Pager(
             config = PagingConfig(pagingBuilder.defaultPageSize),
             pagingSourceFactory = {
                 NetworkPagingSource(pagingBuilder) {
                     updateUrlPage(pagingBuilder.pageQueryName, it)
-                    this@responsePaginated.responseAsync<EnvelopeList<ApiType>, EnvelopeList<ApiType>>()
+                    apiCall()
                 }
             }
         ).flow
@@ -47,13 +55,12 @@ inline fun <reified ApiType : PagingModel, DisplayType : Any> NetFlowRequest.res
             config = PagingConfig(pagingBuilder.defaultPageSize),
             remoteMediator = RemoteAndLocalPagingSource(pagingBuilder) {
                 updateUrlPage(pagingBuilder.pageQueryName, it)
-                this@responsePaginated.responseAsync<EnvelopeList<ApiType>, EnvelopeList<ApiType>>()
+                apiCall()
             },
             pagingSourceFactory = pagingBuilder.itemsDataSource!!
         ).flow
     }
 }
-
 
 @PublishedApi
 internal fun NetFlowRequest.updateUrlPage(pageQueryName: String, page: Int) {
