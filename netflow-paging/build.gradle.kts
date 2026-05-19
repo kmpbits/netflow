@@ -1,5 +1,6 @@
 import com.vanniktech.maven.publish.SonatypeHost
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -21,21 +22,25 @@ kotlin {
         }
     }
 
+    val xcframework = XCFramework("netflowPaging")
+
     listOf(
-        iosX64(),
         iosArm64(),
         iosSimulatorArm64()
     ).forEach {
         it.binaries.framework {
-            baseName = "NetflowPaging"
+            baseName = "netflowPaging"
             isStatic = true
+            export(project(":netflow-core"))
+            binaryOption("bundleId", "com.kmpbits.netflowPaging")
+            xcframework.add(this)
         }
     }
 
     sourceSets {
         commonMain.dependencies {
             api(project(":netflow-core"))
-            api(libs.androidx.paging.common)
+            api(libs.androidx.paging.common.kmp)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

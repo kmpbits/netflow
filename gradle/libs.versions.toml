@@ -13,6 +13,7 @@ koin = "4.0.4"
 room = "2.7.2"
 ksp = "2.1.21-2.0.1"
 paging = "3.5.0"
+paging-kmp = "3.3.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -26,7 +27,7 @@ kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core",
 json-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "json" }
 android-okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "android-okhttp" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
-androidx-paging-common = { module = "androidx.paging:paging-common", version.ref = "paging" }
+androidx-paging-common-kmp = { module = "androidx.paging:paging-common", version.ref = "paging-kmp" }
 androidx-paging-compose = { module = "androidx.paging:paging-compose", version.ref = "paging" }
 
 # Koin

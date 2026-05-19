@@ -21,7 +21,7 @@ class PagingCollectionViewController<T : Any> {
     private val presenter = object : PagingDataPresenter<T>(
         mainContext = Dispatchers.Main
     ) {
-        override suspend fun presentPagingDataEvent(event: PagingDataEvent<T>) {}
+        override suspend fun presentPagingDataEvent(event: PagingDataEvent<T>) = Unit
     }
 
     fun submitData(pagingData: PagingData<T>) {
