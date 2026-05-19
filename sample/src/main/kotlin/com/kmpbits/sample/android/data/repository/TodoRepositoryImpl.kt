@@ -13,7 +13,6 @@ import com.kmpbits.netflow_core.states.map
 import com.kmpbits.netflow_paging.deserializable.responsePaginated
 import com.kmpbits.sample.android.data.database.AppDatabase
 import com.kmpbits.sample.android.data.dto.TodoDto
-import com.kmpbits.sample.android.data.mapper.toDto
 import com.kmpbits.sample.android.data.mapper.toEntity
 import com.kmpbits.sample.android.data.mapper.toModel
 import com.kmpbits.sample.android.data.source.LocalPagingSource
@@ -36,10 +35,7 @@ class TodoRepositoryImpl(
         }
 
         return response.responsePaginated<TodoDto> {
-            localSource(
-                pagingSource = { LocalPagingSource(database.todoDao()) },
-                transform = { it.toDto() }
-            )
+            localSource { LocalPagingSource(database.todoDao()) }
 
             deleteAll { database.todoDao().deleteTodos() }
             insertAll(transform = { it.toEntity() }) { database.todoDao().replaceTodos(it) }
