@@ -45,7 +45,6 @@ internal class RemoteAndLocalPagingSource<ApiType : PagingModel, DisplayType : A
 
         return try {
             when (resultState) {
-                AsyncState.Empty -> MediatorResult.Error(Throwable("Empty data"))
                 is AsyncState.Error -> MediatorResult.Error(Throwable(resultState.error.errorBody))
                 is AsyncState.Success -> {
                     val items = resultState.data

@@ -28,7 +28,6 @@ internal class NetworkPagingSource<ApiType : PagingModel, DisplayType : Any>(
             val nextPage = page + 1
 
             return when (resultState) {
-                AsyncState.Empty -> LoadResult.Error(Throwable("Empty data"))
                 is AsyncState.Error -> LoadResult.Error(Throwable(resultState.error.errorBody))
                 is AsyncState.Success -> {
                     val items = resultState.data

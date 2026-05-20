@@ -105,7 +105,6 @@ class MainViewModel(
 
     private fun delete(id: Int) = viewModelScope.launch {
         when(repository.deleteTodo(id)) {
-            AsyncState.Empty -> {}
             is AsyncState.Error -> {}
             is AsyncState.Success -> {
                 // Don't need to do anything, since the local database will be updated automatically
