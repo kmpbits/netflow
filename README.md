@@ -82,24 +82,24 @@ val user: User = client.call {
 
 ## Working with Flow
 
-The two type parameters are `<ApiType, DisplayType>`:
-- `ApiType` — the type the JSON is deserialized into (your DTO).
-- `DisplayType` — the type emitted to the UI (your domain model).
+### Same type — single type parameter, no transform needed
 
-When both are the same, pass the same type twice.
+When your DTO and domain model are the same type, pass only one type parameter:
 
 ```kotlin
-// Same type — no mapping needed
 val flow = client.call {
     path = "/users/1"
-}.responseFlow<UserDto, UserDto>()
+}.responseFlow<UserDto>()
+```
 
-// Different types — map inside the builder, no .map() at the call site
+### Different types — transform is required
+
+When `ApiType` and `DisplayType` differ, pass `transform` as the first argument. The compiler enforces this — forgetting it is a build error, not a runtime crash.
+
+```kotlin
 val flow = client.call {
     path = "/users/1"
-}.responseFlow<UserDto, User> {
-    apiTransform { it.toModel() }
-}
+}.responseFlow<UserDto, User>(transform = { it.toModel() })
 ```
 
 ### With local cache
@@ -108,18 +108,16 @@ val flow = client.call {
 val usersFlow = client.call {
     path = "/users"
     method = HttpMethod.Get
-}.responseFlow<UserDto, User> {
-    apiTransform { it.toModel() }
-
+}.responseFlow<UserDto, User>(transform = { it.toModel() }) {
     onNetworkSuccess { dto ->
         queries.insertUser(dto.toEntity())
     }
 
-    local({ observe { queries.getUser() } }, transform = { it.toDto() })
+    local({ observe { queries.getUser() } }, transform = { it.toModel() })
 }
 ```
 
-The `transform` inside `local()` maps from the database entity type to `ApiType` (the DTO). `apiTransform` then maps from `ApiType` to `DisplayType` before the value is emitted.
+The `transform` inside `local()` maps from the database entity type directly to `DisplayType` — it drives what gets shown while the network call is in flight. The `transform` on the function maps the network `ApiType` to `DisplayType` once the response arrives.
 
 ### Offline-only
 
@@ -127,7 +125,7 @@ The `transform` inside `local()` maps from the database entity type to `ApiType`
 local({
     onlyLocalCall = true
     call { queries.getAllUsers() }
-}, transform = { it.toDto() })
+}, transform = { it.toModel() })
 ```
 
 ### Wrapped API responses
@@ -135,10 +133,31 @@ local({
 For APIs that return `{ "data": { ... } }` instead of a plain object:
 
 ```kotlin
-responseFlow<UserDto, User> {
+// Same type
+responseWrappedFlow<UserDto>()
+
+// Different types
+responseWrappedFlow<UserDto, User>(transform = { it.toModel() })
+```
+
+Or set `wrappedResponse = true` inside the builder when using `responseFlow`:
+
+```kotlin
+responseFlow<UserDto, User>(transform = { it.toModel() }) {
     wrappedResponse = true
-    apiTransform { it.toModel() }
 }
+```
+
+### List variants
+
+```kotlin
+// Same type
+responseListFlow<UserDto>()
+responseWrappedListFlow<UserDto>()
+
+// Different types
+responseListFlow<UserDto, User>(transform = { it.toModel() })
+responseWrappedListFlow<UserDto, User>(transform = { it.toModel() })
 ```
 
 ### Observing Flow
@@ -161,27 +180,49 @@ lifecycleScope.launch {
 
 For one-shot suspending calls (no observation needed).
 
+### Same type
+
 ```kotlin
 suspend fun deleteUser(id: Int): AsyncState<Unit> {
     return client.call {
         path = "users/$id"
         method = HttpMethod.Delete
-    }.responseAsync<Unit, Unit> {
+    }.responseAsync<Unit> {
         onNetworkSuccess { queries.deleteUser(id) }
     }
 }
 ```
 
-With type mapping:
+### Different types — transform is required
 
 ```kotlin
 suspend fun getUser(id: Int): AsyncState<User> {
     return client.call {
         path = "users/$id"
-    }.responseAsync<UserDto, User> {
-        apiTransform { it.toModel() }
-    }
+    }.responseAsync<UserDto, User>(transform = { it.toModel() })
 }
+```
+
+### List variants
+
+```kotlin
+// Same type
+responseListAsync<UserDto>()
+responseWrappedListAsync<UserDto>()
+
+// Different types
+responseListAsync<UserDto, User>(transform = { it.toModel() })
+responseWrappedListAsync<UserDto, User>(transform = { it.toModel() })
+```
+
+### Wrapped responses (not list)
+
+```kotlin
+// Same type
+responseWrappedAsync<UserDto>()
+
+// Different types
+responseWrappedAsync<UserDto, User>(transform = { it.toModel() })
 ```
 
 ---
@@ -213,20 +254,28 @@ fun getPosts(): Flow<PagingData<Post>> = client.call {
 }
 ```
 
-### Remote + local paging (SQLDelight)
+### Remote + local paging
 
-Wrap delete and insert in a **single transaction** so the paging source is invalidated exactly once — after all data is ready.
+There are two ways to configure the local data source.
+
+---
+
+#### Option A — `localQuery` (recommended, no custom PagingSource needed)
+
+Pass `countQuery`, `itemsQuery`, and an `invalidation` flow. The library creates and manages the `PagingSource` internally. The `invalidation` flow triggers a reload whenever the underlying data changes — SQLDelight users pass `query.asFlow()`, Room users pass their `Flow<List<T>>`.
 
 ```kotlin
 fun getPosts(): Flow<PagingData<Post>> = client.call {
     path = "/posts"
 }.responsePaginated<PostDto, Post> {
-    localSource(
-        pagingSource = { PostPagingSource(database) },
-        transform = { it.toModel() }
+    localQuery(
+        countQuery   = { database.postQueries.countPosts().executeAsOne() },
+        itemsQuery   = { limit, offset -> database.postQueries.selectPosts(limit, offset).executeAsList() },
+        invalidation = database.postQueries.selectAllPosts().asFlow(),
+        transform    = { it.toModel() }
     )
 
-    deleteOnRefresh = false // handled inside insertAll
+    deleteOnRefresh = false
     insertAll(transform = { it.toEntity() }) { posts ->
         database.postQueries.transaction {
             database.postQueries.deleteAll()
@@ -236,12 +285,76 @@ fun getPosts(): Flow<PagingData<Post>> = client.call {
 
     firstItemDatabase(
         itemDatabase = { database.postQueries.getFirstPost().executeAsOneOrNull() },
-        timestamp = { it.lastUpdatedTimestamp }
+        timestamp    = { it.lastUpdatedTimestamp }
     )
 }
 ```
 
-`pagingSource` is a custom `PagingSource<Int, YourEntity>` backed by your local database. It should use a listener (e.g. SQLDelight's `Query.Listener`) to call `invalidate()` when the underlying data changes, so the UI stays in sync after a network refresh.
+---
+
+#### Option B — `localSource` / `localSourceLong` (custom PagingSource)
+
+Use this when you need full control over how data is loaded locally. You provide your own `PagingSource<Int, E>` (or `PagingSource<Long, E>` via `localSourceLong`).
+
+```kotlin
+class PostPagingSource(private val database: AppDatabase) : PagingSource<Int, PostEntity>() {
+
+    private val query = database.postQueries.selectPosts()
+
+    private val listener = object : Query.Listener {
+        override fun queryResultsChanged() {
+            invalidate()
+            query.removeListener(this)
+        }
+    }
+
+    init {
+        query.addListener(listener)
+    }
+
+    override fun getRefreshKey(state: PagingState<Int, PostEntity>): Int? {
+        return state.anchorPosition?.let { anchor ->
+            state.closestPageToPosition(anchor)?.prevKey?.plus(1)
+                ?: state.closestPageToPosition(anchor)?.nextKey?.minus(1)
+        }
+    }
+
+    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, PostEntity> {
+        // your load implementation
+    }
+}
+```
+
+Then wire it up:
+
+```kotlin
+fun getPosts(): Flow<PagingData<Post>> = client.call {
+    path = "/posts"
+}.responsePaginated<PostDto, Post> {
+    localSource(
+        pagingSource = { PostPagingSource(database) },
+        transform    = { it.toModel() }
+    )
+    // ...
+}
+```
+
+For SQLDelight sources that use `Long` keys (e.g. `QueryPagingSource`), use `localSourceLong` instead — keys are bridged to `Int` internally.
+
+---
+
+### Important: PagingSource Invalidation
+
+When using a custom `PagingSource` (Option B), it is **critical** to register a listener on your database query to trigger invalidation. Without this, the UI will not update when data changes (e.g., after a network refresh or a local deletion).
+
+If you are using **SQLDelight**, follow the pattern in the example above (and in the sample app's `TodoPagingSource`):
+1.  Store the query in a property.
+2.  Create a `Query.Listener` that calls `invalidate()` and removes itself.
+3.  Add the listener in `init`.
+
+This ensures that whenever the underlying data changes, the `PagingSource` is marked as invalid, and the `Pager` will create a new one and reload the data.
+
+---
 
 ### PagingBuilder options
 
@@ -464,9 +577,7 @@ All helpers accept an optional `delay: Duration` parameter.
 client.call {
     path = "/secure-endpoint"
     header(Header(HttpHeader.custom("Authorization"), "Bearer $token"))
-}.responseFlow<SecureDataDto, SecureData> {
-    apiTransform { it.toModel() }
-}
+}.responseFlow<SecureDataDto, SecureData>(transform = { it.toModel() })
 ```
 
 ### Query Parameters
@@ -476,9 +587,7 @@ client.call {
     path = "/users"
     parameter("role" to "admin")
     parameter("active" to true)
-}.responseFlow<UserDto, User> {
-    apiTransform { it.toModel() }
-}
+}.responseFlow<UserDto, User>(transform = { it.toModel() })
 ```
 
 ### Retry
@@ -491,7 +600,7 @@ client.call {
         delay = 1.seconds
         retryOn = { it is IOException }
     }
-}.responseFlow<DataDto, Data> { apiTransform { it.toModel() } }
+}.responseFlow<DataDto, Data>(transform = { it.toModel() })
 ```
 
 ---

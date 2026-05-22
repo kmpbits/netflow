@@ -8,6 +8,10 @@ internal class MappedPagingSource<E : Any, T : Any>(
     private val transform: (E) -> T
 ) : PagingSource<Int, T>() {
 
+    init {
+        source.registerInvalidatedCallback { invalidate() }
+    }
+
     override fun getRefreshKey(state: PagingState<Int, T>): Int? {
         return state.anchorPosition?.let { anchor ->
             state.closestPageToPosition(anchor)?.prevKey?.plus(1)
