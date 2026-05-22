@@ -60,9 +60,8 @@ class TodoRepositoryImpl(
                     "completed" to completed
                 )
             )
-        }.responseFlow<TodoDto, Todo> {
+        }.responseFlow<TodoDto, Todo>(transform = { it.toModel() }) {
             onNetworkSuccess { database.todoQueries.insertTodo(it.toEntity()) }
-            apiTransform { it.toModel() }
         }
     }
 
@@ -78,9 +77,8 @@ class TodoRepositoryImpl(
                     "completed" to completed
                 )
             )
-        }.responseFlow<TodoDto, Todo> {
+        }.responseFlow<TodoDto, Todo>(transform = { it.toModel() }) {
             onNetworkSuccess { database.todoQueries.insertTodo(it.toEntity()) }
-            apiTransform { it.toModel() }
         }
     }
 
@@ -88,7 +86,7 @@ class TodoRepositoryImpl(
         return client.call {
             path = "todos/$id"
             method = HttpMethod.Delete
-        }.responseAsync<Unit, Unit> {
+        }.responseAsync<Unit> {
             onNetworkSuccess { database.todoQueries.deleteTodo(id.toLong()) }
         }
     }
