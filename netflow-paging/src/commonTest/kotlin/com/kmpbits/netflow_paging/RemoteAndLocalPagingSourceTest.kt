@@ -16,10 +16,12 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 private data class PostDto(val id: Int, val title: String) : PagingModel()
 
-@OptIn(ExperimentalPagingApi::class)
+@OptIn(ExperimentalPagingApi::class, ExperimentalTime::class)
 class RemoteAndLocalPagingSourceTest {
 
     private fun emptyState() = PagingState<Int, PostDto>(
@@ -67,7 +69,7 @@ class RemoteAndLocalPagingSourceTest {
 
     @Test
     fun `initialize returns SKIP_INITIAL_REFRESH when timestamp is within cacheTimeout`() = runTest {
-        val recentTimestamp = System.currentTimeMillis() - 1_000L
+        val recentTimestamp = Clock.System.now().toEpochMilliseconds() - 1_000L
         val builder = baseBuilder().apply {
             firstItemDatabase { PostDto(1, "Post").apply { lastUpdatedTimestamp = recentTimestamp } }
         }
@@ -80,7 +82,7 @@ class RemoteAndLocalPagingSourceTest {
 
     @Test
     fun `initialize returns LAUNCH_INITIAL_REFRESH when timestamp is stale`() = runTest {
-        val staleTimestamp = System.currentTimeMillis() - 2 * 60 * 60 * 1_000L // 2 hours ago
+        val staleTimestamp = Clock.System.now().toEpochMilliseconds() - 2 * 60 * 60 * 1_000L // 2 hours ago
         val builder = baseBuilder().apply {
             firstItemDatabase { PostDto(1, "Post").apply { lastUpdatedTimestamp = staleTimestamp } }
         }
@@ -93,7 +95,7 @@ class RemoteAndLocalPagingSourceTest {
 
     @Test
     fun `initialize returns LAUNCH_INITIAL_REFRESH when refresh is true even if timestamp is fresh`() = runTest {
-        val recentTimestamp = System.currentTimeMillis() - 1_000L
+        val recentTimestamp = Clock.System.now().toEpochMilliseconds() - 1_000L
         val builder = baseBuilder(refresh = true).apply {
             firstItemDatabase { PostDto(1, "Post").apply { lastUpdatedTimestamp = recentTimestamp } }
         }
@@ -207,7 +209,7 @@ class RemoteAndLocalPagingSourceTest {
             deleteAll { }
             insertAll { items -> capturedItems.addAll(items) }
         }
-        val before = System.currentTimeMillis()
+        val before = Clock.System.now().toEpochMilliseconds()
         val mediator = RemoteAndLocalPagingSource(builder) { AsyncState.Success(postsOf(2)) }
 
         mediator.load(LoadType.REFRESH, emptyState())
