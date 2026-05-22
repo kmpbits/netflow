@@ -35,9 +35,9 @@ inline fun <reified ApiType : PagingModel, DisplayType : Any> NetFlowRequest.res
 
     val apiCall: suspend () -> AsyncState<List<ApiType>> = {
         if (pagingBuilder.wrappedResponse)
-            this@responsePaginated.responseWrappedListAsync<ApiType, ApiType>()
+            this@responsePaginated.responseWrappedListAsync<ApiType>()
         else
-            this@responsePaginated.responseListAsync<ApiType, ApiType>()
+            this@responsePaginated.responseListAsync<ApiType>()
     }
 
     return if (pagingBuilder.onlyApiCall) {

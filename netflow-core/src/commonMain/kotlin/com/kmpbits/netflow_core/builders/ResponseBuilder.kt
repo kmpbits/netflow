@@ -43,15 +43,6 @@ class ResponseBuilder<ApiType, DisplayType> @PublishedApi internal constructor()
     }
 
     /**
-     * Call this function to map the api response type [ApiType] to [DisplayType].
-     *
-     * When [ApiType] and [DisplayType] are the same type this is not required.
-     */
-    fun apiTransform(transform: (ApiType) -> DisplayType) {
-        this.apiTransform = transform
-    }
-
-    /**
      * Call this function to handle the success response and do anything with the data (ex: Inserting into database).
      * The lambda receives the raw [ApiType] before any display transform is applied.
      *

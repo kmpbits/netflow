@@ -22,34 +22,75 @@ import kotlinx.coroutines.withContext
 /**
  * Deserialize the request into a [Flow].
  *
+ * Use when [ApiType] and [DisplayType] are the same. For different types use the overload
+ * that requires a [transform] parameter.
+ *
+ * Set [ResponseBuilder.wrappedResponse] to true when the API returns `{ "data": ... }`.
+ */
+inline fun <reified T : Any> NetFlowRequest.responseFlow(
+    crossinline responseBuilder: ResponseBuilder<T, T>.() -> Unit = {}
+): Flow<ResultState<T>> {
+    val wrapped = ResponseBuilder<T, T>().also(responseBuilder).wrappedResponse
+    return toFlow(
+        responseBuilder = responseBuilder,
+        deserializeBlock = { if (wrapped) it.toModelWrapped<T>() else it.toModel<T>() }
+    )
+}
+
+/**
+ * Deserialize the request into a [Flow].
+ *
  * [ApiType] is the type the API response is deserialized into.
- * [DisplayType] is the type emitted in [ResultState] — use [ResponseBuilder.apiTransform] to map
- * between the two. When both are the same, specify the type once: `responseFlow<MyType, MyType>`.
+ * [DisplayType] is the type emitted in [ResultState].
+ * [transform] maps [ApiType] to [DisplayType] and is required when the two types differ.
  *
  * Set [ResponseBuilder.wrappedResponse] to true when the API returns `{ "data": ... }`.
  */
 inline fun <reified ApiType : Any, DisplayType : Any> NetFlowRequest.responseFlow(
+    noinline transform: (ApiType) -> DisplayType,
     crossinline responseBuilder: ResponseBuilder<ApiType, DisplayType>.() -> Unit = {}
 ): Flow<ResultState<DisplayType>> {
     val wrapped = ResponseBuilder<ApiType, DisplayType>().also(responseBuilder).wrappedResponse
     return toFlow(
-        responseBuilder = responseBuilder,
+        responseBuilder = {
+            responseBuilder()
+            apiTransform = transform
+        },
         deserializeBlock = { if (wrapped) it.toModelWrapped<ApiType>() else it.toModel<ApiType>() }
     )
 }
 
 /**
  * Deserialize the request into a [Flow] wrapped by the data json object.
- * The object wrapped in json object response should be called "data".
+ *
+ * Use when [ApiType] and [DisplayType] are the same. For different types use the overload
+ * that requires a [transform] parameter.
+ */
+inline fun <reified T : Any> NetFlowRequest.responseWrappedFlow(
+    crossinline responseBuilder: ResponseBuilder<T, T>.() -> Unit = {}
+): Flow<ResultState<T>> {
+    return toFlow(
+        responseBuilder = responseBuilder,
+        deserializeBlock = { it.toModelWrapped<T>() }
+    )
+}
+
+/**
+ * Deserialize the request into a [Flow] wrapped by the data json object.
  *
  * [ApiType] is the type the API response is deserialized into.
- * [DisplayType] is the type emitted in [ResultState] — use [ResponseBuilder.apiTransform] to map between the two.
+ * [DisplayType] is the type emitted in [ResultState].
+ * [transform] maps [ApiType] to [DisplayType] and is required when the two types differ.
  */
 inline fun <reified ApiType : Any, DisplayType : Any> NetFlowRequest.responseWrappedFlow(
+    noinline transform: (ApiType) -> DisplayType,
     crossinline responseBuilder: ResponseBuilder<ApiType, DisplayType>.() -> Unit = {}
 ): Flow<ResultState<DisplayType>> {
     return toFlow(
-        responseBuilder = responseBuilder,
+        responseBuilder = {
+            responseBuilder()
+            apiTransform = transform
+        },
         deserializeBlock = { it.toModelWrapped<ApiType>() }
     )
 }
@@ -57,17 +98,40 @@ inline fun <reified ApiType : Any, DisplayType : Any> NetFlowRequest.responseWra
 /**
  * Deserialize the request into a [Flow] list.
  *
+ * Use when [ApiItem] and [DisplayItem] are the same. For different types use the overload
+ * that requires a [transform] parameter.
+ *
+ * Set [ResponseBuilder.wrappedResponse] to true when the API returns `{ "data": [...] }`.
+ */
+inline fun <reified T : Any> NetFlowRequest.responseListFlow(
+    crossinline responseBuilder: ResponseBuilder<List<T>, List<T>>.() -> Unit = {}
+): Flow<ResultState<List<T>>> {
+    val wrapped = ResponseBuilder<List<T>, List<T>>().also(responseBuilder).wrappedResponse
+    return toFlow(
+        responseBuilder = responseBuilder,
+        deserializeBlock = { if (wrapped) it.toEnvelopeList<T>().data else it.toList() }
+    )
+}
+
+/**
+ * Deserialize the request into a [Flow] list.
+ *
  * [ApiItem] is the item type the API response is deserialized into.
- * [DisplayItem] is the item type emitted in [ResultState] — use [ResponseBuilder.apiTransform] to map between the two.
+ * [DisplayItem] is the item type emitted in [ResultState].
+ * [transform] maps each [ApiItem] to [DisplayItem] and is required when the two types differ.
  *
  * Set [ResponseBuilder.wrappedResponse] to true when the API returns `{ "data": [...] }`.
  */
 inline fun <reified ApiItem : Any, DisplayItem : Any> NetFlowRequest.responseListFlow(
+    noinline transform: (ApiItem) -> DisplayItem,
     crossinline responseBuilder: ResponseBuilder<List<ApiItem>, List<DisplayItem>>.() -> Unit = {}
 ): Flow<ResultState<List<DisplayItem>>> {
     val wrapped = ResponseBuilder<List<ApiItem>, List<DisplayItem>>().also(responseBuilder).wrappedResponse
     return toFlow(
-        responseBuilder = responseBuilder,
+        responseBuilder = {
+            responseBuilder()
+            apiTransform = { list -> list.map(transform) }
+        },
         deserializeBlock = { if (wrapped) it.toEnvelopeList<ApiItem>().data else it.toList() }
     )
 }
@@ -75,14 +139,34 @@ inline fun <reified ApiItem : Any, DisplayItem : Any> NetFlowRequest.responseLis
 /**
  * Deserialize the request into a [Flow] list wrapped by the data json object.
  *
+ * Use when [ApiItem] and [DisplayItem] are the same. For different types use the overload
+ * that requires a [transform] parameter.
+ */
+inline fun <reified T : Any> NetFlowRequest.responseWrappedListFlow(
+    crossinline responseBuilder: ResponseBuilder<List<T>, List<T>>.() -> Unit = {}
+): Flow<ResultState<List<T>>> {
+    return toFlow(
+        responseBuilder = responseBuilder,
+        deserializeBlock = { it.toEnvelopeList<T>().data }
+    )
+}
+
+/**
+ * Deserialize the request into a [Flow] list wrapped by the data json object.
+ *
  * [ApiItem] is the item type the API response is deserialized into.
- * [DisplayItem] is the item type emitted in [ResultState] — use [ResponseBuilder.apiTransform] to map between the two.
+ * [DisplayItem] is the item type emitted in [ResultState].
+ * [transform] maps each [ApiItem] to [DisplayItem] and is required when the two types differ.
  */
 inline fun <reified ApiItem : Any, DisplayItem : Any> NetFlowRequest.responseWrappedListFlow(
+    noinline transform: (ApiItem) -> DisplayItem,
     crossinline responseBuilder: ResponseBuilder<List<ApiItem>, List<DisplayItem>>.() -> Unit = {}
 ): Flow<ResultState<List<DisplayItem>>> {
     return toFlow(
-        responseBuilder = responseBuilder,
+        responseBuilder = {
+            responseBuilder()
+            apiTransform = { list -> list.map(transform) }
+        },
         deserializeBlock = { it.toEnvelopeList<ApiItem>().data }
     )
 }
