@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.0]
+
+### New features
+- **Simplified API** — `responseFlow`, `responseAsync`, and paging variants now accept `transform` as a primary parameter when mapping between `ApiType` and `DisplayType`. This improves compiler safety and simplifies the call site.
+- **`localQuery`** — New configuration for `responsePaginated` that allows defining remote+local paging using raw lambdas (`countQuery`, `itemsQuery`, and `invalidation` flow), eliminating the need for custom `PagingSource` implementations.
+- **New Response Extensions** — Added dedicated extensions for common response patterns:
+    - `responseWrappedFlow` / `responseWrappedAsync` for `{ "data": ... }` envelopes.
+    - `responseListFlow` / `responseListAsync` for top-level arrays.
+    - `responseWrappedListFlow` / `responseWrappedListAsync` for `{ "data": [...] }`.
+- **Automatic Paging Invalidation** — `localSource` and `localSourceLong` wrappers now automatically register invalidation callbacks on the provided `PagingSource`, ensuring UI updates when the local database changes.
+- **Better Paging Keys** — Improved `getRefreshKey` implementation in paging wrappers to provide smoother list jumping and restoration.
+---
+
 ## [0.2.0]
 
 ### New modules

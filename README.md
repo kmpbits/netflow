@@ -2,6 +2,7 @@
 A lightweight networking library for Kotlin Multiplatform that provides a simple API for Flow and direct suspending calls with optional Jetpack Paging 3 support.
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.kmpbits/netflow-core.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.kmpbits/netflow-core)
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](https://github.com/joelcaetano/netflow/actions)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ---
