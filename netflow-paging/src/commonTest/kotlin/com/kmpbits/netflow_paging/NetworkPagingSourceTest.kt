@@ -80,7 +80,7 @@ class NetworkPagingSourceTest {
     }
 
     @Test
-    fun `load sets nextKey to null when page is partial (end of data)`() = runTest {
+    fun `load sets nextKey to null when page is partial - end of data`() = runTest {
         val source = NetworkPagingSource(builderOf(pageSize = 20)) { AsyncState.Success(articlesOf(3)) }
 
         val result = source.load(refreshParams()) as PagingSource.LoadResult.Page
