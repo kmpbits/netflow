@@ -40,7 +40,20 @@ annotation class Query(val name: String = "")
 @Retention(AnnotationRetention.BINARY)
 annotation class Header(val name: String = "")
 
-/** Binds a function parameter as the request body. v1 accepts only `Map<String, *>`. At most one per function. */
+/** Binds a function parameter as the request body. Any `@Serializable` type, or `Map<String, Any>`. At most one per function. */
 @Target(AnnotationTarget.VALUE_PARAMETER)
 @Retention(AnnotationRetention.BINARY)
 annotation class Body
+
+/** Method-level static headers. Each entry is `"Name: Value"` (split on the first `:`). */
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.BINARY)
+annotation class Headers(vararg val value: String)
+
+/**
+ * Route this function's response through the `responseWrapped*` family — for APIs that
+ * return `{ "data": ... }` instead of a plain object/array.
+ */
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.BINARY)
+annotation class Wrapped
