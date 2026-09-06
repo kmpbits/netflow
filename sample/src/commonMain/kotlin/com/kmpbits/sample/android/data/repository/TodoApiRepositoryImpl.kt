@@ -1,5 +1,7 @@
 package com.kmpbits.sample.android.data.repository
 
+import androidx.paging.PagingData
+import androidx.paging.map
 import com.kmpbits.netflow_core.client.NetFlowClient
 import com.kmpbits.netflow_core.states.AsyncState
 import com.kmpbits.netflow_core.states.ResultState
@@ -32,4 +34,7 @@ class TodoApiRepositoryImpl(client: NetFlowClient) {
         api.createTyped(CreateTodoRequest(title, completed)).map { it.toModel() }
 
     suspend fun delete(id: Int): AsyncState<Unit> = api.delete(id)
+
+    fun pagedTodos(): Flow<PagingData<Todo>> =
+        api.pagedTodos().map { page -> page.map { it.toModel() } }
 }

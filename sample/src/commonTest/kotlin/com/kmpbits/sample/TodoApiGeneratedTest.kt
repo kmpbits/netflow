@@ -3,14 +3,18 @@ package com.kmpbits.sample
 import com.kmpbits.netflow_core.enums.HttpMethod
 import com.kmpbits.netflow_core.mock.MockNetFlowClient
 import com.kmpbits.netflow_core.mock.NetFlowMockResponse
+import androidx.paging.PagingData
 import com.kmpbits.netflow_core.states.AsyncState
 import com.kmpbits.netflow_core.states.ResultState
 import com.kmpbits.sample.android.data.dto.CreateTodoRequest
+import com.kmpbits.sample.android.data.dto.TodoDto
 import com.kmpbits.sample.android.data.remote.createTodoApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class TodoApiGeneratedTest {
@@ -81,6 +85,14 @@ class TodoApiGeneratedTest {
         assertEquals("""{"title":"x","completed":true}""", request.rawBody)
         assertTrue(("Accept" to "application/json") in request.headers, request.headers.toString())
         assertTrue(("X-Client" to "netflow") in request.headers, request.headers.toString())
+    }
+
+    @Test
+    fun generated_pagedTodos_is_callable_and_typed() {
+        val client = MockNetFlowClient { NetFlowMockResponse.success("[]") }
+        val api = client.createTodoApi()
+        val flow: Flow<PagingData<TodoDto>> = api.pagedTodos()
+        assertNotNull(flow)
     }
 
     @Test

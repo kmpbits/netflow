@@ -89,6 +89,9 @@ interface TodoApi {
     @Wrapped
     @GET("todos/{id}")
     suspend fun get(@Path id: Int): AsyncState<TodoDto>
+
+    @GET("todos")
+    fun pagedTodos(): Flow<PagingData<TodoDto>>
 }
 
 val api = client.createTodoApi()   // generated extension on NetFlowClient
@@ -99,13 +102,14 @@ val api = client.createTodoApi()   // generated extension on NetFlowClient
 `@Wrapped` for `{ "data": ... }` envelope responses. `@Body` accepts any
 `@Serializable` type or `Map<String, Any>`. Return types `Flow<ResultState<T>>`
 and `Flow<ResultState<List<T>>>` (non-suspend), `AsyncState<T>` and
-`AsyncState<List<T>>` (suspend). `@Query` / `@Header` names default to the
-parameter name and take an override string (`@Query("user_id") userId: Int`); a
-null `@Query` / `@Header` value is omitted from the request.
+`AsyncState<List<T>>` (suspend), `Flow<PagingData<T>>` (non-suspend, network-only
+paging). `@Query` / `@Header` names default to the parameter name and take an
+override string (`@Query("user_id") userId: Int`); a null `@Query` / `@Header`
+value is omitted from the request.
 
-**Not yet supported:** paging returns, dynamic `@Url`, `@QueryMap` /
-`@HeaderMap`, and the `onNetworkSuccess` / `local {}` cache hooks. Use the
-`call {}` DSL directly for those.
+**Not yet supported:** dynamic `@Url`, `@QueryMap` / `@HeaderMap`, and the
+`onNetworkSuccess` / `local {}` cache hooks (including remote+local paging). Use
+the `call {}` DSL directly for those.
 
 ### Mapping to domain types
 
@@ -129,6 +133,26 @@ class TodoRepository(client: NetFlowClient) {
 This is deliberate: the two-type `transform` stays one layer out of the
 annotations, so the mapping is always explicit and compiler-checked — the same
 guarantee the `call {}` DSL gives with its required `transform` parameter.
+
+### Paging
+
+A function returning `Flow<PagingData<T>>` (where `T` extends `PagingModel`)
+generates a **network-only** paged call. `@Paginated(pageQueryName, pageSize)`
+overrides the defaults (`"page"`, `20`).
+
+```kotlin
+@GET("posts")
+fun pagedPosts(@Query tag: String?): Flow<PagingData<PostDto>>
+```
+
+Map to domain in the repository with `PagingData.map`:
+
+```kotlin
+fun pagedPosts(tag: String?) = api.pagedPosts(tag).map { it.map { dto -> dto.toModel() } }
+```
+
+Remote + local paging (`RemoteMediator`, local `PagingSource`, insert/delete
+callbacks) stays on the `call {}` DSL — `responsePaginated { localSource(...) }`.
 
 ---
 

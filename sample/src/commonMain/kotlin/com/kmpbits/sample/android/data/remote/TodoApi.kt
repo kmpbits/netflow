@@ -1,11 +1,13 @@
 package com.kmpbits.sample.android.data.remote
 
+import androidx.paging.PagingData
 import com.kmpbits.netflow_annotations.Body
 import com.kmpbits.netflow_annotations.DELETE
 import com.kmpbits.netflow_annotations.GET
 import com.kmpbits.netflow_annotations.Headers
 import com.kmpbits.netflow_annotations.NetFlowApi
 import com.kmpbits.netflow_annotations.POST
+import com.kmpbits.netflow_annotations.Paginated
 import com.kmpbits.netflow_annotations.Path
 import com.kmpbits.netflow_annotations.Query
 import com.kmpbits.netflow_annotations.Wrapped
@@ -37,4 +39,11 @@ interface TodoApi {
 
     @DELETE("todos/{id}")
     suspend fun delete(@Path id: Int): AsyncState<Unit>
+
+    @GET("todos")
+    fun pagedTodos(): Flow<PagingData<TodoDto>>
+
+    @Paginated(pageSize = 15)
+    @GET("todos")
+    fun pagedTodosSmall(): Flow<PagingData<TodoDto>>
 }
