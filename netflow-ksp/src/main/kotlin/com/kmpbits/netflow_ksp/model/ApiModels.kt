@@ -22,6 +22,12 @@ internal enum class HttpMethodName(val enumMember: String) {
     GET("Get"), POST("Post"), PUT("Put"), DELETE("Delete"), PATCH("Patch")
 }
 
+internal data class PagingConfig(val pageQueryName: String, val pageSize: Int) {
+    companion object {
+        val DEFAULT = PagingConfig(pageQueryName = "page", pageSize = 20)
+    }
+}
+
 internal sealed interface ReturnShape {
     val payloadType: KSType
 
@@ -29,6 +35,7 @@ internal sealed interface ReturnShape {
     data class FlowList(override val payloadType: KSType) : ReturnShape
     data class AsyncSingle(override val payloadType: KSType) : ReturnShape
     data class AsyncList(override val payloadType: KSType) : ReturnShape
+    data class Paginated(override val payloadType: KSType) : ReturnShape
 }
 
 internal sealed interface ParamBinding {
@@ -78,6 +85,7 @@ internal data class ApiFunction(
     val parameters: List<ParamBinding>,
     val wrapped: Boolean,
     val staticHeaders: List<Pair<String, String>>,
+    val paging: PagingConfig?,
 )
 
 internal data class ApiInterface(

@@ -7,6 +7,7 @@ import com.kmpbits.netflow_ksp.Fqns
 import com.kmpbits.netflow_ksp.model.ApiFunction
 import com.kmpbits.netflow_ksp.model.ParamBinding
 import com.kmpbits.netflow_ksp.model.ParseContext
+import com.kmpbits.netflow_ksp.model.ReturnShape
 
 private val PLACEHOLDER = Regex("\\{([A-Za-z_][A-Za-z0-9_]*)}")
 
@@ -27,6 +28,12 @@ internal fun parseApiFunction(
     val wrapped = declaration.annotations.any {
         it.annotationType.resolve().declaration.qualifiedName?.asString() == Fqns.WRAPPED
     }
+
+    val paging = parsePagingConfig(
+        declaration,
+        isPaginated = returnShape is ReturnShape.Paginated,
+        ctx,
+    )
 
     val parameters = declaration.parameters.mapNotNull { parseParameter(it, ctx) }
 
@@ -57,5 +64,6 @@ internal fun parseApiFunction(
         parameters = parameters,
         wrapped = wrapped,
         staticHeaders = staticHeaders,
+        paging = paging,
     )
 }

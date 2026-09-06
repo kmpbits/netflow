@@ -1,5 +1,7 @@
 package com.kmpbits.netflow_ksp.parser
 
+import com.google.devtools.ksp.getAllSuperTypes
+import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.kmpbits.netflow_ksp.Fqns
@@ -28,21 +30,42 @@ internal fun parseReturnShape(
                 ctx.error("Function '$name' returns Flow and must not be suspend.", fn)
                 return null
             }
-            val resultState = firstArg(returnType)
-            if (resultState == null || fqnOf(resultState) != Fqns.RESULT_STATE) {
-                ctx.error("Function '$name' must return Flow<ResultState<T>>.", fn)
+            val inner = firstArg(returnType)
+            if (inner == null) {
+                ctx.error("Function '$name' must return Flow<ResultState<T>> or Flow<PagingData<T>>.", fn)
                 return null
             }
-            val payload = firstArg(resultState) ?: run {
-                ctx.error("Function '$name' has an unresolvable ResultState payload.", fn); return null
-            }
-            if (isList(payload)) {
-                val item = firstArg(payload) ?: run {
-                    ctx.error("Function '$name' has an unresolvable List item type.", fn); return null
+            when (fqnOf(inner)) {
+                Fqns.RESULT_STATE -> {
+                    val payload = firstArg(inner) ?: run {
+                        ctx.error("Function '$name' has an unresolvable ResultState payload.", fn); return null
+                    }
+                    if (isList(payload)) {
+                        val item = firstArg(payload) ?: run {
+                            ctx.error("Function '$name' has an unresolvable List item type.", fn); return null
+                        }
+                        ReturnShape.FlowList(item)
+                    } else {
+                        ReturnShape.FlowSingle(payload)
+                    }
                 }
-                ReturnShape.FlowList(item)
-            } else {
-                ReturnShape.FlowSingle(payload)
+                Fqns.PAGING_DATA -> {
+                    val payload = firstArg(inner) ?: run {
+                        ctx.error("Function '$name' has an unresolvable PagingData payload.", fn); return null
+                    }
+                    val extendsPagingModel = (payload.declaration as? KSClassDeclaration)
+                        ?.getAllSuperTypes()
+                        ?.any { it.declaration.qualifiedName?.asString() == Fqns.PAGING_MODEL } == true
+                    if (!extendsPagingModel) {
+                        ctx.error("Function '$name' — Flow<PagingData<T>> requires T to extend PagingModel.", fn)
+                        return null
+                    }
+                    ReturnShape.Paginated(payload)
+                }
+                else -> {
+                    ctx.error("Function '$name' must return Flow<ResultState<T>> or Flow<PagingData<T>>.", fn)
+                    return null
+                }
             }
         }
 
@@ -67,7 +90,7 @@ internal fun parseReturnShape(
         else -> {
             ctx.error(
                 "Function '$name' has an unsupported return type. " +
-                    "Use Flow<ResultState<T>> (non-suspend) or AsyncState<T> (suspend).",
+                    "Use Flow<ResultState<T>> / Flow<PagingData<T>> (non-suspend) or AsyncState<T> (suspend).",
                 fn,
             )
             null

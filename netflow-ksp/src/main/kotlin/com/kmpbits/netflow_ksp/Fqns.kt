@@ -13,6 +13,11 @@ internal object Fqns {
     const val BODY = "com.kmpbits.netflow_annotations.Body"
     const val HEADERS = "com.kmpbits.netflow_annotations.Headers"
     const val WRAPPED = "com.kmpbits.netflow_annotations.Wrapped"
+    const val PAGINATED = "com.kmpbits.netflow_annotations.Paginated"
+    const val PAGING_DATA = "androidx.paging.PagingData"
+    const val PAGING_MODEL = "com.kmpbits.netflow_paging.model.PagingModel"
+    const val EXPERIMENTAL_PAGING_API = "androidx.paging.ExperimentalPagingApi"
+    const val PAGING_DESERIALIZABLES_PKG = "com.kmpbits.netflow_paging.deserializable"
 
     val HTTP_METHOD_ANNOTATIONS = setOf(GET, POST, PUT, DELETE, PATCH)
 

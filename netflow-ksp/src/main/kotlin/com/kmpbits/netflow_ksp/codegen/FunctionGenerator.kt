@@ -4,7 +4,9 @@ import com.google.devtools.ksp.symbol.KSType
 import com.kmpbits.netflow_ksp.Fqns
 import com.kmpbits.netflow_ksp.model.ApiFunction
 import com.kmpbits.netflow_ksp.model.ParamBinding
+import com.kmpbits.netflow_ksp.model.PagingConfig
 import com.kmpbits.netflow_ksp.model.ReturnShape
+import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
@@ -14,11 +16,20 @@ import com.squareup.kotlinpoet.ksp.toTypeName
 
 private val HTTP_METHOD = ClassName(Fqns.ENUMS_PKG, "HttpMethod")
 private val HTTP_HEADER = ClassName(Fqns.ENUMS_PKG, "HttpHeader")
+private val OPT_IN = ClassName("kotlin", "OptIn")
+private val EXPERIMENTAL_PAGING_API = ClassName("androidx.paging", "ExperimentalPagingApi")
+private val RESPONSE_PAGINATED = MemberName(Fqns.PAGING_DESERIALIZABLES_PKG, "responsePaginated")
 private val PLACEHOLDER = Regex("\\{([A-Za-z_][A-Za-z0-9_]*)}")
 
 internal fun buildFunction(fn: ApiFunction): FunSpec {
     val builder = FunSpec.builder(fn.simpleName).addModifiers(KModifier.OVERRIDE)
     if (fn.isSuspend) builder.addModifiers(KModifier.SUSPEND)
+
+    if (fn.returnShape is ReturnShape.Paginated) {
+        builder.addAnnotation(
+            AnnotationSpec.builder(OPT_IN).addMember("%T::class", EXPERIMENTAL_PAGING_API).build()
+        )
+    }
 
     fn.parameters.forEach { param ->
         builder.addParameter(param.paramName, param.type.toTypeName())
@@ -37,8 +48,22 @@ internal fun buildFunction(fn: ApiFunction): FunSpec {
     }
     code.endControlFlow()
 
-    val (member, payload) = responseCall(fn.returnShape, fn.wrapped)
-    code.add(".%M<%T>()\n", member, payload.toTypeName())
+    when (val shape = fn.returnShape) {
+        is ReturnShape.Paginated -> {
+            val payload = shape.payloadType.toTypeName()
+            val cfg = fn.paging ?: PagingConfig.DEFAULT
+            code.beginControlFlow(".%M<%T, %T>", RESPONSE_PAGINATED, payload, payload)
+            code.addStatement("onlyApiCall = true")
+            if (cfg.pageQueryName != "page") code.addStatement("pageQueryName = %S", cfg.pageQueryName)
+            if (cfg.pageSize != 20) code.addStatement("defaultPageSize = %L", cfg.pageSize)
+            if (fn.wrapped) code.addStatement("wrappedResponse = true")
+            code.endControlFlow()
+        }
+        else -> {
+            val (member, payload) = responseCall(shape, fn.wrapped)
+            code.add(".%M<%T>()\n", member, payload.toTypeName())
+        }
+    }
 
     builder.addCode(code.build())
     return builder.build()
@@ -50,6 +75,7 @@ private fun responseCall(shape: ReturnShape, wrapped: Boolean): Pair<MemberName,
         is ReturnShape.FlowList -> if (wrapped) "responseWrappedListFlow" else "responseListFlow"
         is ReturnShape.AsyncSingle -> if (wrapped) "responseWrappedAsync" else "responseAsync"
         is ReturnShape.AsyncList -> if (wrapped) "responseWrappedListAsync" else "responseListAsync"
+        is ReturnShape.Paginated -> error("Paginated is handled separately in buildFunction")
     }
     return MemberName(Fqns.DESERIALIZABLES_PKG, name) to shape.payloadType
 }
