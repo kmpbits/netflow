@@ -1,0 +1,29 @@
+package com.kmpbits.sample.android.data.remote
+
+import com.kmpbits.netflow_annotations.Body
+import com.kmpbits.netflow_annotations.DELETE
+import com.kmpbits.netflow_annotations.GET
+import com.kmpbits.netflow_annotations.NetFlowApi
+import com.kmpbits.netflow_annotations.POST
+import com.kmpbits.netflow_annotations.Path
+import com.kmpbits.netflow_annotations.Query
+import com.kmpbits.netflow_core.states.AsyncState
+import com.kmpbits.netflow_core.states.ResultState
+import com.kmpbits.sample.android.data.dto.TodoDto
+import kotlinx.coroutines.flow.Flow
+
+@NetFlowApi
+interface TodoApi {
+
+    @GET("todos")
+    suspend fun getTodos(@Query completed: Boolean?): AsyncState<List<TodoDto>>
+
+    @GET("todos/{id}")
+    fun observeTodo(@Path id: Int): Flow<ResultState<TodoDto>>
+
+    @POST("todos")
+    suspend fun create(@Body payload: Map<String, Any>): AsyncState<TodoDto>
+
+    @DELETE("todos/{id}")
+    suspend fun delete(@Path id: Int): AsyncState<Unit>
+}

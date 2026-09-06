@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.7.0]
+
+### New modules
+- **`netflow-annotations`** — Retrofit-style annotation set (`@NetFlowApi`, `@GET`/`@POST`/`@PUT`/`@DELETE`/`@PATCH`, `@Path`, `@Query`, `@Header`, `@Body`).
+- **`netflow-ksp`** — KSP processor that generates a `NetFlowClient.create<Name>()` extension and an implementation delegating to the `call {}` DSL. Supports `Flow<ResultState<T>>`, `AsyncState<T>`, and their `List<T>` variants; parameter-name inference with wire-name overrides; null-omitted `@Query`/`@Header`. `@Body` is `Map<String, *>` only in this release.
+
 ## [0.6.0]
 
 ### New features

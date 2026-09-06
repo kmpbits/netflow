@@ -47,6 +47,61 @@ dependencies {
 
 Check the latest versions on [Maven Central](https://central.sonatype.com/artifact/io.github.kmpbits/netflow-core).
 
+### Annotations module (optional)
+
+Declare your API as an annotated interface (Retrofit-style) and let a KSP
+processor generate the implementation. Works on all Kotlin Multiplatform
+targets — no runtime reflection.
+
+```kotlin
+plugins {
+    id("com.google.devtools.ksp")
+}
+
+dependencies {
+    implementation("io.github.kmpbits:netflow-core:<latest_version>")
+    implementation("io.github.kmpbits:netflow-annotations:<latest_version>")
+    add("kspCommonMainMetadata", "io.github.kmpbits:netflow-ksp:<latest_version>")
+}
+
+kotlin.sourceSets.commonMain {
+    kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
+}
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
+    if (name != "kspCommonMainKotlinMetadata") dependsOn("kspCommonMainKotlinMetadata")
+}
+```
+
+```kotlin
+@NetFlowApi
+interface TodoApi {
+
+    @GET("todos")
+    suspend fun getTodos(@Query completed: Boolean?): AsyncState<List<TodoDto>>
+
+    @GET("todos/{id}")
+    fun observeTodo(@Path id: Int): Flow<ResultState<TodoDto>>
+
+    @POST("todos")
+    suspend fun create(@Body payload: Map<String, Any>): AsyncState<TodoDto>
+}
+
+val api = client.createTodoApi()   // generated extension on NetFlowClient
+```
+
+**Supported:** `@GET` / `@POST` / `@PUT` / `@DELETE` / `@PATCH`; `@Path`,
+`@Query`, `@Header`, `@Body`; return types `Flow<ResultState<T>>` and
+`Flow<ResultState<List<T>>>` (non-suspend), `AsyncState<T>` and
+`AsyncState<List<T>>` (suspend). `@Query` / `@Header` names default to the
+parameter name and take an override string (`@Query("user_id") userId: Int`); a
+null `@Query` / `@Header` value is omitted from the request.
+
+**Not yet supported:** `transform` between `ApiType` and `DisplayType`, `@Body`
+with `@Serializable` objects (only `Map<String, *>` for now), `wrappedResponse`
+routing, paging returns, method-level `@Headers`, dynamic `@Url`, and the
+`onNetworkSuccess` / `local {}` cache hooks. Use the `call {}` DSL directly for
+those.
+
 ---
 
 ## Getting Started
