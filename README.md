@@ -103,6 +103,9 @@ interface TodoApi {
 
     @GET("todos")
     fun pagedTodos(): Flow<PagingData<TodoDto>>
+
+    @GET("todos")
+    fun todosCall(): NetFlowCall     // request only — compose the response yourself
 }
 
 val api = client.createTodoApi()   // generated extension on NetFlowClient
@@ -114,9 +117,10 @@ val api = client.createTodoApi()   // generated extension on NetFlowClient
 `@Serializable` type or `Map<String, Any>`. Return types `Flow<ResultState<T>>`
 and `Flow<ResultState<List<T>>>` (non-suspend), `AsyncState<T>` and
 `AsyncState<List<T>>` (suspend), `Flow<PagingData<T>>` (non-suspend, network-only
-paging). `@Query` / `@Header` names default to the parameter name and take an
-override string (`@Query("user_id") userId: Int`); a null `@Query` / `@Header`
-value is omitted from the request.
+paging), and `NetFlowCall` (the request without a response strategy — compose it
+in the repository). `@Query` / `@Header` names default to the parameter name and
+take an override string (`@Query("user_id") userId: Int`); a null `@Query` /
+`@Header` value is omitted from the request.
 
 **Not yet supported:** dynamic `@Url`, `@QueryMap` / `@HeaderMap`, and the
 `onNetworkSuccess` / `local {}` cache hooks (including remote+local paging). Use
@@ -164,6 +168,28 @@ fun pagedPosts(tag: String?) = api.pagedPosts(tag).map { it.map { dto -> dto.toM
 
 Remote + local paging (`RemoteMediator`, local `PagingSource`, insert/delete
 callbacks) stays on the `call {}` DSL — `responsePaginated { localSource(...) }`.
+
+### Composing the response yourself (`NetFlowCall`)
+
+Return `NetFlowCall` and the generated method stops at the request. Finish it in
+the repository with any `responseX` function — this is how you add a local cache
+or `onNetworkSuccess` side effects to an annotated endpoint:
+
+```kotlin
+@GET("todos")
+fun todos(): NetFlowCall
+
+// repository
+fun getTodos(): Flow<ResultState<Todo>> =
+    api.todos().responseFlow<TodoDto, Todo>(transform = { it.toModel() }) {
+        onNetworkSuccess { db.insertTodos(it) }
+        local({ observe { db.todos() } }, transform = { it.toModel() })
+    }
+```
+
+`@Wrapped` / `@Paginated` are not allowed on a `NetFlowCall` method — those are
+choices you make on the `responseX` call. `client.prepareCall { … }` builds a
+`NetFlowCall` from the hand-written DSL too.
 
 ---
 

@@ -4,6 +4,8 @@ import com.kmpbits.netflow_core.enums.HttpMethod
 import com.kmpbits.netflow_core.mock.MockNetFlowClient
 import com.kmpbits.netflow_core.mock.NetFlowMockResponse
 import androidx.paging.PagingData
+import com.kmpbits.netflow_core.deserializables.responseListAsync
+import com.kmpbits.netflow_core.deserializables.responseListFlow
 import com.kmpbits.netflow_core.states.AsyncState
 import com.kmpbits.netflow_core.states.ResultState
 import com.kmpbits.sample.android.data.dto.CreateTodoRequest
@@ -85,6 +87,31 @@ class TodoApiGeneratedTest {
         assertEquals("""{"title":"x","completed":true}""", request.rawBody)
         assertTrue(("Accept" to "application/json") in request.headers, request.headers.toString())
         assertTrue(("X-Client" to "netflow") in request.headers, request.headers.toString())
+    }
+
+    @Test
+    fun generated_todosCall_composes_responseListAsync() = runTest {
+        val client = MockNetFlowClient { NetFlowMockResponse.success(oneTodoJson) }
+        val api = client.createTodoApi()
+
+        val state = api.todosCall().responseListAsync<TodoDto>()
+
+        client.assertCalled("todos", HttpMethod.Get)
+        assertTrue(state is AsyncState.Success, "was $state")
+        assertEquals(1, (state as AsyncState.Success).data.size)
+    }
+
+    @Test
+    fun generated_todosCall_composes_responseListFlow_with_onNetworkSuccess() = runTest {
+        val client = MockNetFlowClient { NetFlowMockResponse.success(oneTodoJson) }
+        val api = client.createTodoApi()
+        val seen = mutableListOf<List<TodoDto>>()
+
+        api.todosCall()
+            .responseListFlow<TodoDto> { onNetworkSuccess { seen.add(it) } }
+            .first { it !is ResultState.Loading }
+
+        assertEquals(1, seen.single().size)
     }
 
     @Test

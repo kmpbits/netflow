@@ -11,6 +11,7 @@ import com.kmpbits.netflow_annotations.Paginated
 import com.kmpbits.netflow_annotations.Path
 import com.kmpbits.netflow_annotations.Query
 import com.kmpbits.netflow_annotations.Wrapped
+import com.kmpbits.netflow_core.request.NetFlowCall
 import com.kmpbits.netflow_core.states.AsyncState
 import com.kmpbits.netflow_core.states.ResultState
 import com.kmpbits.sample.android.data.dto.CreateTodoRequest
@@ -46,4 +47,7 @@ interface TodoApi {
     @Paginated(pageSize = 15)
     @GET("todos")
     fun pagedTodosSmall(): Flow<PagingData<TodoDto>>
+
+    @GET("todos")
+    fun todosCall(): NetFlowCall
 }

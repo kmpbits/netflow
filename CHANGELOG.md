@@ -8,6 +8,7 @@
 
 ### New features
 - **`netflow-core`** — new reified `RequestBuilder.body(value: T)` overload for arbitrary `@Serializable` request bodies, also usable from the hand-written `call {}` DSL.
+- **`netflow-core`** — `NetFlowCall` + `NetFlowClient.prepareCall { }`: build a request and compose the response (`responseFlow` / `responseAsync` / `responsePaginated`, including `local {}` / `onNetworkSuccess`) separately. Annotated methods may return `NetFlowCall` when the repository owns the response side.
 
 ## [0.6.0]
 

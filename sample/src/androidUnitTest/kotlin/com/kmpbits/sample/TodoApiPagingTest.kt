@@ -36,6 +36,18 @@ class TodoApiPagingTest {
         assertTrue("pageQueryName" !in generated, "no pageQueryName line expected:\n$generated")
     }
 
+    @Test
+    fun generated_todosCall_returns_prepareCall_with_no_response_strategy() {
+        val generated = generatedImplFile().readText()
+        // todosCall() is the last override; its body runs to the class's closing brace.
+        val body = generated
+            .substringAfter("fun todosCall(): NetFlowCall")
+            .substringBefore("public fun NetFlowClient.createTodoApi")
+
+        assertTrue("client.prepareCall {" in body, body)
+        assertTrue(".responseFlow" !in body && ".responseAsync" !in body && ".responsePaginated" !in body, body)
+    }
+
     private fun generatedImplFile(): File {
         val roots = listOf(
             File("build/generated/ksp/metadata/commonMain/kotlin"),
