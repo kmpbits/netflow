@@ -5,6 +5,7 @@ import com.kmpbits.netflow_core.mock.MockNetFlowClient
 import com.kmpbits.netflow_core.mock.NetFlowMockResponse
 import com.kmpbits.netflow_core.states.AsyncState
 import com.kmpbits.netflow_core.states.ResultState
+import com.kmpbits.sample.android.data.dto.CreateTodoRequest
 import com.kmpbits.sample.android.data.remote.createTodoApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -66,5 +67,33 @@ class TodoApiGeneratedTest {
         client.assertCalled("todos/9", HttpMethod.Get)
         assertTrue(state is ResultState.Success, "expected Success, was $state")
         assertEquals(9, (state as ResultState.Success).data.id)
+    }
+
+    @Test
+    fun generated_createTyped_sends_serialized_body_and_static_headers() = runTest {
+        val client = MockNetFlowClient { NetFlowMockResponse.success(singleTodoJson) }
+        val api = client.createTodoApi()
+
+        api.createTyped(CreateTodoRequest(title = "x", completed = true))
+
+        val request = client.recordedRequests.single()
+        client.assertCalled("todos", HttpMethod.Post)
+        assertEquals("""{"title":"x","completed":true}""", request.rawBody)
+        assertTrue(("Accept" to "application/json") in request.headers, request.headers.toString())
+        assertTrue(("X-Client" to "netflow") in request.headers, request.headers.toString())
+    }
+
+    @Test
+    fun generated_getWrapped_unwraps_the_data_envelope() = runTest {
+        val client = MockNetFlowClient {
+            NetFlowMockResponse.success("""{"data":{"userId":1,"id":9,"title":"x","completed":true}}""")
+        }
+        val api = client.createTodoApi()
+
+        val state = api.getWrapped(id = 9)
+
+        client.assertCalled("todos/9", HttpMethod.Get)
+        assertTrue(state is AsyncState.Success, "expected Success, was $state")
+        assertEquals(9, (state as AsyncState.Success).data.id)
     }
 }
