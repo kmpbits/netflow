@@ -82,6 +82,7 @@ class MockNetFlowClient(
                     path = builder.path,
                     method = builder.method,
                     body = builder.body,
+                    rawBody = builder.rawBody,
                     headers = builder.headers.map { it.first.header to it.second }
                 )
                 _recordedRequests.add(mockRequest)

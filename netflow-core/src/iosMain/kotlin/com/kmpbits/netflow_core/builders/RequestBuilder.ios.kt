@@ -29,9 +29,9 @@ internal actual fun RequestBuilder.build(): InternalHttpRequestBuilder {
             setValue(it.second, forHTTPHeaderField = it.first.header)
         }
 
-        if (body != null && allowsBody) {
-            val jsonString = body!!.toJsonString()
-            HTTPBody = jsonString.toNSData()
+        val bodyString = rawBody ?: body?.toJsonString()
+        if (bodyString != null && allowsBody) {
+            HTTPBody = bodyString.toNSData()
         }
     }
 
