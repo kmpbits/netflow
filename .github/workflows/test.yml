@@ -18,7 +18,9 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: 21
+      - name: Build annotation modules
+        run: ./gradlew :netflow-annotations:build :netflow-ksp:build
       - name: Run Android unit tests
-        run: ./gradlew :netflow-core:testDebugUnitTest :netflow-paging:testDebugUnitTest
+        run: ./gradlew :netflow-core:testDebugUnitTest :netflow-paging:testDebugUnitTest :sample:testDebugUnitTest
       - name: Run iOS simulator tests
-        run: ./gradlew :netflow-core:iosSimulatorArm64Test :netflow-paging:iosSimulatorArm64Test
+        run: ./gradlew :netflow-core:iosSimulatorArm64Test :netflow-paging:iosSimulatorArm64Test :sample:iosSimulatorArm64Test
