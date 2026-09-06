@@ -57,3 +57,15 @@ annotation class Headers(vararg val value: String)
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.BINARY)
 annotation class Wrapped
+
+/**
+ * Optional configuration for a `Flow<PagingData<T>>` function. The paged call is
+ * network-only (`onlyApiCall = true`); there is no local cache. Remote + local
+ * paging stays on the `call {}` DSL.
+ */
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.BINARY)
+annotation class Paginated(
+    val pageQueryName: String = "page",
+    val pageSize: Int = 20,
+)
