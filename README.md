@@ -82,25 +82,30 @@ interface TodoApi {
     @GET("todos/{id}")
     fun observeTodo(@Path id: Int): Flow<ResultState<TodoDto>>
 
+    @Headers("Accept: application/json")
     @POST("todos")
-    suspend fun create(@Body payload: Map<String, Any>): AsyncState<TodoDto>
+    suspend fun create(@Body request: CreateTodoRequest): AsyncState<TodoDto>
+
+    @Wrapped
+    @GET("todos/{id}")
+    suspend fun get(@Path id: Int): AsyncState<TodoDto>
 }
 
 val api = client.createTodoApi()   // generated extension on NetFlowClient
 ```
 
 **Supported:** `@GET` / `@POST` / `@PUT` / `@DELETE` / `@PATCH`; `@Path`,
-`@Query`, `@Header`, `@Body`; return types `Flow<ResultState<T>>` and
-`Flow<ResultState<List<T>>>` (non-suspend), `AsyncState<T>` and
+`@Query`, `@Header`, `@Body`; method-level `@Headers("Name: Value", ...)`;
+`@Wrapped` for `{ "data": ... }` envelope responses. `@Body` accepts any
+`@Serializable` type or `Map<String, Any>`. Return types `Flow<ResultState<T>>`
+and `Flow<ResultState<List<T>>>` (non-suspend), `AsyncState<T>` and
 `AsyncState<List<T>>` (suspend). `@Query` / `@Header` names default to the
 parameter name and take an override string (`@Query("user_id") userId: Int`); a
 null `@Query` / `@Header` value is omitted from the request.
 
-**Not yet supported:** `transform` between `ApiType` and `DisplayType`, `@Body`
-with `@Serializable` objects (only `Map<String, *>` for now), `wrappedResponse`
-routing, paging returns, method-level `@Headers`, dynamic `@Url`, and the
-`onNetworkSuccess` / `local {}` cache hooks. Use the `call {}` DSL directly for
-those.
+**Not yet supported:** `transform` between `ApiType` and `DisplayType`, paging
+returns, dynamic `@Url`, `@QueryMap` / `@HeaderMap`, and the `onNetworkSuccess`
+/ `local {}` cache hooks. Use the `call {}` DSL directly for those.
 
 ---
 
