@@ -29,13 +29,16 @@ internal data class PagingConfig(val pageQueryName: String, val pageSize: Int) {
 }
 
 internal sealed interface ReturnShape {
-    val payloadType: KSType
+    val payloadType: KSType?
 
     data class FlowSingle(override val payloadType: KSType) : ReturnShape
     data class FlowList(override val payloadType: KSType) : ReturnShape
     data class AsyncSingle(override val payloadType: KSType) : ReturnShape
     data class AsyncList(override val payloadType: KSType) : ReturnShape
     data class Paginated(override val payloadType: KSType) : ReturnShape
+    data object RawCall : ReturnShape {
+        override val payloadType: KSType? get() = null
+    }
 }
 
 internal sealed interface ParamBinding {

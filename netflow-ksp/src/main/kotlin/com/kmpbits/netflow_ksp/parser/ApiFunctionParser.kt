@@ -41,6 +41,13 @@ internal fun parseApiFunction(
         ctx.error("Function '$name' has more than one @Body; at most one @Body is allowed.", declaration)
     }
 
+    if (returnShape is ReturnShape.RawCall && wrapped) {
+        ctx.error(
+            "Function '$name' returns NetFlowCall — @Wrapped is the caller's response-strategy choice, not the interface's.",
+            declaration,
+        )
+    }
+
     val placeholders = PLACEHOLDER.findAll(pathTemplate).map { it.groupValues[1] }.toSet()
     val pathParams = parameters.filterIsInstance<ParamBinding.PathParam>()
     val pathWireNames = pathParams.map { it.wireName }.toSet()

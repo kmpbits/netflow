@@ -18,6 +18,7 @@ internal object Fqns {
     const val PAGING_MODEL = "com.kmpbits.netflow_paging.model.PagingModel"
     const val EXPERIMENTAL_PAGING_API = "androidx.paging.ExperimentalPagingApi"
     const val PAGING_DESERIALIZABLES_PKG = "com.kmpbits.netflow_paging.deserializable"
+    const val NET_FLOW_CALL = "com.kmpbits.netflow_core.request.NetFlowCall"
 
     val HTTP_METHOD_ANNOTATIONS = setOf(GET, POST, PUT, DELETE, PATCH)
 

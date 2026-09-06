@@ -19,6 +19,7 @@ private val HTTP_HEADER = ClassName(Fqns.ENUMS_PKG, "HttpHeader")
 private val OPT_IN = ClassName("kotlin", "OptIn")
 private val EXPERIMENTAL_PAGING_API = ClassName("androidx.paging", "ExperimentalPagingApi")
 private val RESPONSE_PAGINATED = MemberName(Fqns.PAGING_DESERIALIZABLES_PKG, "responsePaginated")
+private val PREPARE_CALL = MemberName("com.kmpbits.netflow_core.client", "prepareCall")
 private val PLACEHOLDER = Regex("\\{([A-Za-z_][A-Za-z0-9_]*)}")
 
 internal fun buildFunction(fn: ApiFunction): FunSpec {
@@ -37,7 +38,11 @@ internal fun buildFunction(fn: ApiFunction): FunSpec {
     builder.returns(fn.declaration.returnType!!.toTypeName())
 
     val code = CodeBlock.builder()
-    code.beginControlFlow("return client.call")
+    if (fn.returnShape is ReturnShape.RawCall) {
+        code.beginControlFlow("return client.%M", PREPARE_CALL)
+    } else {
+        code.beginControlFlow("return client.call")
+    }
     code.addStatement("method = %T.%L", HTTP_METHOD, fn.httpMethod.enumMember)
     code.addStatement("path = %L", buildPathExpression(fn))
     fn.staticHeaders.forEach { (headerName, headerValue) ->
@@ -59,6 +64,9 @@ internal fun buildFunction(fn: ApiFunction): FunSpec {
             if (fn.wrapped) code.addStatement("wrappedResponse = true")
             code.endControlFlow()
         }
+        is ReturnShape.RawCall -> {
+            // no response strategy — the chain ends at the prepareCall { } block
+        }
         else -> {
             val (member, payload) = responseCall(shape, fn.wrapped)
             code.add(".%M<%T>()\n", member, payload.toTypeName())
@@ -76,8 +84,9 @@ private fun responseCall(shape: ReturnShape, wrapped: Boolean): Pair<MemberName,
         is ReturnShape.AsyncSingle -> if (wrapped) "responseWrappedAsync" else "responseAsync"
         is ReturnShape.AsyncList -> if (wrapped) "responseWrappedListAsync" else "responseListAsync"
         is ReturnShape.Paginated -> error("Paginated is handled separately in buildFunction")
+        is ReturnShape.RawCall -> error("RawCall is handled separately in buildFunction")
     }
-    return MemberName(Fqns.DESERIALIZABLES_PKG, name) to shape.payloadType
+    return MemberName(Fqns.DESERIALIZABLES_PKG, name) to shape.payloadType!!
 }
 
 /** The right-hand side of `path = ...` — a string literal or a `"a/" + id + "/b"` expression. */

@@ -25,6 +25,14 @@ internal fun parseReturnShape(
     fun isList(type: KSType) = fqnOf(type) == Fqns.LIST
 
     return when (fqnOf(returnType)) {
+        Fqns.NET_FLOW_CALL -> {
+            if (isSuspend) {
+                ctx.error("Function '$name' returns NetFlowCall and must not be suspend.", fn)
+                return null
+            }
+            ReturnShape.RawCall
+        }
+
         Fqns.FLOW -> {
             if (isSuspend) {
                 ctx.error("Function '$name' returns Flow and must not be suspend.", fn)
