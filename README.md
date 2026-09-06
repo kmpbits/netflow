@@ -103,9 +103,32 @@ and `Flow<ResultState<List<T>>>` (non-suspend), `AsyncState<T>` and
 parameter name and take an override string (`@Query("user_id") userId: Int`); a
 null `@Query` / `@Header` value is omitted from the request.
 
-**Not yet supported:** `transform` between `ApiType` and `DisplayType`, paging
-returns, dynamic `@Url`, `@QueryMap` / `@HeaderMap`, and the `onNetworkSuccess`
-/ `local {}` cache hooks. Use the `call {}` DSL directly for those.
+**Not yet supported:** paging returns, dynamic `@Url`, `@QueryMap` /
+`@HeaderMap`, and the `onNetworkSuccess` / `local {}` cache hooks. Use the
+`call {}` DSL directly for those.
+
+### Mapping to domain types
+
+Annotated functions return the API DTO. Map to your domain model in the
+repository with the `map` helpers from `netflow-core` — `AsyncState.map`,
+`ResultState.map`, and `Flow.map`:
+
+```kotlin
+class TodoRepository(client: NetFlowClient) {
+
+    private val api = client.createTodoApi()
+
+    suspend fun getTodos(): AsyncState<List<Todo>> =
+        api.getTodos(completed = null).map { dtos -> dtos.map { it.toModel() } }
+
+    fun observeTodo(id: Int): Flow<ResultState<Todo>> =
+        api.observeTodo(id).map { state -> state.map { it.toModel() } }
+}
+```
+
+This is deliberate: the two-type `transform` stays one layer out of the
+annotations, so the mapping is always explicit and compiler-checked — the same
+guarantee the `call {}` DSL gives with its required `transform` parameter.
 
 ---
 

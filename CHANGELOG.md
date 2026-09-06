@@ -4,7 +4,7 @@
 
 ### New modules
 - **`netflow-annotations`** — Retrofit-style annotation set (`@NetFlowApi`, `@GET`/`@POST`/`@PUT`/`@DELETE`/`@PATCH`, `@Path`, `@Query`, `@Header`, `@Body`, `@Headers`, `@Wrapped`).
-- **`netflow-ksp`** — KSP processor that generates a `NetFlowClient.create<Name>()` extension and an implementation delegating to the `call {}` DSL. Supports `Flow<ResultState<T>>`, `AsyncState<T>`, and their `List<T>` variants; parameter-name inference with wire-name overrides; null-omitted `@Query`/`@Header`; typed `@Body` (any `@Serializable` type or `Map<String, Any>`); method-level `@Headers`; `@Wrapped` routing to the `responseWrapped*` family.
+- **`netflow-ksp`** — KSP processor that generates a `NetFlowClient.create<Name>()` extension and an implementation delegating to the `call {}` DSL. Supports `Flow<ResultState<T>>`, `AsyncState<T>`, and their `List<T>` variants; parameter-name inference with wire-name overrides; null-omitted `@Query`/`@Header`; typed `@Body` (any `@Serializable` type or `Map<String, Any>`); method-level `@Headers`; `@Wrapped` routing to the `responseWrapped*` family. DTO → domain mapping uses the existing `ResultState` / `AsyncState` / `Flow` `.map` helpers — annotations carry no `transform` parameter by design.
 
 ### New features
 - **`netflow-core`** — new reified `RequestBuilder.body(value: T)` overload for arbitrary `@Serializable` request bodies, also usable from the hand-written `call {}` DSL.
