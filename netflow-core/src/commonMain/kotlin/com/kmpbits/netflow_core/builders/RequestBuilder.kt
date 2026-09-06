@@ -8,7 +8,9 @@ import com.kmpbits.netflow_core.annotations.NetFlowMarker
 import com.kmpbits.netflow_core.enums.HttpHeader
 import com.kmpbits.netflow_core.enums.HttpMethod
 import com.kmpbits.netflow_core.exceptions.NetFlowException
+import com.kmpbits.netflow_core.extensions.json
 import com.kmpbits.netflow_core.platform.InternalHttpRequestBuilder
+import kotlinx.serialization.encodeToString
 
 @NetFlowMarker
 class RequestBuilder internal constructor(
@@ -23,6 +25,9 @@ class RequestBuilder internal constructor(
     internal val parameters: Parameters = mutableListOf()
 
     internal var body: Map<String, Any>? = null
+
+    @PublishedApi
+    internal var rawBody: String? = null
 
     /**
      * The method of the request.
@@ -135,6 +140,16 @@ class RequestBuilder internal constructor(
      */
     fun body(body: Map<String, Any>) {
         this.body = body
+    }
+
+    /**
+     * The request body as an arbitrary serializable value. Serialized to JSON with NetFlow's
+     * [json] configuration. [T] must be `@Serializable` (or a kotlinx-serialization built-in).
+     *
+     * Overrides any [Map] body. Use only with [HttpMethod.Post], [HttpMethod.Put] or [HttpMethod.Patch].
+     */
+    inline fun <reified T> body(value: T) {
+        rawBody = json().encodeToString(value)
     }
 
     /**

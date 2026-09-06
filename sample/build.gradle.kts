@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -42,9 +43,14 @@ kotlin {
     }
 
     sourceSets {
+        commonMain {
+            kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
+        }
+
         commonMain.dependencies {
             api(project(":netflow-core"))
             api(project(":netflow-paging"))
+            implementation(project(":netflow-annotations"))
             implementation(libs.kotlinx.coroutines)
             implementation(libs.json.serialization)
             implementation(libs.koin.core)
@@ -74,11 +80,13 @@ kotlin {
 
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
         }
 
         androidUnitTest.dependencies {
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.sqldelight.sqlite.driver)
+            implementation(libs.androidx.paging.testing)
         }
     }
 }
@@ -118,6 +126,13 @@ android {
 
 dependencies {
     debugImplementation(libs.compose.ui.tooling)
+    add("kspCommonMainMetadata", project(":netflow-ksp"))
+}
+
+tasks.withType<KotlinCompilationTask<*>>().configureEach {
+    if (name != "kspCommonMainKotlinMetadata") {
+        dependsOn("kspCommonMainKotlinMetadata")
+    }
 }
 
 sqldelight {

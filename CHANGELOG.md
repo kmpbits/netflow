@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.0]
+
+### New modules
+- **`netflow-annotations`** — Retrofit-style annotation set (`@NetFlowApi`, `@GET`/`@POST`/`@PUT`/`@DELETE`/`@PATCH`, `@Path`, `@Query`, `@Header`, `@Body`, `@Headers`, `@Wrapped`).
+- **`netflow-ksp`** — KSP processor that generates a `NetFlowClient.create<Name>()` extension and an implementation delegating to the `call {}` DSL. Supports `Flow<ResultState<T>>`, `AsyncState<T>`, and their `List<T>` variants; parameter-name inference with wire-name overrides; null-omitted `@Query`/`@Header`; typed `@Body` (any `@Serializable` type or `Map<String, Any>`); method-level `@Headers`; `@Wrapped` routing to the `responseWrapped*` family; `Flow<PagingData<T>>` returns generate a network-only `responsePaginated` call (`onlyApiCall = true`), with optional `@Paginated(pageQueryName, pageSize)`. DTO → domain mapping uses the existing `ResultState` / `AsyncState` / `Flow` / `PagingData` `.map` helpers — annotations carry no `transform` parameter by design.
+
+### New features
+- **`netflow-core`** — new reified `RequestBuilder.body(value: T)` overload for arbitrary `@Serializable` request bodies, also usable from the hand-written `call {}` DSL.
+- **`netflow-core`** — `NetFlowCall` + `NetFlowClient.prepareCall { }`: build a request and compose the response (`responseFlow` / `responseAsync` / `responsePaginated`, including `local {}` / `onNetworkSuccess`) separately. Annotated methods may return `NetFlowCall` when the repository owns the response side.
+
 ## [0.6.0]
 
 ### New features

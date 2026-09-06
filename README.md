@@ -1,5 +1,7 @@
 # NetFlow KMP
-A lightweight networking library for Kotlin Multiplatform that provides a simple API for Flow and direct suspending calls with optional Jetpack Paging 3 support.
+A networking layer for Kotlin Multiplatform: one client, one state model, and one testing story across plain API calls, local-cache / offline-first flows, and Jetpack Paging 3.
+
+Start with **Retrofit-style annotated interfaces** for your straightforward endpoints — then drop to the `call {}` DSL on the *same* client, for the *same* API, when an endpoint needs caching, offline reads, or paging. The annotations are the familiar front door; the DSL is the engine behind it.
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.kmpbits/netflow-core.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.kmpbits/netflow-core)
 [![Tests](https://github.com/kmpbits/netflow/actions/workflows/test.yml/badge.svg)](https://github.com/kmpbits/netflow/actions/workflows/test.yml)
@@ -10,6 +12,7 @@ A lightweight networking library for Kotlin Multiplatform that provides a simple
 ## Features
 
 - Kotlin Multiplatform support (Android and iOS)
+- **Annotated interfaces** (Retrofit-style, KSP-generated, no reflection) as the on-ramp — and the `call {}` DSL for everything annotations can't express
 - Multiple response strategies:
   - Flow (with UI state handling)
   - Async (suspending, one-shot)
@@ -46,6 +49,147 @@ dependencies {
 ```
 
 Check the latest versions on [Maven Central](https://central.sonatype.com/artifact/io.github.kmpbits/netflow-core).
+
+### Annotations module (optional)
+
+Declare your API as an annotated interface (Retrofit-style) and let a KSP
+processor generate the implementation. Works on all Kotlin Multiplatform
+targets — no runtime reflection.
+
+**This is the on-ramp, not a separate library.** Use annotations for the plain
+request/response endpoints — the 80% case. The generated interface returns the
+same `ResultState` / `AsyncState` / `PagingData` types the DSL uses, runs on the
+same `NetFlowClient`, and is tested with the same `MockNetFlowClient`. When an
+endpoint needs local caching, offline reads, `onNetworkSuccess` side effects, or
+remote+local paging, write that one method with `client.call { … }` — nothing
+else changes. You never juggle two HTTP stacks or two state models.
+
+```kotlin
+plugins {
+    id("com.google.devtools.ksp")
+}
+
+dependencies {
+    implementation("io.github.kmpbits:netflow-core:<latest_version>")
+    implementation("io.github.kmpbits:netflow-annotations:<latest_version>")
+    add("kspCommonMainMetadata", "io.github.kmpbits:netflow-ksp:<latest_version>")
+}
+
+kotlin.sourceSets.commonMain {
+    kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
+}
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
+    if (name != "kspCommonMainKotlinMetadata") dependsOn("kspCommonMainKotlinMetadata")
+}
+```
+
+```kotlin
+@NetFlowApi
+interface TodoApi {
+
+    @GET("todos")
+    suspend fun getTodos(@Query completed: Boolean?): AsyncState<List<TodoDto>>
+
+    @GET("todos/{id}")
+    fun observeTodo(@Path id: Int): Flow<ResultState<TodoDto>>
+
+    @Headers("Accept: application/json")
+    @POST("todos")
+    suspend fun create(@Body request: CreateTodoRequest): AsyncState<TodoDto>
+
+    @Wrapped
+    @GET("todos/{id}")
+    suspend fun get(@Path id: Int): AsyncState<TodoDto>
+
+    @GET("todos")
+    fun pagedTodos(): Flow<PagingData<TodoDto>>
+
+    @GET("todos")
+    fun todosCall(): NetFlowCall     // request only — compose the response yourself
+}
+
+val api = client.createTodoApi()   // generated extension on NetFlowClient
+```
+
+**Supported:** `@GET` / `@POST` / `@PUT` / `@DELETE` / `@PATCH`; `@Path`,
+`@Query`, `@Header`, `@Body`; method-level `@Headers("Name: Value", ...)`;
+`@Wrapped` for `{ "data": ... }` envelope responses. `@Body` accepts any
+`@Serializable` type or `Map<String, Any>`. Return types `Flow<ResultState<T>>`
+and `Flow<ResultState<List<T>>>` (non-suspend), `AsyncState<T>` and
+`AsyncState<List<T>>` (suspend), `Flow<PagingData<T>>` (non-suspend, network-only
+paging), and `NetFlowCall` (the request without a response strategy — compose it
+in the repository). `@Query` / `@Header` names default to the parameter name and
+take an override string (`@Query("user_id") userId: Int`); a null `@Query` /
+`@Header` value is omitted from the request.
+
+**Not yet supported:** dynamic `@Url`, `@QueryMap` / `@HeaderMap`, and the
+`onNetworkSuccess` / `local {}` cache hooks (including remote+local paging). Use
+the `call {}` DSL directly for those.
+
+### Mapping to domain types
+
+Annotated functions return the API DTO. Map to your domain model in the
+repository with the `map` helpers from `netflow-core` — `AsyncState.map`,
+`ResultState.map`, and `Flow.map`:
+
+```kotlin
+class TodoRepository(client: NetFlowClient) {
+
+    private val api = client.createTodoApi()
+
+    suspend fun getTodos(): AsyncState<List<Todo>> =
+        api.getTodos(completed = null).map { dtos -> dtos.map { it.toModel() } }
+
+    fun observeTodo(id: Int): Flow<ResultState<Todo>> =
+        api.observeTodo(id).map { state -> state.map { it.toModel() } }
+}
+```
+
+This is deliberate: the two-type `transform` stays one layer out of the
+annotations, so the mapping is always explicit and compiler-checked — the same
+guarantee the `call {}` DSL gives with its required `transform` parameter.
+
+### Paging
+
+A function returning `Flow<PagingData<T>>` (where `T` extends `PagingModel`)
+generates a **network-only** paged call. `@Paginated(pageQueryName, pageSize)`
+overrides the defaults (`"page"`, `20`).
+
+```kotlin
+@GET("posts")
+fun pagedPosts(@Query tag: String?): Flow<PagingData<PostDto>>
+```
+
+Map to domain in the repository with `PagingData.map`:
+
+```kotlin
+fun pagedPosts(tag: String?) = api.pagedPosts(tag).map { it.map { dto -> dto.toModel() } }
+```
+
+Remote + local paging (`RemoteMediator`, local `PagingSource`, insert/delete
+callbacks) stays on the `call {}` DSL — `responsePaginated { localSource(...) }`.
+
+### Composing the response yourself (`NetFlowCall`)
+
+Return `NetFlowCall` and the generated method stops at the request. Finish it in
+the repository with any `responseX` function — this is how you add a local cache
+or `onNetworkSuccess` side effects to an annotated endpoint:
+
+```kotlin
+@GET("todos")
+fun todos(): NetFlowCall
+
+// repository
+fun getTodos(): Flow<ResultState<Todo>> =
+    api.todos().responseFlow<TodoDto, Todo>(transform = { it.toModel() }) {
+        onNetworkSuccess { db.insertTodos(it) }
+        local({ observe { db.todos() } }, transform = { it.toModel() })
+    }
+```
+
+`@Wrapped` / `@Paginated` are not allowed on a `NetFlowCall` method — those are
+choices you make on the `responseX` call. `client.prepareCall { … }` builds a
+`NetFlowCall` from the hand-written DSL too.
 
 ---
 

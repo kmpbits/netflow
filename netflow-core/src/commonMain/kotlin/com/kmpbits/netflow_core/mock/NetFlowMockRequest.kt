@@ -6,5 +6,6 @@ data class NetFlowMockRequest(
     val path: String,
     val method: HttpMethod,
     val body: Map<String, Any>?,
+    val rawBody: String?,
     val headers: List<Pair<String, String>>
 )

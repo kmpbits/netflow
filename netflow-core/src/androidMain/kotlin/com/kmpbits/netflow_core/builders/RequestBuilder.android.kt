@@ -26,10 +26,11 @@ internal actual fun RequestBuilder.build(): InternalHttpRequestBuilder {
     }
 
     val method = method.toName()
-    if (OkHttpMethod.requiresRequestBody(method) && body == null) {
+    val bodyString = rawBody ?: body?.toJson()
+    if (OkHttpMethod.requiresRequestBody(method) && bodyString == null) {
         throw NetFlowException("Request Body is required for $method method")
     }
-    val requestBody = body?.toJson()?.toRequestBody("application/json; charset=utf-8".toMediaType())
+    val requestBody = bodyString?.toRequestBody("application/json; charset=utf-8".toMediaType())
 
     requestBuilder.method(method, requestBody)
 
