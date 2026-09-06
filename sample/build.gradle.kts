@@ -57,7 +57,6 @@ kotlin {
             implementation(libs.koin.viewmodel)
             implementation(libs.lifecycle.viewmodel)
             implementation(libs.sqldelight.coroutines.extensions)
-            implementation(libs.sqldelight.paging3.extensions)
         }
 
         androidMain.dependencies {
@@ -121,6 +120,9 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
     }
 }
 
