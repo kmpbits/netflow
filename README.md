@@ -1,5 +1,7 @@
 # NetFlow KMP
-A lightweight networking library for Kotlin Multiplatform that provides a simple API for Flow and direct suspending calls with optional Jetpack Paging 3 support.
+A networking layer for Kotlin Multiplatform: one client, one state model, and one testing story across plain API calls, local-cache / offline-first flows, and Jetpack Paging 3.
+
+Start with **Retrofit-style annotated interfaces** for your straightforward endpoints — then drop to the `call {}` DSL on the *same* client, for the *same* API, when an endpoint needs caching, offline reads, or paging. The annotations are the familiar front door; the DSL is the engine behind it.
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.kmpbits/netflow-core.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.kmpbits/netflow-core)
 [![Tests](https://github.com/kmpbits/netflow/actions/workflows/test.yml/badge.svg)](https://github.com/kmpbits/netflow/actions/workflows/test.yml)
@@ -10,6 +12,7 @@ A lightweight networking library for Kotlin Multiplatform that provides a simple
 ## Features
 
 - Kotlin Multiplatform support (Android and iOS)
+- **Annotated interfaces** (Retrofit-style, KSP-generated, no reflection) as the on-ramp — and the `call {}` DSL for everything annotations can't express
 - Multiple response strategies:
   - Flow (with UI state handling)
   - Async (suspending, one-shot)
@@ -52,6 +55,14 @@ Check the latest versions on [Maven Central](https://central.sonatype.com/artifa
 Declare your API as an annotated interface (Retrofit-style) and let a KSP
 processor generate the implementation. Works on all Kotlin Multiplatform
 targets — no runtime reflection.
+
+**This is the on-ramp, not a separate library.** Use annotations for the plain
+request/response endpoints — the 80% case. The generated interface returns the
+same `ResultState` / `AsyncState` / `PagingData` types the DSL uses, runs on the
+same `NetFlowClient`, and is tested with the same `MockNetFlowClient`. When an
+endpoint needs local caching, offline reads, `onNetworkSuccess` side effects, or
+remote+local paging, write that one method with `client.call { … }` — nothing
+else changes. You never juggle two HTTP stacks or two state models.
 
 ```kotlin
 plugins {
