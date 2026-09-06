@@ -33,10 +33,7 @@ internal fun parseParameter(
                 val isStringKeyedMap = type.declaration.qualifiedName?.asString() == Fqns.MAP &&
                     type.arguments.firstOrNull()?.type?.resolve()
                         ?.declaration?.qualifiedName?.asString() == Fqns.STRING
-                if (!isStringKeyedMap) {
-                    ctx.error("@Body must be Map<String, *> in this version (parameter '$paramName').", parameter)
-                }
-                ParamBinding.BodyParam(paramName, type, isNullable)
+                ParamBinding.BodyParam(paramName, type, isNullable, isStringKeyedMap)
             }
             else -> null
         }

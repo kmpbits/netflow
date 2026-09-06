@@ -11,6 +11,8 @@ internal object Fqns {
     const val QUERY = "com.kmpbits.netflow_annotations.Query"
     const val HEADER = "com.kmpbits.netflow_annotations.Header"
     const val BODY = "com.kmpbits.netflow_annotations.Body"
+    const val HEADERS = "com.kmpbits.netflow_annotations.Headers"
+    const val WRAPPED = "com.kmpbits.netflow_annotations.Wrapped"
 
     val HTTP_METHOD_ANNOTATIONS = setOf(GET, POST, PUT, DELETE, PATCH)
 

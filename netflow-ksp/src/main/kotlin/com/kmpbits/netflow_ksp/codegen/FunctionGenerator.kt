@@ -29,23 +29,29 @@ internal fun buildFunction(fn: ApiFunction): FunSpec {
     code.beginControlFlow("return client.call")
     code.addStatement("method = %T.%L", HTTP_METHOD, fn.httpMethod.enumMember)
     code.addStatement("path = %L", buildPathExpression(fn))
+    fn.staticHeaders.forEach { (headerName, headerValue) ->
+        code.addStatement("header(%T.custom(%S) to %S)", HTTP_HEADER, headerName, headerValue)
+    }
     fn.parameters.forEach { param ->
         buildParamStatement(param)?.let { code.addStatement("%L", it) }
     }
     code.endControlFlow()
 
-    val (member, payload) = responseCall(fn.returnShape)
+    val (member, payload) = responseCall(fn.returnShape, fn.wrapped)
     code.add(".%M<%T>()\n", member, payload.toTypeName())
 
     builder.addCode(code.build())
     return builder.build()
 }
 
-private fun responseCall(shape: ReturnShape): Pair<MemberName, KSType> = when (shape) {
-    is ReturnShape.FlowSingle -> MemberName(Fqns.DESERIALIZABLES_PKG, "responseFlow") to shape.payloadType
-    is ReturnShape.FlowList -> MemberName(Fqns.DESERIALIZABLES_PKG, "responseListFlow") to shape.payloadType
-    is ReturnShape.AsyncSingle -> MemberName(Fqns.DESERIALIZABLES_PKG, "responseAsync") to shape.payloadType
-    is ReturnShape.AsyncList -> MemberName(Fqns.DESERIALIZABLES_PKG, "responseListAsync") to shape.payloadType
+private fun responseCall(shape: ReturnShape, wrapped: Boolean): Pair<MemberName, KSType> {
+    val name = when (shape) {
+        is ReturnShape.FlowSingle -> if (wrapped) "responseWrappedFlow" else "responseFlow"
+        is ReturnShape.FlowList -> if (wrapped) "responseWrappedListFlow" else "responseListFlow"
+        is ReturnShape.AsyncSingle -> if (wrapped) "responseWrappedAsync" else "responseAsync"
+        is ReturnShape.AsyncList -> if (wrapped) "responseWrappedListAsync" else "responseListAsync"
+    }
+    return MemberName(Fqns.DESERIALIZABLES_PKG, name) to shape.payloadType
 }
 
 /** The right-hand side of `path = ...` — a string literal or a `"a/" + id + "/b"` expression. */

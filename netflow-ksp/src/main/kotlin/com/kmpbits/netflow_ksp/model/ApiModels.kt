@@ -62,6 +62,7 @@ internal sealed interface ParamBinding {
         override val paramName: String,
         override val type: KSType,
         override val isNullable: Boolean,
+        val isStringKeyedMap: Boolean,
     ) : ParamBinding {
         override val wireName: String get() = paramName
     }
@@ -75,6 +76,8 @@ internal data class ApiFunction(
     val isSuspend: Boolean,
     val returnShape: ReturnShape,
     val parameters: List<ParamBinding>,
+    val wrapped: Boolean,
+    val staticHeaders: List<Pair<String, String>>,
 )
 
 internal data class ApiInterface(

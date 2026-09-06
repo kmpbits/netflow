@@ -3,6 +3,7 @@ package com.kmpbits.netflow_ksp.parser
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.Modifier
+import com.kmpbits.netflow_ksp.Fqns
 import com.kmpbits.netflow_ksp.model.ApiFunction
 import com.kmpbits.netflow_ksp.model.ParamBinding
 import com.kmpbits.netflow_ksp.model.ParseContext
@@ -21,6 +22,11 @@ internal fun parseApiFunction(
     val (httpMethod, pathTemplate) = method
 
     val returnShape = parseReturnShape(declaration, isSuspend, ctx) ?: return null
+
+    val staticHeaders = parseStaticHeaders(declaration, ctx)
+    val wrapped = declaration.annotations.any {
+        it.annotationType.resolve().declaration.qualifiedName?.asString() == Fqns.WRAPPED
+    }
 
     val parameters = declaration.parameters.mapNotNull { parseParameter(it, ctx) }
 
@@ -49,5 +55,7 @@ internal fun parseApiFunction(
         isSuspend = isSuspend,
         returnShape = returnShape,
         parameters = parameters,
+        wrapped = wrapped,
+        staticHeaders = staticHeaders,
     )
 }
