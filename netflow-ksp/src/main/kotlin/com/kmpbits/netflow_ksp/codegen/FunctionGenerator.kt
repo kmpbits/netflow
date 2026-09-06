@@ -28,12 +28,14 @@ internal fun buildFunction(fn: ApiFunction): FunSpec {
     val code = CodeBlock.builder()
     code.beginControlFlow("return client.call")
     code.addStatement("method = %T.%L", HTTP_METHOD, fn.httpMethod.enumMember)
-    code.add(buildPathAssignment(fn))
-    fn.parameters.forEach { param -> code.add(buildParamStatement(param)) }
+    code.addStatement("path = %L", buildPathExpression(fn))
+    fn.parameters.forEach { param ->
+        buildParamStatement(param)?.let { code.addStatement("%L", it) }
+    }
     code.endControlFlow()
 
     val (member, payload) = responseCall(fn.returnShape)
-    code.addStatement(".%M<%T>()", member, payload.toTypeName())
+    code.add(".%M<%T>()\n", member, payload.toTypeName())
 
     builder.addCode(code.build())
     return builder.build()
@@ -46,10 +48,11 @@ private fun responseCall(shape: ReturnShape): Pair<MemberName, KSType> = when (s
     is ReturnShape.AsyncList -> MemberName(Fqns.DESERIALIZABLES_PKG, "responseListAsync") to shape.payloadType
 }
 
-private fun buildPathAssignment(fn: ApiFunction): CodeBlock {
+/** The right-hand side of `path = ...` — a string literal or a `"a/" + id + "/b"` expression. */
+private fun buildPathExpression(fn: ApiFunction): CodeBlock {
     val template = fn.pathTemplate
     val matches = PLACEHOLDER.findAll(template).toList()
-    if (matches.isEmpty()) return CodeBlock.of("path = %S\n", template)
+    if (matches.isEmpty()) return CodeBlock.of("%S", template)
 
     val wireToParam = fn.parameters.filterIsInstance<ParamBinding.PathParam>()
         .associate { it.wireName to it.paramName }
@@ -65,30 +68,31 @@ private fun buildPathAssignment(fn: ApiFunction): CodeBlock {
     val tail = template.substring(index)
     if (tail.isNotEmpty()) parts += CodeBlock.of("%S", tail)
 
-    return CodeBlock.of("path = %L\n", parts.joinToCodeWith(" + "))
+    return parts.joinToCodeWith(" + ")
 }
 
-private fun buildParamStatement(param: ParamBinding): CodeBlock = when (param) {
-    is ParamBinding.PathParam -> CodeBlock.of("")
+/** A single statement inside the `client.call { }` lambda, or null when the binding is handled elsewhere. */
+private fun buildParamStatement(param: ParamBinding): CodeBlock? = when (param) {
+    is ParamBinding.PathParam -> null
     is ParamBinding.QueryParam ->
         if (param.isNullable) {
-            CodeBlock.of("if (%N != null) parameter(%S to %N)\n", param.paramName, param.wireName, param.paramName)
+            CodeBlock.of("if (%N != null) parameter(%S to %N)", param.paramName, param.wireName, param.paramName)
         } else {
-            CodeBlock.of("parameter(%S to %N)\n", param.wireName, param.paramName)
+            CodeBlock.of("parameter(%S to %N)", param.wireName, param.paramName)
         }
     is ParamBinding.HeaderParam ->
         if (param.isNullable) {
             CodeBlock.of(
-                "if (%N != null) header(%T.custom(%S) to %N.toString())\n",
+                "if (%N != null) header(%T.custom(%S) to %N.toString())",
                 param.paramName, HTTP_HEADER, param.wireName, param.paramName,
             )
         } else {
             CodeBlock.of(
-                "header(%T.custom(%S) to %N.toString())\n",
+                "header(%T.custom(%S) to %N.toString())",
                 HTTP_HEADER, param.wireName, param.paramName,
             )
         }
-    is ParamBinding.BodyParam -> CodeBlock.of("body(%N)\n", param.paramName)
+    is ParamBinding.BodyParam -> CodeBlock.of("body(%N)", param.paramName)
 }
 
 private fun List<CodeBlock>.joinToCodeWith(separator: String): CodeBlock =
