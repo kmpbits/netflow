@@ -50,6 +50,17 @@ dependencies {
 
 Check the latest versions on [Maven Central](https://central.sonatype.com/artifact/io.github.kmpbits/netflow-core).
 
+### Token storage module (optional)
+
+Adds `SettingsTokenStorage` for persisting auth tokens (see [Authentication](#authentication)).
+
+```kotlin
+dependencies {
+    implementation("io.github.kmpbits:netflow-core:<latest_version>")
+    implementation("io.github.kmpbits:netflow-token-storage:<latest_version>")
+}
+```
+
 ### Annotations module (optional)
 
 Declare your API as an annotated interface (Retrofit-style) and let a KSP
@@ -775,10 +786,45 @@ val client = netflowClient {
 ```
 
 `loadTokens { }` still works and takes precedence over `storage(...)` for
-seeding. NetFlow ships only the `TokenStorage` interface — no encryption. Back it
-with the iOS Keychain, Android Keystore-backed storage, or an encrypted
-`multiplatform-settings` backend. Storage failures are swallowed — the in-memory
-token stays valid.
+seeding. Storage failures are swallowed — the in-memory token stays valid.
+
+`netflow-core` ships two `TokenStorage` implementations:
+
+- `InMemoryTokenStorage()` — no persistence; for tests, or a fresh login every launch.
+- nothing else — `netflow-core` has no platform storage dependency.
+
+**Persistent storage — `netflow-token-storage`**
+
+```kotlin
+implementation("io.github.kmpbits:netflow-token-storage:<latest_version>")
+```
+
+Adds `SettingsTokenStorage(settings)`, backed by a `multiplatform-settings`
+`Settings`. It adds **no encryption** — pass a `Settings` over a secure store:
+
+```kotlin
+// androidMain
+val settings = SharedPreferencesSettings(
+    EncryptedSharedPreferences.create(
+        context, "netflow_auth",
+        MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+    )
+)
+
+// iosMain
+val settings = KeychainSettings(service = "netflow_auth")
+
+// shared
+auth {
+    storage(SettingsTokenStorage(settings))
+    refreshTokens { /* ... */ }
+}
+```
+
+Prefer DataStore, SQLDelight, or your own store? Implement `TokenStorage`
+directly — it is three suspend functions.
 
 **How it differs from a plain HTTP-client auth plugin**
 
@@ -787,9 +833,6 @@ token stays valid.
 - `authState` is a first-class client property.
 - The whole refresh flow is testable with `MockNetFlowClient(auth = { ... })` — no network.
 - Single-flight refresh + token-changed check are built in.
-
-Secure token storage (Keychain / Keystore / DataStore) is yours to provide inside
-`loadTokens` / `refreshTokens`.
 
 ---
 
