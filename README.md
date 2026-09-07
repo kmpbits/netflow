@@ -124,7 +124,8 @@ val api = client.createTodoApi()   // generated extension on NetFlowClient
 
 **Supported:** `@GET` / `@POST` / `@PUT` / `@DELETE` / `@PATCH`; `@Path`,
 `@Query`, `@Header`, `@Body`; method-level `@Headers("Name: Value", ...)`;
-`@Wrapped` for `{ "data": ... }` envelope responses. `@Body` accepts any
+`@Wrapped` for `{ "data": ... }` envelope responses; `@SkipAuth` to opt a method
+out of the client's `auth { }` (login / sign-up / refresh endpoints). `@Body` accepts any
 `@Serializable` type or `Map<String, Any>`. Return types `Flow<ResultState<T>>`
 and `Flow<ResultState<List<T>>>` (non-suspend), `AsyncState<T>` and
 `AsyncState<List<T>>` (suspend), `Flow<PagingData<T>>` (non-suspend, network-only

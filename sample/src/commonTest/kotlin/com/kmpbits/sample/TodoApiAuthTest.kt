@@ -7,6 +7,7 @@ import com.kmpbits.netflow_core.mock.MockNetFlowClient
 import com.kmpbits.netflow_core.mock.NetFlowMockResponse
 import com.kmpbits.netflow_core.deserializables.responseListAsync
 import com.kmpbits.netflow_core.states.AsyncState
+import com.kmpbits.sample.android.data.dto.CreateTodoRequest
 import com.kmpbits.sample.android.data.dto.TodoDto
 import com.kmpbits.sample.android.data.remote.createTodoApi
 import kotlinx.coroutines.test.runTest
@@ -76,6 +77,25 @@ class TodoApiAuthTest {
 
         assertTrue(state is AsyncState.Success, "expected Success, was $state")
         client.assertCalledTimes("todos", HttpMethod.Get, times = 2)
+    }
+
+    @Test
+    fun generated_SkipAuth_method_sends_no_token_and_does_not_refresh() = runTest {
+        var seenAuth: String? = "unset"
+        val client = MockNetFlowClient(auth = {
+            loadTokens { BearerTokens("good", "r") }
+            refreshTokens { error("should not refresh") }
+        }) { request ->
+            seenAuth = request["Authorization"]
+            NetFlowMockResponse.unauthorized()
+        }
+        val api = client.createTodoApi()
+
+        val state = api.login(CreateTodoRequest(title = "x", completed = true))
+
+        assertTrue(state is AsyncState.Error, "expected Error, was $state")
+        assertEquals(null, seenAuth)
+        client.assertCalledTimes("login", HttpMethod.Post, times = 1)
     }
 
     @Test
