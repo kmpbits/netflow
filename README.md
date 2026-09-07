@@ -763,6 +763,23 @@ client.call { path = "public"; skipAuth() }   // opt a request out
 `raw` is an auth-free client, so a refresh call can never recurse into another
 refresh.
 
+### Proactive refresh
+
+By default NetFlow refreshes reactively — it sends the request, and refreshes on a
+`401`. Set `refreshLeeway` and it also refreshes *before* sending when the JWT
+access token is about to expire, skipping the wasted 401 round-trip:
+
+```kotlin
+auth {
+    refreshLeeway = 30.seconds     // refresh if the token expires within 30s
+    refreshTokens { /* ... */ }
+}
+```
+
+It reads the token's `exp` claim (no signature check — that's the server's job).
+Opaque tokens, a missing `exp`, or a skewed device clock just fall back to the
+reactive `401` path, which always stays active. `null` (default) disables it.
+
 ### Persisting tokens
 
 By default NetFlow keeps tokens in memory only. Register a `TokenStorage` and it

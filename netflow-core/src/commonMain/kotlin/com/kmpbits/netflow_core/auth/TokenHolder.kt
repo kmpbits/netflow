@@ -23,6 +23,7 @@ internal class TokenHolder(
 
     private val mutex = Mutex()
     private var tokens: BearerTokens? = null
+    private var accessExpiresAt: Long? = null
     private var seeded = false
 
     private val _authState = MutableStateFlow(AuthState.Unknown)
@@ -32,13 +33,29 @@ internal class TokenHolder(
         if (seeded) return
         mutex.withLock {
             if (seeded) return
-            tokens = config.loadTokensBlock?.invoke() ?: loadFromStorage()
+            assignTokens(config.loadTokensBlock?.invoke() ?: loadFromStorage())
             _authState.value = if (tokens != null) AuthState.Authenticated else AuthState.Unknown
             seeded = true
         }
     }
 
     fun currentAccess(): String? = tokens?.accessToken
+
+    /**
+     * Proactive refresh: if [AuthConfig.refreshLeeway] is set and the current
+     * JWT access token expires within that window, refresh now (single-flight)
+     * so the caller sends a request with a fresh token. Opaque tokens, a missing
+     * `exp`, or no `refreshTokens { }` block are silently skipped.
+     */
+    suspend fun ensureFresh() {
+        val leeway = config.refreshLeeway ?: return
+        if (config.refreshTokensBlock == null) return
+        val access = tokens?.accessToken ?: return
+        if (tokens?.refreshToken == null) return
+        val exp = accessExpiresAt ?: return
+        if (currentEpochSeconds() < exp - leeway.inWholeSeconds) return
+        refresh(accessUsed = access)
+    }
 
     /**
      * @param accessUsed the access token the failing request actually sent.
@@ -70,7 +87,7 @@ internal class TokenHolder(
             return null
         }
 
-        tokens = new
+        assignTokens(new)
         seeded = true
         _authState.value = AuthState.Authenticated
         persist(new)
@@ -78,23 +95,28 @@ internal class TokenHolder(
     }
 
     suspend fun set(newTokens: BearerTokens) = mutex.withLock {
-        tokens = newTokens
+        assignTokens(newTokens)
         seeded = true
         _authState.value = AuthState.Authenticated
         persist(newTokens)
     }
 
     suspend fun clear() = mutex.withLock {
-        tokens = null
+        assignTokens(null)
         seeded = true
         _authState.value = AuthState.Unauthenticated
         wipe()
     }
 
     private suspend fun failLocked() {
-        tokens = null
+        assignTokens(null)
         _authState.value = AuthState.Unauthenticated
         wipe()
+    }
+
+    private fun assignTokens(new: BearerTokens?) {
+        tokens = new
+        accessExpiresAt = new?.let { Jwt.expiresAtEpochSeconds(it.accessToken) }
     }
 
     private suspend fun loadFromStorage(): BearerTokens? =

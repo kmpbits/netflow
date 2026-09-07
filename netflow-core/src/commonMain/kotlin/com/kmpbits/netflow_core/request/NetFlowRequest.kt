@@ -59,6 +59,7 @@ class NetFlowRequest internal constructor(
         if (holder == null || builder.skipAuth) return dispatchWithRetry()
 
         holder.ensureSeeded()
+        holder.ensureFresh()
 
         var accessUsed = holder.currentAccess()
         applyAuthHeader(holder.scheme, accessUsed)
