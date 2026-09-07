@@ -19,6 +19,7 @@ Start with **Retrofit-style annotated interfaces** for your straightforward endp
   - Paginated (Jetpack Paging 3 via `netflow-paging`)
 - Two-type API: separate deserialization type (`ApiType`) from display type (`DisplayType`) — no trailing `.map` needed
 - `wrappedResponse` flag for APIs that return `{ "data": ... }` envelopes
+- **Bearer auth** — automatic token attach, single-flight `401 → refresh → retry`, optional proactive refresh from the JWT `exp`, `authState` flow, pluggable `TokenStorage`
 - Local cache integration with observation support
 - Built-in error handling
 - Debug logging with multiple levels (None, Basic, Headers, Body)
@@ -761,7 +762,32 @@ client.call { path = "public"; skipAuth() }   // opt a request out
 ```
 
 `raw` is an auth-free client, so a refresh call can never recurse into another
-refresh.
+refresh. It's also a `NetFlowClient`, so a generated `@NetFlowApi` interface works
+there too:
+
+```kotlin
+refreshTokens { raw ->
+    when (val res = raw.createAuthApi().refresh(RefreshRequest(refreshToken!!))) {
+        is AsyncState.Success -> BearerTokens(res.data.accessToken, res.data.refreshToken)
+        else -> null
+    }
+}
+```
+
+### Annotated interfaces
+
+Generated `@NetFlowApi` implementations run on the same client, so they inherit
+the token attach and the refresh-and-retry with no extra work. Mark the
+unauthenticated endpoints — login, sign-up, refresh — with `@SkipAuth` so the
+generated code never attaches a token or tries to refresh on their 401:
+
+```kotlin
+@NetFlowApi
+interface AuthApi {
+    @SkipAuth @POST("auth/login")   suspend fun login(@Body body: LoginRequest): AsyncState<TokenResponse>
+    @SkipAuth @POST("auth/refresh") suspend fun refresh(@Body body: RefreshRequest): AsyncState<TokenResponse>
+}
+```
 
 ### Proactive refresh
 
@@ -806,10 +832,8 @@ val client = netflowClient {
 `loadTokens { }` still works and takes precedence over `storage(...)` for
 seeding. Storage failures are swallowed — the in-memory token stays valid.
 
-`netflow-core` ships two `TokenStorage` implementations:
-
-- `InMemoryTokenStorage()` — no persistence; for tests, or a fresh login every launch.
-- nothing else — `netflow-core` has no platform storage dependency.
+`netflow-core` ships `InMemoryTokenStorage()` — no persistence, for tests or a
+fresh login every launch. It has no platform storage dependency of its own.
 
 **Persistent storage — `netflow-token-storage`**
 
