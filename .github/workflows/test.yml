@@ -21,6 +21,6 @@ jobs:
       - name: Build annotation modules
         run: ./gradlew :netflow-annotations:build :netflow-ksp:build
       - name: Run Android unit tests
-        run: ./gradlew :netflow-core:testDebugUnitTest :netflow-paging:testDebugUnitTest :sample:testDebugUnitTest
+        run: ./gradlew :netflow-core:testDebugUnitTest :netflow-paging:testDebugUnitTest :netflow-token-storage:testDebugUnitTest :sample:testDebugUnitTest
       - name: Run iOS simulator tests
-        run: ./gradlew :netflow-core:iosSimulatorArm64Test :netflow-paging:iosSimulatorArm64Test :sample:iosSimulatorArm64Test
+        run: ./gradlew :netflow-core:iosSimulatorArm64Test :netflow-paging:iosSimulatorArm64Test :netflow-token-storage:iosSimulatorArm64Test :sample:iosSimulatorArm64Test
