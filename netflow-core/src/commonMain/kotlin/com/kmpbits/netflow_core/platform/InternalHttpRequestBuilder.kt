@@ -13,4 +13,11 @@ internal expect class InternalHttpRequestBuilder {
     internal val headers: Headers
 
     internal fun updateUrl(builder: RequestBuilder)
+
+    /**
+     * Re-applies [builder]'s headers onto the platform request, replacing any
+     * existing value for the same header name. Used to swap in a refreshed token
+     * before a retry.
+     */
+    internal fun updateHeaders(builder: RequestBuilder)
 }
