@@ -43,4 +43,11 @@ internal actual class InternalHttpRequestBuilder(
 
         requestBuilder.url(url)
     }
+
+    internal actual fun updateHeaders(builder: RequestBuilder) {
+        builder.headers.forEach {
+            // .header(...) replaces any existing value for this name
+            requestBuilder.header(it.first.header, it.second)
+        }
+    }
 }

@@ -3,6 +3,7 @@ package com.kmpbits.netflow_core.builders
 import com.kmpbits.netflow_core.alias.Header
 import com.kmpbits.netflow_core.alias.Headers
 import com.kmpbits.netflow_core.annotations.NetFlowMarker
+import com.kmpbits.netflow_core.auth.AuthConfig
 import com.kmpbits.netflow_core.client.NetFlowClient
 import com.kmpbits.netflow_core.client.NetFlowClientImpl
 import com.kmpbits.netflow_core.enums.HttpHeader
@@ -15,6 +16,9 @@ class ClientBuilder internal constructor() {
     internal val headers: Headers = mutableListOf()
     internal val timeoutBuilder = TimeoutBuilder()
     private val retryBuilder = RetryBuilder()
+
+    internal var authConfig: AuthConfig? = null
+        private set
 
     init {
         val defaultHeaders = listOf(
@@ -82,6 +86,14 @@ class ClientBuilder internal constructor() {
     }
 
     /**
+     * Configures automatic bearer-token auth for every request on this client.
+     * See [AuthConfig]. Omit entirely to keep the client auth-free (default).
+     */
+    fun auth(block: AuthConfig. () -> Unit) {
+        authConfig = AuthConfig().also(block)
+    }
+
+    /**
      * Configures the retry behavior for the current API call.
      *
      * This function accepts a [builder] to specify retry rules,
@@ -107,7 +119,7 @@ class ClientBuilder internal constructor() {
 
     internal fun build(): NetFlowClient {
         val client = createClient()
-        return NetFlowClientImpl(client, baseUrl, logLevel, retryBuilder, headers)
+        return NetFlowClientImpl(client, baseUrl, logLevel, retryBuilder, headers, authConfig)
     }
 
     private fun hasHeader(key: HttpHeader) = headers.find { it.first == key } != null

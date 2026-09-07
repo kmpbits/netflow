@@ -19,6 +19,9 @@ data class NetFlowMockResponse(
         fun notFound(delay: Duration = 0.milliseconds) =
             NetFlowMockResponse(code = 404, errorBody = "Not found", delay = delay)
 
+        fun unauthorized(delay: Duration = 0.milliseconds) =
+            NetFlowMockResponse(code = 401, errorBody = "Unauthorized", delay = delay)
+
         fun serverError(errorBody: String? = "Internal server error", delay: Duration = 0.milliseconds) =
             NetFlowMockResponse(code = 500, errorBody = errorBody, delay = delay)
     }

@@ -714,6 +714,57 @@ All helpers accept an optional `delay: Duration` parameter.
 
 ---
 
+## Authentication
+
+Configure `auth { }` once on the client. NetFlow attaches the bearer token to
+every request, and on a `401` it runs your refresh block **once**, retries the
+failed request, and serialises concurrent refreshes so N simultaneous 401s cause
+a single refresh call. It stays backend-agnostic — you provide the two lambdas,
+NetFlow provides the orchestration.
+
+```kotlin
+val client = netflowClient {
+    baseUrl = "https://api.example.com"
+    auth {
+        loadTokens { tokenStore.read() }               // BearerTokens?  (seed, once)
+        refreshTokens { raw ->                          // called on 401
+            val res = raw.call {
+                path = "auth/refresh"
+                method = HttpMethod.Post
+                body(RefreshRequest(refreshToken))      // refreshToken from the receiver
+            }.responseAsync<TokenResponse>()
+            when (res) {
+                is AsyncState.Success -> BearerTokens(res.data.access, res.data.refresh)
+                else -> null                            // null => AuthState.Unauthenticated
+            }
+        }
+    }
+}
+
+client.authState          // StateFlow<AuthState>: Unknown | Authenticated | Unauthenticated
+client.setTokens(tokens)  // after login
+client.clearTokens()      // on logout
+
+client.call { path = "public"; skipAuth() }   // opt a request out
+```
+
+The `refreshTokens` block persists tokens itself (write to your store inside the
+block) — NetFlow only keeps an in-memory copy. `raw` is an auth-free client, so a
+refresh call can never recurse into another refresh.
+
+**How it differs from a plain HTTP-client auth plugin**
+
+- Engine-agnostic — runs over OkHttp / NSURLSession, not tied to one client.
+- One auth story across Flow, Async, **Paging**, and `@NetFlowApi` interfaces.
+- `authState` is a first-class client property.
+- The whole refresh flow is testable with `MockNetFlowClient(auth = { ... })` — no network.
+- Single-flight refresh + token-changed check are built in.
+
+Secure token storage (Keychain / Keystore / DataStore) is yours to provide inside
+`loadTokens` / `refreshTokens`.
+
+---
+
 ## Advanced Configuration
 
 ### Custom Headers
