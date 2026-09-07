@@ -45,6 +45,7 @@ internal fun buildFunction(fn: ApiFunction): FunSpec {
     }
     code.addStatement("method = %T.%L", HTTP_METHOD, fn.httpMethod.enumMember)
     code.addStatement("path = %L", buildPathExpression(fn))
+    if (fn.skipAuth) code.addStatement("skipAuth()")
     fn.staticHeaders.forEach { (headerName, headerValue) ->
         code.addStatement("header(%T.custom(%S) to %S)", HTTP_HEADER, headerName, headerValue)
     }

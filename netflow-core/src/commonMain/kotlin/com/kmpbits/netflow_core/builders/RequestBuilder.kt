@@ -22,6 +22,18 @@ class RequestBuilder internal constructor(
     @PublishedApi
     internal var preCall: (() -> Unit)? = null
 
+    internal var skipAuth: Boolean = false
+        private set
+
+    /**
+     * Opt this request out of automatic auth: no `Authorization` header is
+     * attached and a 401 is returned as-is (no refresh). Use for login, the
+     * refresh call itself, and public endpoints.
+     */
+    fun skipAuth() {
+        skipAuth = true
+    }
+
     internal val parameters: Parameters = mutableListOf()
 
     internal var body: Map<String, Any>? = null

@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.8.0]
+
+### New modules
+- **`netflow-token-storage`** — persistent `TokenStorage` for auth. `SettingsTokenStorage(settings, key)` stores the token pair as one JSON blob over a `multiplatform-settings` `Settings`; ships no encryption (back it with the iOS Keychain / Android `EncryptedSharedPreferences`).
+
+### New features
+- **`netflow-core` — bearer authentication.** Configure `auth { }` once on the client:
+  - automatic `Authorization` header on every request from `loadTokens { }` (or a `storage(...)`);
+  - on `401`, a single-flight `refreshTokens { }` call + one retry — N concurrent 401s trigger exactly one refresh;
+  - `refreshTokens { }` receives an auth-free `RawNetFlowClient` (also a `NetFlowClient`, so a generated `@NetFlowApi` refresh interface works there) and returns `BearerTokens?` — `null` ends the session;
+  - `authState: StateFlow<AuthState>` (`Unknown` / `Authenticated` / `Unauthenticated`), plus `setTokens()` / `clearTokens()`;
+  - `RequestBuilder.skipAuth()` to opt a request out (login / sign-up / refresh / public endpoints);
+  - works across Flow, Async, Paging, and `@NetFlowApi` interfaces — they all funnel through `NetFlowRequest.response()`.
+  - No `auth { }` block ⇒ behaviour is byte-identical to 0.7.0.
+- **`netflow-core` — `TokenStorage`.** `auth { storage(...) }` seeds from `load()` on the first request and writes back automatically on every token change and on session end. Storage failures are swallowed — the in-memory token stays valid. `loadTokens { }` still works and wins for seeding. `InMemoryTokenStorage()` included.
+- **`netflow-core` — proactive refresh.** `auth { refreshLeeway = 30.seconds }` reads the JWT `exp` claim (no signature check) and refreshes *before* sending when the token is near expiry, skipping the wasted 401 round-trip. Opaque tokens, a missing `exp`, or clock skew fall back to the reactive path. Wall-clock time is platform-provided (`System.currentTimeMillis` / `NSDate`) — no new dependency.
+- **`netflow-annotations` — `@SkipAuth`.** Method-level annotation; `netflow-ksp` emits `skipAuth()` into the generated `call { }` block so login / refresh endpoints declared as `@NetFlowApi` methods opt out of the auth interceptor.
+- **`MockNetFlowClient`** — new `auth = { ... }` constructor parameter (same config as the real client), `NetFlowMockResponse.unauthorized()`, `MockResponseQueue` for sequential responses, and a case-insensitive `NetFlowMockRequest["Header-Name"]` accessor. The full refresh dance is testable with no network.
+
 ## [0.7.0]
 
 ### New modules

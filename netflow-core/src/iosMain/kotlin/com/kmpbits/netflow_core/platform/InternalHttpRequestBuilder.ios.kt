@@ -9,6 +9,7 @@ import platform.Foundation.HTTPMethod
 import platform.Foundation.NSMutableURLRequest
 import platform.Foundation.NSURL
 import platform.Foundation.allHTTPHeaderFields
+import platform.Foundation.setValue
 
 internal actual class InternalHttpRequestBuilder(
     internal val request: NSMutableURLRequest
@@ -41,5 +42,12 @@ internal actual class InternalHttpRequestBuilder(
             builder.parameters
         )
         request.setURL(NSURL.URLWithString(newUrl))
+    }
+
+    internal actual fun updateHeaders(builder: RequestBuilder) {
+        builder.headers.forEach {
+            // setValue:forHTTPHeaderField: replaces any existing value for this name
+            request.setValue(it.second, forHTTPHeaderField = it.first.header)
+        }
     }
 }

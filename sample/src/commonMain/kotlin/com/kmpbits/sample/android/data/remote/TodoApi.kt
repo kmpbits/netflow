@@ -10,6 +10,7 @@ import com.kmpbits.netflow_annotations.POST
 import com.kmpbits.netflow_annotations.Paginated
 import com.kmpbits.netflow_annotations.Path
 import com.kmpbits.netflow_annotations.Query
+import com.kmpbits.netflow_annotations.SkipAuth
 import com.kmpbits.netflow_annotations.Wrapped
 import com.kmpbits.netflow_core.request.NetFlowCall
 import com.kmpbits.netflow_core.states.AsyncState
@@ -47,6 +48,10 @@ interface TodoApi {
     @Paginated(pageSize = 15)
     @GET("todos")
     fun pagedTodosSmall(): Flow<PagingData<TodoDto>>
+
+    @SkipAuth
+    @POST("login")
+    suspend fun login(@Body request: CreateTodoRequest): AsyncState<TodoDto>
 
     @GET("todos")
     fun todosCall(): NetFlowCall

@@ -28,6 +28,9 @@ internal fun parseApiFunction(
     val wrapped = declaration.annotations.any {
         it.annotationType.resolve().declaration.qualifiedName?.asString() == Fqns.WRAPPED
     }
+    val skipAuth = declaration.annotations.any {
+        it.annotationType.resolve().declaration.qualifiedName?.asString() == Fqns.SKIP_AUTH
+    }
 
     val paging = parsePagingConfig(
         declaration,
@@ -70,6 +73,7 @@ internal fun parseApiFunction(
         returnShape = returnShape,
         parameters = parameters,
         wrapped = wrapped,
+        skipAuth = skipAuth,
         staticHeaders = staticHeaders,
         paging = paging,
     )

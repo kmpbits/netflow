@@ -87,6 +87,7 @@ internal data class ApiFunction(
     val returnShape: ReturnShape,
     val parameters: List<ParamBinding>,
     val wrapped: Boolean,
+    val skipAuth: Boolean,
     val staticHeaders: List<Pair<String, String>>,
     val paging: PagingConfig?,
 )
