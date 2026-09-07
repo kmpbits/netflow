@@ -1,5 +1,7 @@
 package com.kmpbits.netflow_core.mock
 
+import com.kmpbits.netflow_core.auth.AuthState
+import com.kmpbits.netflow_core.auth.BearerTokens
 import com.kmpbits.netflow_core.builders.RequestBuilder
 import com.kmpbits.netflow_core.builders.RetryBuilder
 import com.kmpbits.netflow_core.builders.build
@@ -11,6 +13,9 @@ import com.kmpbits.netflow_core.platform.InternalHttpRequestBuilder
 import com.kmpbits.netflow_core.request.NetFlowRequest
 import com.kmpbits.netflow_core.response.NetFlowResponse
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * A [NetFlowClient] implementation for testing. Intercepts all requests and
@@ -38,6 +43,12 @@ import kotlinx.coroutines.delay
 class MockNetFlowClient(
     private val handler: suspend (NetFlowMockRequest) -> NetFlowMockResponse
 ) : NetFlowClient {
+
+    private val _authState = MutableStateFlow(AuthState.Unknown)
+    override val authState: StateFlow<AuthState> = _authState.asStateFlow()
+
+    override suspend fun setTokens(tokens: BearerTokens) { /* wired in Task 8 */ }
+    override suspend fun clearTokens() { /* wired in Task 8 */ }
 
     private val _recordedRequests = mutableListOf<NetFlowMockRequest>()
 
