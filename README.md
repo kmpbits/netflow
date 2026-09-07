@@ -865,8 +865,17 @@ auth {
 }
 ```
 
+`androidx.security:security-crypto` is deprecated with no drop-in replacement; if
+that matters, use plain `SharedPreferencesSettings` (app-private, sandboxed but
+not encrypted at rest) or a Keystore-backed store of your own. On iOS the
+Keychain has no such caveat.
+
 Prefer DataStore, SQLDelight, or your own store? Implement `TokenStorage`
 directly — it is three suspend functions.
+
+The `sample` module wires this end-to-end: `createTokenStorage()` as an
+`expect`/`actual` (Keychain on iOS, `EncryptedSharedPreferences` on Android) in
+`sample/.../core/di/`.
 
 **How it differs from a plain HTTP-client auth plugin**
 

@@ -2,7 +2,6 @@ package com.kmpbits.sample.android.core.di
 
 import com.kmpbits.netflow_core.auth.AuthConfig
 import com.kmpbits.netflow_core.auth.BearerTokens
-import com.kmpbits.netflow_core.auth.InMemoryTokenStorage
 import com.kmpbits.netflow_core.auth.TokenStorage
 import com.kmpbits.netflow_core.enums.LogLevel
 import com.kmpbits.netflow_core.extensions.netflowClient
@@ -19,9 +18,9 @@ import kotlin.time.Duration.Companion.seconds
  * [AuthConfig.refreshLeeway] set, a soon-to-expire JWT is refreshed before the
  * request even goes out.
  *
- * Swap [InMemoryTokenStorage] for `SettingsTokenStorage` (module
- * `netflow-token-storage`) backed by the iOS Keychain / Android EncryptedSharedPreferences
- * to persist the session across launches.
+ * The [storage] here is the platform secure store (see [createTokenStorage] —
+ * iOS Keychain / Android EncryptedSharedPreferences). For tests or a
+ * login-every-launch app, pass `InMemoryTokenStorage()` instead.
  */
 fun sampleAuthConfig(storage: TokenStorage): AuthConfig.() -> Unit = {
     refreshLeeway = 30.seconds
@@ -41,7 +40,8 @@ fun sampleAuthConfig(storage: TokenStorage): AuthConfig.() -> Unit = {
 
 val authNetworkModule = module {
 
-    single<TokenStorage> { InMemoryTokenStorage() }
+    // Platform secure store. For tests / login-every-launch: InMemoryTokenStorage().
+    single<TokenStorage> { createTokenStorage() }
 
     single(named("auth")) {
         netflowClient {

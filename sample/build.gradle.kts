@@ -37,6 +37,7 @@ kotlin {
             isStatic = true
             export(project(":netflow-core"))
             export(project(":netflow-paging"))
+            export(project(":netflow-token-storage"))
             binaryOption("bundleId", "com.kmpbits.netflowSample")
             xcframework.add(this)
         }
@@ -50,6 +51,7 @@ kotlin {
         commonMain.dependencies {
             api(project(":netflow-core"))
             api(project(":netflow-paging"))
+            api(project(":netflow-token-storage"))
             implementation(project(":netflow-annotations"))
             implementation(libs.kotlinx.coroutines)
             implementation(libs.json.serialization)
@@ -60,6 +62,7 @@ kotlin {
         }
 
         androidMain.dependencies {
+            implementation(libs.androidx.security.crypto)
             implementation(libs.compose.ui)
             implementation(libs.compose.ui.tooling.preview)
             implementation(libs.compose.material3)

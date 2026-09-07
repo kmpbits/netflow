@@ -1,6 +1,7 @@
 package com.kmpbits.sample.android
 
 import android.app.Application
+import com.kmpbits.sample.android.core.di.SampleAppContext
 import com.kmpbits.sample.android.core.di.authNetworkModule
 import com.kmpbits.sample.android.core.di.databaseModule
 import com.kmpbits.sample.android.core.di.networkModule
@@ -13,6 +14,8 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        SampleAppContext.applicationContext = this
 
         startKoin {
             androidContext(this@App)
