@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "NetFlow"
-include(":netflow-core", ":netflow-paging", ":netflow-annotations", ":netflow-ksp", ":sample")
+include(":netflow-core", ":netflow-paging", ":netflow-annotations", ":netflow-ksp", ":netflow-token-storage", ":sample")
