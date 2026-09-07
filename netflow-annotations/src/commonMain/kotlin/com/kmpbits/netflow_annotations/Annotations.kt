@@ -59,6 +59,15 @@ annotation class Headers(vararg val value: String)
 annotation class Wrapped
 
 /**
+ * Opt this function out of automatic auth (see the client's `auth { }` block): no
+ * `Authorization` header is attached and a `401` is returned as-is, without a token
+ * refresh. Use it for login, sign-up, and token-refresh endpoints.
+ */
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.BINARY)
+annotation class SkipAuth
+
+/**
  * Optional configuration for a `Flow<PagingData<T>>` function. The paged call is
  * network-only (`onlyApiCall = true`); there is no local cache. Remote + local
  * paging stays on the `call {}` DSL.
