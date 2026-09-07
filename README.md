@@ -748,9 +748,37 @@ client.clearTokens()      // on logout
 client.call { path = "public"; skipAuth() }   // opt a request out
 ```
 
-The `refreshTokens` block persists tokens itself (write to your store inside the
-block) — NetFlow only keeps an in-memory copy. `raw` is an auth-free client, so a
-refresh call can never recurse into another refresh.
+`raw` is an auth-free client, so a refresh call can never recurse into another
+refresh.
+
+### Persisting tokens
+
+By default NetFlow keeps tokens in memory only. Register a `TokenStorage` and it
+seeds from `load()` on the first request and writes back automatically on every
+change (refresh, `setTokens`) and on session end (`clearTokens`, a failed
+refresh):
+
+```kotlin
+interface TokenStorage {
+    suspend fun load(): BearerTokens?
+    suspend fun save(tokens: BearerTokens)
+    suspend fun clear()
+}
+
+val client = netflowClient {
+    baseUrl = "https://api.example.com"
+    auth {
+        storage(myTokenStorage)                       // load + save + clear, automatic
+        refreshTokens { BearerTokens(/* ... */) }     // just return the new tokens
+    }
+}
+```
+
+`loadTokens { }` still works and takes precedence over `storage(...)` for
+seeding. NetFlow ships only the `TokenStorage` interface — no encryption. Back it
+with the iOS Keychain, Android Keystore-backed storage, or an encrypted
+`multiplatform-settings` backend. Storage failures are swallowed — the in-memory
+token stays valid.
 
 **How it differs from a plain HTTP-client auth plugin**
 

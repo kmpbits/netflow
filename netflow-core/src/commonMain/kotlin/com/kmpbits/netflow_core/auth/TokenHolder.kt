@@ -10,14 +10,16 @@ import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Owns the in-memory token copy for one [com.kmpbits.netflow_core.client.NetFlowClient],
- * serialises refreshes so concurrent 401s cause a single refresh call, and drives
- * [authState].
+ * serialises refreshes so concurrent 401s cause a single refresh call, drives
+ * [authState], and (when configured) mirrors every change into a [TokenStorage].
  */
 internal class TokenHolder(
     private val config: AuthConfig,
     private val rawClientProvider: () -> RawNetFlowClient,
 ) {
     val scheme: String get() = config.scheme
+
+    private val storage: TokenStorage? = config.tokenStorage
 
     private val mutex = Mutex()
     private var tokens: BearerTokens? = null
@@ -30,7 +32,7 @@ internal class TokenHolder(
         if (seeded) return
         mutex.withLock {
             if (seeded) return
-            tokens = config.loadTokensBlock?.invoke()
+            tokens = config.loadTokensBlock?.invoke() ?: loadFromStorage()
             _authState.value = if (tokens != null) AuthState.Authenticated else AuthState.Unknown
             seeded = true
         }
@@ -71,6 +73,7 @@ internal class TokenHolder(
         tokens = new
         seeded = true
         _authState.value = AuthState.Authenticated
+        persist(new)
         new
     }
 
@@ -78,16 +81,48 @@ internal class TokenHolder(
         tokens = newTokens
         seeded = true
         _authState.value = AuthState.Authenticated
+        persist(newTokens)
     }
 
     suspend fun clear() = mutex.withLock {
         tokens = null
         seeded = true
         _authState.value = AuthState.Unauthenticated
+        wipe()
     }
 
-    private fun failLocked() {
+    private suspend fun failLocked() {
         tokens = null
         _authState.value = AuthState.Unauthenticated
+        wipe()
+    }
+
+    private suspend fun loadFromStorage(): BearerTokens? =
+        try {
+            storage?.load()
+        } catch (t: CancellationException) {
+            throw t
+        } catch (t: Throwable) {
+            null
+        }
+
+    private suspend fun persist(tokens: BearerTokens) {
+        try {
+            storage?.save(tokens)
+        } catch (t: CancellationException) {
+            throw t
+        } catch (t: Throwable) {
+            // best-effort: the in-memory token is still valid
+        }
+    }
+
+    private suspend fun wipe() {
+        try {
+            storage?.clear()
+        } catch (t: CancellationException) {
+            throw t
+        } catch (t: Throwable) {
+            // best-effort
+        }
     }
 }
