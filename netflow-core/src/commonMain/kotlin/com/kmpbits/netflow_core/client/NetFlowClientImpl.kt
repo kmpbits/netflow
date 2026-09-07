@@ -20,7 +20,8 @@ internal class NetFlowClientImpl(
     private val baseUrl: String,
     private val logLevel: LogLevel,
     private val retryBuilder: RetryBuilder,
-    private val headers: Headers
+    private val headers: Headers,
+    private val authConfig: com.kmpbits.netflow_core.auth.AuthConfig? = null,
 ) : NetFlowClient {
 
     private val _authState = MutableStateFlow(AuthState.Unknown)
