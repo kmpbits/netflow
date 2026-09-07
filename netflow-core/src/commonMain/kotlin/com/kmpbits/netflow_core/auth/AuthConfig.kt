@@ -26,9 +26,22 @@ class AuthConfig internal constructor() {
     internal var refreshTokensBlock: (suspend RefreshScope.(RawNetFlowClient) -> BearerTokens?)? = null
         private set
 
+    internal var tokenStorage: TokenStorage? = null
+        private set
+
     /** Called once, lazily, on the first request, to seed the in-memory token holder. */
     fun loadTokens(block: suspend () -> BearerTokens?) {
         loadTokensBlock = block
+    }
+
+    /**
+     * Registers a [TokenStorage] for automatic persistence. NetFlow seeds from
+     * [TokenStorage.load] (unless [loadTokens] is also set, which takes
+     * precedence for seeding) and calls [TokenStorage.save] / [TokenStorage.clear]
+     * on every token change and on session end.
+     */
+    fun storage(storage: TokenStorage) {
+        tokenStorage = storage
     }
 
     /**
