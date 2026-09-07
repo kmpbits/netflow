@@ -2,6 +2,7 @@ package com.kmpbits.netflow_core.auth
 
 import com.kmpbits.netflow_core.annotations.NetFlowMarker
 import com.kmpbits.netflow_core.client.RawNetFlowClient
+import kotlin.time.Duration
 
 /** Receiver for `refreshTokens { }` — exposes the tokens the failing request carried. */
 class RefreshScope internal constructor(
@@ -19,6 +20,15 @@ class AuthConfig internal constructor() {
 
     /** Header scheme; the header becomes `Authorization: $scheme $accessToken`. */
     var scheme: String = "Bearer"
+
+    /**
+     * When set, NetFlow refreshes *before* sending a request if the access token's
+     * JWT `exp` claim is within this window of expiring, saving the failed 401
+     * round-trip. Requires a `refreshTokens { }` block and a parseable JWT access
+     * token; opaque tokens silently fall back to the reactive 401 path, which
+     * always stays active as the safety net. `null` (default) disables it.
+     */
+    var refreshLeeway: Duration? = null
 
     internal var loadTokensBlock: (suspend () -> BearerTokens?)? = null
         private set
