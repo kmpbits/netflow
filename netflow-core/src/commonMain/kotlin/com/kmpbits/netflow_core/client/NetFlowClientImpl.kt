@@ -1,8 +1,10 @@
 package com.kmpbits.netflow_core.client
 
 import com.kmpbits.netflow_core.alias.Headers
+import com.kmpbits.netflow_core.auth.AuthConfig
 import com.kmpbits.netflow_core.auth.AuthState
 import com.kmpbits.netflow_core.auth.BearerTokens
+import com.kmpbits.netflow_core.auth.TokenHolder
 import com.kmpbits.netflow_core.builders.RequestBuilder
 import com.kmpbits.netflow_core.builders.RetryBuilder
 import com.kmpbits.netflow_core.builders.build
@@ -21,14 +23,38 @@ internal class NetFlowClientImpl(
     private val logLevel: LogLevel,
     private val retryBuilder: RetryBuilder,
     private val headers: Headers,
-    private val authConfig: com.kmpbits.netflow_core.auth.AuthConfig? = null,
+    private val authConfig: AuthConfig? = null,
 ) : NetFlowClient {
 
-    private val _authState = MutableStateFlow(AuthState.Unknown)
-    override val authState: StateFlow<AuthState> = _authState.asStateFlow()
+    private val tokenHolder: TokenHolder? = authConfig?.let { cfg ->
+        TokenHolder(
+            config = cfg,
+            rawClientProvider = {
+                RawNetFlowClient(
+                    NetFlowClientImpl(
+                        client = client,
+                        baseUrl = baseUrl,
+                        logLevel = logLevel,
+                        retryBuilder = retryBuilder,
+                        headers = headers.toMutableList(),
+                        authConfig = null,
+                    )
+                )
+            },
+        )
+    }
 
-    override suspend fun setTokens(tokens: BearerTokens) { /* wired in Task 8 */ }
-    override suspend fun clearTokens() { /* wired in Task 8 */ }
+    private val fallbackAuthState = MutableStateFlow(AuthState.Unknown)
+    override val authState: StateFlow<AuthState> =
+        tokenHolder?.authState ?: fallbackAuthState.asStateFlow()
+
+    override suspend fun setTokens(tokens: BearerTokens) {
+        tokenHolder?.set(tokens)
+    }
+
+    override suspend fun clearTokens() {
+        tokenHolder?.clear()
+    }
 
     override fun call(builder: RequestBuilder.() -> Unit): NetFlowRequest {
         return request(builder)
@@ -41,6 +67,6 @@ internal class NetFlowClientImpl(
             override suspend fun call(requestBuilder: InternalHttpRequestBuilder, builder: RequestBuilder) =
                 client.call(requestBuilder, builder)
         }
-        return NetFlowRequest(callBuilder, engine, requestBuilder, logLevel)
+        return NetFlowRequest(callBuilder, engine, requestBuilder, logLevel, tokenHolder)
     }
 }

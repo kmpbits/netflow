@@ -1,8 +1,11 @@
 package com.kmpbits.netflow_core.mock
 
+import com.kmpbits.netflow_core.auth.AuthConfig
 import com.kmpbits.netflow_core.auth.AuthState
 import com.kmpbits.netflow_core.auth.BearerTokens
+import com.kmpbits.netflow_core.auth.TokenHolder
 import com.kmpbits.netflow_core.builders.RequestBuilder
+import com.kmpbits.netflow_core.client.RawNetFlowClient
 import com.kmpbits.netflow_core.builders.RetryBuilder
 import com.kmpbits.netflow_core.builders.build
 import com.kmpbits.netflow_core.client.NetFlowClient
@@ -40,17 +43,39 @@ import kotlinx.coroutines.flow.asStateFlow
  * client.assertCalledTimes("todos/1", HttpMethod.Delete, times = 1)
  * ```
  */
-class MockNetFlowClient(
-    private val handler: suspend (NetFlowMockRequest) -> NetFlowMockResponse
+class MockNetFlowClient private constructor(
+    private val auth: (AuthConfig.() -> Unit)?,
+    private val handler: suspend (NetFlowMockRequest) -> NetFlowMockResponse,
+    sharedRecords: MutableList<NetFlowMockRequest>?,
 ) : NetFlowClient {
 
-    private val _authState = MutableStateFlow(AuthState.Unknown)
-    override val authState: StateFlow<AuthState> = _authState.asStateFlow()
+    constructor(
+        auth: (AuthConfig.() -> Unit)? = null,
+        handler: suspend (NetFlowMockRequest) -> NetFlowMockResponse,
+    ) : this(auth, handler, null)
 
-    override suspend fun setTokens(tokens: BearerTokens) { /* wired in Task 8 */ }
-    override suspend fun clearTokens() { /* wired in Task 8 */ }
+    private val _recordedRequests: MutableList<NetFlowMockRequest> = sharedRecords ?: mutableListOf()
 
-    private val _recordedRequests = mutableListOf<NetFlowMockRequest>()
+    private val tokenHolder: TokenHolder? = auth?.let { block ->
+        TokenHolder(
+            config = AuthConfig().apply(block),
+            rawClientProvider = {
+                RawNetFlowClient(MockNetFlowClient(auth = null, handler = handler, sharedRecords = _recordedRequests))
+            },
+        )
+    }
+
+    private val fallbackAuthState = MutableStateFlow(AuthState.Unknown)
+    override val authState: StateFlow<AuthState> =
+        tokenHolder?.authState ?: fallbackAuthState.asStateFlow()
+
+    override suspend fun setTokens(tokens: BearerTokens) {
+        tokenHolder?.set(tokens)
+    }
+
+    override suspend fun clearTokens() {
+        tokenHolder?.clear()
+    }
 
     /** All requests that have been made through this client, in order. */
     val recordedRequests: List<NetFlowMockRequest> get() = _recordedRequests.toList()
@@ -113,6 +138,6 @@ class MockNetFlowClient(
             }
         }
 
-        return NetFlowRequest(callBuilder, engine, requestBuilder, LogLevel.None)
+        return NetFlowRequest(callBuilder, engine, requestBuilder, LogLevel.None, tokenHolder)
     }
 }
