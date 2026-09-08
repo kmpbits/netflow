@@ -26,10 +26,8 @@ internal fun parseReturnShape(
 
     return when (fqnOf(returnType)) {
         Fqns.NET_FLOW_CALL -> {
-            if (isSuspend) {
-                ctx.error("Function '$name' returns NetFlowCall and must not be suspend.", fn)
-                return null
-            }
+            // `suspend` is allowed but redundant: prepareCall { } builds synchronously,
+            // and the responseX() the caller composes on the NetFlowCall is already suspend.
             ReturnShape.RawCall
         }
 
@@ -95,13 +93,27 @@ internal fun parseReturnShape(
             }
         }
 
-        else -> {
+        Fqns.UNIT -> {
             ctx.error(
-                "Function '$name' has an unsupported return type. " +
-                    "Use Flow<ResultState<T>> / Flow<PagingData<T>> (non-suspend) or AsyncState<T> (suspend).",
+                "Function '$name' returns Unit. Use AsyncState<Unit> (suspend) for a state result, " +
+                    "or NetFlowCall to compose the response yourself.",
                 fn,
             )
             null
+        }
+
+        else -> {
+            if (!isSuspend) {
+                ctx.error(
+                    "Function '$name' has an unsupported return type. Use Flow<ResultState<T>> / " +
+                        "Flow<PagingData<T>> (non-suspend), or AsyncState<T> / a bare model type (suspend).",
+                    fn,
+                )
+                return null
+            }
+            // suspend + a plain type (model or List<model>) -> responseToModel<T>(), Retrofit-style:
+            // returns the deserialized value or throws HttpException.
+            ReturnShape.Model(returnType)
         }
     }
 }

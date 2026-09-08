@@ -51,6 +51,14 @@ internal fun parseApiFunction(
         )
     }
 
+    if (returnShape is ReturnShape.Model && wrapped) {
+        ctx.error(
+            "Function '$name' — @Wrapped is not supported with a bare model return. " +
+                "Use AsyncState<T> with @Wrapped, or return NetFlowCall.",
+            declaration,
+        )
+    }
+
     val placeholders = PLACEHOLDER.findAll(pathTemplate).map { it.groupValues[1] }.toSet()
     val pathParams = parameters.filterIsInstance<ParamBinding.PathParam>()
     val pathWireNames = pathParams.map { it.wireName }.toSet()

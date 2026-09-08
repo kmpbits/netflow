@@ -84,6 +84,7 @@ private fun responseCall(shape: ReturnShape, wrapped: Boolean): Pair<MemberName,
         is ReturnShape.FlowList -> if (wrapped) "responseWrappedListFlow" else "responseListFlow"
         is ReturnShape.AsyncSingle -> if (wrapped) "responseWrappedAsync" else "responseAsync"
         is ReturnShape.AsyncList -> if (wrapped) "responseWrappedListAsync" else "responseListAsync"
+        is ReturnShape.Model -> "responseToModel"
         is ReturnShape.Paginated -> error("Paginated is handled separately in buildFunction")
         is ReturnShape.RawCall -> error("RawCall is handled separately in buildFunction")
     }
