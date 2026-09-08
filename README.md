@@ -960,9 +960,11 @@ single {
 
 ## Roadmap
 
-- Unit tests for `netflow-core` and `netflow-paging` modules
+- Integration tests for the platform HTTP engines (OkHttp / NSURLSession) and coverage reporting (Kover)
 - Multipart / form-data support
-- WebSocket support
+- WebSocket support — a generic `client.socket { }` returning a state Flow, and a thin adapter on top for Supabase Realtime (Phoenix Channels)
+- Auth: custom `refreshOn { }` predicate (403 / error-body triggers), OAuth / social login
+- `SettingsTokenStorage` variants for DataStore / SQLDelight
 
 ---
 
