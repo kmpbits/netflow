@@ -211,7 +211,7 @@ choices you make on the `responseX` call. `client.prepareCall { … }` builds a
 ### Initialize the Client
 
 ```kotlin
-val client = netFlowClient {
+val client = netflowClient {
     baseUrl = "https://api.example.com"
 
     header(Header(HttpHeader.custom("custom-header"), "value"))
@@ -946,7 +946,7 @@ try {
 
 ```kotlin
 single {
-    netFlowClient {
+    netflowClient {
         baseUrl = "https://api.example.com"
     }
 }
