@@ -1,0 +1,28 @@
+# .github/workflows/release.yml
+#
+# Push a version tag (e.g. `0.9.0`) and this creates the matching GitHub release
+# with the notes taken from the `## [0.9.0]` section of CHANGELOG.md. Creating the
+# release then triggers publish.yml (on: release) to publish to Maven Central.
+#
+# Do NOT also create releases from the GitHub UI — that would double-fire publish.yml.
+
+name: Release notes
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+*'
+permissions:
+  contents: write
+jobs:
+  release:
+    name: Create GitHub release from CHANGELOG
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Create release
+        uses: taiki-e/create-gh-release-action@v1
+        with:
+          changelog: CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
