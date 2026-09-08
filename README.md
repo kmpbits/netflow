@@ -962,7 +962,7 @@ single {
 
 - Integration tests for the platform HTTP engines (OkHttp / NSURLSession) and coverage reporting (Kover)
 - Multipart / form-data support
-- WebSocket support — a generic `client.socket { }` returning a state Flow, and a thin adapter on top for Supabase Realtime (Phoenix Channels)
+- WebSocket support — a `client.socket { }` returning a connection-state Flow, in the same house style as `responseFlow`
 - Auth: custom `refreshOn { }` predicate (403 / error-body triggers), OAuth / social login
 - `SettingsTokenStorage` variants for DataStore / SQLDelight
 
