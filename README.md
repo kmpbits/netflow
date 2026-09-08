@@ -206,9 +206,9 @@ choices you make on the `responseX` call. `client.prepareCall { … }` builds a
 
 ---
 
-## Getting Started
+## Getting started
 
-### Initialize the Client
+### Initialize the client
 
 ```kotlin
 val client = netflowClient {
@@ -219,7 +219,7 @@ val client = netflowClient {
 }
 ```
 
-### Basic Request
+### Basic request
 
 ```kotlin
 val response = client.call {
@@ -228,7 +228,7 @@ val response = client.call {
 }.response()
 ```
 
-### Deserialize to Model
+### Deserialize to model
 
 ```kotlin
 val user: User = client.call {
@@ -501,7 +501,7 @@ For SQLDelight sources that use `Long` keys (e.g. `QueryPagingSource`), use `loc
 
 ---
 
-### Important: PagingSource Invalidation
+### Important: PagingSource invalidation
 
 When using a custom `PagingSource` (Option B), it is **critical** to register a listener on your database query to trigger invalidation. Without this, the UI will not update when data changes (e.g., after a network refresh or a local deletion).
 
@@ -883,9 +883,9 @@ whole refresh flow is testable without a network.
 
 ---
 
-## Advanced Configuration
+## Advanced configuration
 
-### Custom Headers
+### Custom headers
 
 ```kotlin
 client.call {
@@ -894,7 +894,7 @@ client.call {
 }.responseFlow<SecureDataDto, SecureData>(transform = { it.toModel() })
 ```
 
-### Query Parameters
+### Query parameters
 
 ```kotlin
 client.call {
@@ -919,7 +919,7 @@ client.call {
 
 ---
 
-## Error Handling
+## Error handling
 
 `responseToModel` is the only extension that throws — all other extensions return a sealed state.
 
