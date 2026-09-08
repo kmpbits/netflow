@@ -729,11 +729,11 @@ All helpers accept an optional `delay: Duration` parameter.
 
 ## Authentication
 
-Configure `auth { }` once on the client. NetFlow attaches the bearer token to
-every request, and on a `401` it runs your refresh block **once**, retries the
-failed request, and serialises concurrent refreshes so N simultaneous 401s cause
-a single refresh call. It stays backend-agnostic — you provide the two lambdas,
-NetFlow provides the orchestration.
+Configure `auth { }` once on the client. NetFlow adds the bearer token to every
+request. On a `401` it calls your refresh block once, retries the failed request,
+and holds a lock while it does, so ten requests that 401 at the same time trigger
+one refresh instead of ten. You write the two lambdas. NetFlow decides when to
+call them.
 
 ```kotlin
 val client = netflowClient {
@@ -761,9 +761,9 @@ client.clearTokens()      // on logout
 client.call { path = "public"; skipAuth() }   // opt a request out
 ```
 
-`raw` is an auth-free client, so a refresh call can never recurse into another
-refresh. It's also a `NetFlowClient`, so a generated `@NetFlowApi` interface works
-there too:
+`raw` is an auth-free client, so a refresh call can't recurse into another
+refresh. It's a `NetFlowClient` too, so a generated `@NetFlowApi` interface works
+there:
 
 ```kotlin
 refreshTokens { raw ->
@@ -776,10 +776,10 @@ refreshTokens { raw ->
 
 ### Annotated interfaces
 
-Generated `@NetFlowApi` implementations run on the same client, so they inherit
-the token attach and the refresh-and-retry with no extra work. Mark the
-unauthenticated endpoints — login, sign-up, refresh — with `@SkipAuth` so the
-generated code never attaches a token or tries to refresh on their 401:
+Generated `@NetFlowApi` implementations run on the same client, so the token
+attach and refresh-and-retry apply to them too. Put `@SkipAuth` on the endpoints
+that don't need a token (login, sign-up, refresh) so the generated code doesn't
+attach one or try to refresh on their 401:
 
 ```kotlin
 @NetFlowApi
@@ -791,9 +791,9 @@ interface AuthApi {
 
 ### Proactive refresh
 
-By default NetFlow refreshes reactively — it sends the request, and refreshes on a
-`401`. Set `refreshLeeway` and it also refreshes *before* sending when the JWT
-access token is about to expire, skipping the wasted 401 round-trip:
+By default the refresh is reactive: send the request, refresh on `401`. Set
+`refreshLeeway` and NetFlow also refreshes *before* sending, once the JWT is close
+to expiring, so you skip the failed round-trip:
 
 ```kotlin
 auth {
@@ -802,15 +802,15 @@ auth {
 }
 ```
 
-It reads the token's `exp` claim (no signature check — that's the server's job).
-Opaque tokens, a missing `exp`, or a skewed device clock just fall back to the
-reactive `401` path, which always stays active. `null` (default) disables it.
+It reads the token's `exp` claim (no signature check, that's the server's job). If
+the token isn't a JWT, has no `exp`, or the device clock is off, it falls back to
+the reactive `401` path, which is always on. `null` (the default) turns it off.
 
 ### Persisting tokens
 
-By default NetFlow keeps tokens in memory only. Register a `TokenStorage` and it
-seeds from `load()` on the first request and writes back automatically on every
-change (refresh, `setTokens`) and on session end (`clearTokens`, a failed
+By default tokens live in memory only. Give `auth { }` a `TokenStorage` and
+NetFlow seeds from `load()` on the first request and writes back on every change
+(refresh, `setTokens`) and when the session ends (`clearTokens`, a failed
 refresh):
 
 ```kotlin
@@ -829,20 +829,21 @@ val client = netflowClient {
 }
 ```
 
-`loadTokens { }` still works and takes precedence over `storage(...)` for
-seeding. Storage failures are swallowed — the in-memory token stays valid.
+`loadTokens { }` still works and wins over `storage(...)` for the initial seed.
+If a storage call throws, NetFlow swallows it and keeps using the in-memory token.
 
-`netflow-core` ships `InMemoryTokenStorage()` — no persistence, for tests or a
-fresh login every launch. It has no platform storage dependency of its own.
+`netflow-core` ships `InMemoryTokenStorage()` for tests, or for an app that wants
+a fresh login every launch. It pulls in no platform storage libraries.
 
-**Persistent storage — `netflow-token-storage`**
+**Persistent storage: `netflow-token-storage`**
 
 ```kotlin
 implementation("io.github.kmpbits:netflow-token-storage:<latest_version>")
 ```
 
-Adds `SettingsTokenStorage(settings)`, backed by a `multiplatform-settings`
-`Settings`. It adds **no encryption** — pass a `Settings` over a secure store:
+`SettingsTokenStorage(settings)` stores the token pair over a
+`multiplatform-settings` `Settings`. No encryption of its own, so back it with a
+secure store:
 
 ```kotlin
 // androidMain
@@ -865,25 +866,20 @@ auth {
 }
 ```
 
-`androidx.security:security-crypto` is deprecated with no drop-in replacement; if
-that matters, use plain `SharedPreferencesSettings` (app-private, sandboxed but
-not encrypted at rest) or a Keystore-backed store of your own. On iOS the
-Keychain has no such caveat.
+`androidx.security:security-crypto` is deprecated and has no direct replacement.
+If that bothers you, use a plain `SharedPreferencesSettings` (app-private and
+sandboxed, but not encrypted at rest) or your own Keystore-backed store. The iOS
+Keychain doesn't have this problem.
 
-Prefer DataStore, SQLDelight, or your own store? Implement `TokenStorage`
-directly — it is three suspend functions.
+For DataStore, SQLDelight, or anything else, implement `TokenStorage` yourself.
+It's three suspend functions.
 
-The `sample` module wires this end-to-end: `createTokenStorage()` as an
-`expect`/`actual` (Keychain on iOS, `EncryptedSharedPreferences` on Android) in
-`sample/.../core/di/`.
+The `sample` module has the full wiring: `createTokenStorage()` as an
+`expect`/`actual`, Keychain on iOS and `EncryptedSharedPreferences` on Android,
+under `sample/.../core/di/`.
 
-**How it differs from a plain HTTP-client auth plugin**
-
-- Engine-agnostic — runs over OkHttp / NSURLSession, not tied to one client.
-- One auth story across Flow, Async, **Paging**, and `@NetFlowApi` interfaces.
-- `authState` is a first-class client property.
-- The whole refresh flow is testable with `MockNetFlowClient(auth = { ... })` — no network.
-- Single-flight refresh + token-changed check are built in.
+Everything here also works through `MockNetFlowClient(auth = { ... })`, so the
+whole refresh flow is testable without a network.
 
 ---
 
