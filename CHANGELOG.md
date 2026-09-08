@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### New features
+- **`netflow-ksp`** — a `suspend` annotated function may return a bare model type (`T` or `List<T>`), generating `responseToModel<T>()`: the deserialized value, or an `HttpException` on a non-2xx response (Retrofit-style). `@Wrapped` and `Unit` are not supported on this shape.
+- **`netflow-ksp`** — a `NetFlowCall` return may now be declared on a `suspend` function. The modifier is redundant (`prepareCall { }` is synchronous), but it lets an interface keep a uniformly `suspend` surface.
+
 ## [0.8.0]
 
 ### New modules

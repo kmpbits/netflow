@@ -129,9 +129,10 @@ val api = client.createTodoApi()   // generated extension on NetFlowClient
 out of the client's `auth { }` (login / sign-up / refresh endpoints). `@Body` accepts any
 `@Serializable` type or `Map<String, Any>`. Return types `Flow<ResultState<T>>`
 and `Flow<ResultState<List<T>>>` (non-suspend), `AsyncState<T>` and
-`AsyncState<List<T>>` (suspend), `Flow<PagingData<T>>` (non-suspend, network-only
-paging), and `NetFlowCall` (the request without a response strategy — compose it
-in the repository). `@Query` / `@Header` names default to the parameter name and
+`AsyncState<List<T>>` (suspend), a bare `T` or `List<T>` (suspend, Retrofit-style:
+returns the value or throws `HttpException`), `Flow<PagingData<T>>` (non-suspend,
+network-only paging), and `NetFlowCall` (the request without a response strategy,
+`suspend` or not, compose it in the repository). `@Query` / `@Header` names default to the parameter name and
 take an override string (`@Query("user_id") userId: Int`); a null `@Query` /
 `@Header` value is omitted from the request.
 
@@ -201,8 +202,29 @@ fun getTodos(): Flow<ResultState<Todo>> =
 ```
 
 `@Wrapped` / `@Paginated` are not allowed on a `NetFlowCall` method — those are
-choices you make on the `responseX` call. `client.prepareCall { … }` builds a
-`NetFlowCall` from the hand-written DSL too.
+choices you make on the `responseX` call. The method can be `suspend` or not; the
+`responseX` you compose on the result is already suspending either way.
+`client.prepareCall { … }` builds a `NetFlowCall` from the hand-written DSL too.
+
+### Bare model return
+
+A `suspend` function returning a plain type maps to `responseToModel<T>()`: you
+get the deserialized value, or an `HttpException` on a non-2xx response. This is
+the Retrofit default style, for code that prefers `try/catch` (or a global
+handler) over a sealed state.
+
+```kotlin
+@GET("todos/{id}")
+suspend fun getTodo(@Path id: Int): TodoDto
+
+@GET("todos")
+suspend fun getTodos(): List<TodoDto>
+```
+
+It returns the DTO, same as every other shape, so map to your domain type in the
+repository. `@Wrapped` isn't supported here — use `AsyncState<T>` with `@Wrapped`
+for envelope APIs, or return `NetFlowCall`. `Unit` isn't allowed either; use
+`AsyncState<Unit>`.
 
 ---
 

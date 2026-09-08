@@ -29,6 +29,7 @@ internal object Fqns {
     const val LIST = "kotlin.collections.List"
     const val MAP = "kotlin.collections.Map"
     const val STRING = "kotlin.String"
+    const val UNIT = "kotlin.Unit"
 
     const val CLIENT_PKG = "com.kmpbits.netflow_core.client"
     const val ENUMS_PKG = "com.kmpbits.netflow_core.enums"

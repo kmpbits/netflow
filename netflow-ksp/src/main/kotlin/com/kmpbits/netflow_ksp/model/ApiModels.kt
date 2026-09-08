@@ -35,6 +35,10 @@ internal sealed interface ReturnShape {
     data class FlowList(override val payloadType: KSType) : ReturnShape
     data class AsyncSingle(override val payloadType: KSType) : ReturnShape
     data class AsyncList(override val payloadType: KSType) : ReturnShape
+
+    /** A bare model / `List<model>` return on a suspend function -> `responseToModel<T>()`. */
+    data class Model(override val payloadType: KSType) : ReturnShape
+
     data class Paginated(override val payloadType: KSType) : ReturnShape
     data object RawCall : ReturnShape {
         override val payloadType: KSType? get() = null

@@ -53,6 +53,15 @@ interface TodoApi {
     @POST("login")
     suspend fun login(@Body request: CreateTodoRequest): AsyncState<TodoDto>
 
+    @GET("todos/{id}")
+    suspend fun getTodoModel(@Path id: Int): TodoDto            // -> responseToModel<TodoDto>()
+
+    @GET("todos")
+    suspend fun getTodoModels(): List<TodoDto>                  // -> responseToModel<List<TodoDto>>()
+
+    @GET("todos")
+    suspend fun todosCallSuspend(): NetFlowCall                 // suspend + NetFlowCall
+
     @GET("todos")
     fun todosCall(): NetFlowCall
 }
