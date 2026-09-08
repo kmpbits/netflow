@@ -963,7 +963,7 @@ single {
 - Integration tests for the platform HTTP engines (OkHttp / NSURLSession) and coverage reporting (Kover)
 - Multipart / form-data support
 - WebSocket support — a `client.socket { }` returning a connection-state Flow, in the same house style as `responseFlow`
-- Auth: custom `refreshOn { }` predicate (403 / error-body triggers), OAuth / social login
+- Auth: custom `refreshOn { }` predicate (refresh on 403 or an error-body match, not just 401)
 - `SettingsTokenStorage` variants for DataStore / SQLDelight
 
 ---
