@@ -14,7 +14,7 @@ internal actual fun ClientBuilder.createClient(): InternalHttpClient {
 
     val session = NSURLSession.sessionWithConfiguration(
         configuration = config,
-        delegate = NetFlowSessionDelegate(pinningConfig),
+        delegate = NetFlowSessionDelegate(pinningConfig, followRedirects),
         delegateQueue = null,
     )
 

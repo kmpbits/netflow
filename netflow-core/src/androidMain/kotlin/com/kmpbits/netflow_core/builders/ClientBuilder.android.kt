@@ -14,7 +14,7 @@ internal actual fun ClientBuilder.createClient(): InternalHttpClient =
  */
 internal fun ClientBuilder.okHttpClientForTest(): OkHttpClient {
     val builder = OkHttpClient.Builder().apply {
-        followRedirects(false)
+        followRedirects(this@okHttpClientForTest.followRedirects)
         retryOnConnectionFailure(true)
         connectTimeout(timeoutBuilder.connectionTimeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
         readTimeout(timeoutBuilder.readTimeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)

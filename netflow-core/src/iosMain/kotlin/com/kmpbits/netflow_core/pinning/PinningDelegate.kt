@@ -4,14 +4,17 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import platform.CoreFoundation.CFArrayGetCount
 import platform.CoreFoundation.CFArrayGetValueAtIndex
 import platform.CoreFoundation.CFRelease
+import platform.Foundation.NSHTTPURLResponse
 import platform.Foundation.NSURLAuthenticationChallenge
 import platform.Foundation.NSURLAuthenticationMethodServerTrust
 import platform.Foundation.NSURLCredential
+import platform.Foundation.NSURLRequest
 import platform.Foundation.NSURLSession
 import platform.Foundation.NSURLSessionAuthChallengeCancelAuthenticationChallenge
 import platform.Foundation.NSURLSessionAuthChallengeDisposition
 import platform.Foundation.NSURLSessionAuthChallengePerformDefaultHandling
 import platform.Foundation.NSURLSessionAuthChallengeUseCredential
+import platform.Foundation.NSURLSessionTask
 import platform.Foundation.credentialForTrust
 import platform.Foundation.serverTrust
 import platform.Security.SecCertificateRef
@@ -32,7 +35,10 @@ import platform.darwin.NSObject
 @OptIn(ExperimentalForeignApi::class)
 internal class NetFlowSessionDelegate(
     private val pinning: PinningConfig?,
-) : NSObject(), platform.Foundation.NSURLSessionDelegateProtocol {
+    private val followRedirects: Boolean,
+) : NSObject(),
+    platform.Foundation.NSURLSessionDelegateProtocol,
+    platform.Foundation.NSURLSessionTaskDelegateProtocol {
 
     override fun URLSession(
         session: NSURLSession,
@@ -92,5 +98,16 @@ internal class NetFlowSessionDelegate(
         } else {
             completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, null)
         }
+    }
+
+    override fun URLSession(
+        session: NSURLSession,
+        task: NSURLSessionTask,
+        willPerformHTTPRedirection: NSHTTPURLResponse,
+        newRequest: NSURLRequest,
+        completionHandler: (NSURLRequest?) -> Unit
+    ) {
+        // null bloqueia o redirect; devolver newRequest segue-o.
+        completionHandler(if (followRedirects) newRequest else null)
     }
 }

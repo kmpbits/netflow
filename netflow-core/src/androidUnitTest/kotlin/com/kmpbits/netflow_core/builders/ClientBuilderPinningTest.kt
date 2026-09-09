@@ -2,6 +2,7 @@ package com.kmpbits.netflow_core.builders
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class ClientBuilderPinningTest {
@@ -38,5 +39,22 @@ class ClientBuilderPinningTest {
         val client = builder.okHttpClientForTest()
 
         assertEquals("*.exemplo.com", client.certificatePinner.pins.single().pattern)
+    }
+
+    @Test
+    fun `followRedirects e falso por omissao`() {
+        val builder = ClientBuilder().apply { baseUrl = "https://example.com" }
+
+        assertFalse(builder.okHttpClientForTest().followRedirects)
+    }
+
+    @Test
+    fun `followRedirects chega ao OkHttpClient quando ligado`() {
+        val builder = ClientBuilder().apply {
+            baseUrl = "https://example.com"
+            followRedirects = true
+        }
+
+        assertTrue(builder.okHttpClientForTest().followRedirects)
     }
 }
