@@ -10,6 +10,8 @@ import com.kmpbits.netflow_core.enums.HttpHeader
 import com.kmpbits.netflow_core.enums.LogLevel
 import com.kmpbits.netflow_core.exceptions.NetFlowException
 import com.kmpbits.netflow_core.interceptor.NetFlowInterceptor
+import com.kmpbits.netflow_core.pinning.PinningConfig
+import com.kmpbits.netflow_core.pinning.validate
 import com.kmpbits.netflow_core.platform.InternalHttpClient
 
 @NetFlowMarker
@@ -20,6 +22,9 @@ class ClientBuilder internal constructor() {
     internal val interceptors: MutableList<NetFlowInterceptor> = mutableListOf()
 
     internal var authConfig: AuthConfig? = null
+        private set
+
+    internal var pinningConfig: PinningConfig? = null
         private set
 
     init {
@@ -128,6 +133,14 @@ class ClientBuilder internal constructor() {
      */
     fun addInterceptor(interceptor: NetFlowInterceptor) {
         interceptors.add(interceptor)
+    }
+
+    /**
+     * Configura certificate pinning por SPKI. Ver [PinningConfig].
+     * Omitir deixa o cliente sem pinning (default).
+     */
+    fun pinning(block: PinningConfig.() -> Unit) {
+        pinningConfig = PinningConfig().also(block).also { it.validate() }
     }
 
     internal fun build(): NetFlowClient {
