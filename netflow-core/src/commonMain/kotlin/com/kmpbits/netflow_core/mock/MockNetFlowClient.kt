@@ -1,5 +1,6 @@
 package com.kmpbits.netflow_core.mock
 
+import com.kmpbits.netflow_core.alias.Header
 import com.kmpbits.netflow_core.auth.AuthConfig
 import com.kmpbits.netflow_core.auth.AuthState
 import com.kmpbits.netflow_core.auth.BearerTokens
@@ -9,6 +10,7 @@ import com.kmpbits.netflow_core.client.RawNetFlowClient
 import com.kmpbits.netflow_core.builders.RetryBuilder
 import com.kmpbits.netflow_core.builders.build
 import com.kmpbits.netflow_core.client.NetFlowClient
+import com.kmpbits.netflow_core.enums.HttpHeader
 import com.kmpbits.netflow_core.enums.HttpMethod
 import com.kmpbits.netflow_core.enums.LogLevel
 import com.kmpbits.netflow_core.platform.HttpEngineAdapter
@@ -131,7 +133,9 @@ class MockNetFlowClient private constructor(
 
                 return NetFlowResponse(
                     code = mockResponse.code,
-                    headers = builder.headers,
+                    headers = mockResponse.headers.map { (name, value) ->
+                        Header(HttpHeader.custom(name), value)
+                    },
                     body = mockResponse.body,
                     errorBody = mockResponse.errorBody
                 )

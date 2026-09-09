@@ -1,7 +1,9 @@
 package com.kmpbits.netflow_core.platform
 
+import com.kmpbits.netflow_core.alias.Header
 import com.kmpbits.netflow_core.builders.RequestBuilder
 import com.kmpbits.netflow_core.builders.extensions.toByteArray
+import com.kmpbits.netflow_core.enums.HttpHeader
 import com.kmpbits.netflow_core.exceptions.HttpException
 import com.kmpbits.netflow_core.response.NetFlowResponse
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -34,7 +36,9 @@ internal actual class InternalHttpClient(
                                 Result.success(
                                     NetFlowResponse(
                                         code = statusCode,
-                                        headers = builder.headers,
+                                        headers = response.allHeaderFields.map { (name, value) ->
+                                            Header(HttpHeader.custom(name.toString()), value.toString())
+                                        },
                                         body = bodyByteArray.decodeToString(),
                                         errorBody = null
                                     )

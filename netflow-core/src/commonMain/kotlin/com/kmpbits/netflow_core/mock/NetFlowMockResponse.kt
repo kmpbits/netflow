@@ -7,14 +7,22 @@ data class NetFlowMockResponse(
     val code: Int = 200,
     val body: String? = null,
     val errorBody: String? = null,
-    val delay: Duration = 0.milliseconds
+    val delay: Duration = 0.milliseconds,
+    val headers: Map<String, String> = emptyMap(),
 ) {
     companion object {
-        fun success(body: String? = null, delay: Duration = 0.milliseconds) =
-            NetFlowMockResponse(code = 200, body = body, delay = delay)
+        fun success(
+            body: String? = null,
+            delay: Duration = 0.milliseconds,
+            headers: Map<String, String> = emptyMap(),
+        ) = NetFlowMockResponse(code = 200, body = body, delay = delay, headers = headers)
 
-        fun error(code: Int = 400, errorBody: String? = null, delay: Duration = 0.milliseconds) =
-            NetFlowMockResponse(code = code, errorBody = errorBody, delay = delay)
+        fun error(
+            code: Int = 400,
+            errorBody: String? = null,
+            delay: Duration = 0.milliseconds,
+            headers: Map<String, String> = emptyMap(),
+        ) = NetFlowMockResponse(code = code, errorBody = errorBody, delay = delay, headers = headers)
 
         fun notFound(delay: Duration = 0.milliseconds) =
             NetFlowMockResponse(code = 404, errorBody = "Not found", delay = delay)
