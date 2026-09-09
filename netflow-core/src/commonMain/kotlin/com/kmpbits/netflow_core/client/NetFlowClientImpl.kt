@@ -9,6 +9,8 @@ import com.kmpbits.netflow_core.builders.RequestBuilder
 import com.kmpbits.netflow_core.builders.RetryBuilder
 import com.kmpbits.netflow_core.builders.build
 import com.kmpbits.netflow_core.enums.LogLevel
+import com.kmpbits.netflow_core.interceptor.InterceptingEngineAdapter
+import com.kmpbits.netflow_core.interceptor.NetFlowInterceptor
 import com.kmpbits.netflow_core.platform.HttpEngineAdapter
 import com.kmpbits.netflow_core.platform.InternalHttpClient
 import com.kmpbits.netflow_core.platform.InternalHttpRequestBuilder
@@ -24,6 +26,7 @@ internal class NetFlowClientImpl(
     private val retryBuilder: RetryBuilder,
     private val headers: Headers,
     private val authConfig: AuthConfig? = null,
+    private val interceptors: List<NetFlowInterceptor> = emptyList(),
 ) : NetFlowClient {
 
     private val tokenHolder: TokenHolder? = authConfig?.let { cfg ->
@@ -38,6 +41,7 @@ internal class NetFlowClientImpl(
                         retryBuilder = retryBuilder,
                         headers = headers.toMutableList(),
                         authConfig = null,
+                        interceptors = interceptors,
                     )
                 )
             },
@@ -63,10 +67,13 @@ internal class NetFlowClientImpl(
     private fun request(builder: RequestBuilder. () -> Unit = {}): NetFlowRequest {
         val callBuilder = RequestBuilder(baseUrl, retryBuilder, headers).also(builder)
         val requestBuilder = callBuilder.build()
-        val engine = object : HttpEngineAdapter {
-            override suspend fun call(requestBuilder: InternalHttpRequestBuilder, builder: RequestBuilder) =
-                client.call(requestBuilder, builder)
-        }
+        val engine = InterceptingEngineAdapter(
+            delegate = object : HttpEngineAdapter {
+                override suspend fun call(requestBuilder: InternalHttpRequestBuilder, builder: RequestBuilder) =
+                    client.call(requestBuilder, builder)
+            },
+            interceptors = interceptors,
+        )
         return NetFlowRequest(callBuilder, engine, requestBuilder, logLevel, tokenHolder)
     }
 }

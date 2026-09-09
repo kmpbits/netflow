@@ -5,6 +5,7 @@ import com.kmpbits.netflow_core.alias.Headers
 import com.kmpbits.netflow_core.builders.RequestBuilder
 import com.kmpbits.netflow_core.enums.HttpHeader
 import com.kmpbits.netflow_core.extensions.urlWithPath
+import com.kmpbits.netflow_core.interceptor.InterceptedRequest
 import platform.Foundation.HTTPMethod
 import platform.Foundation.NSMutableURLRequest
 import platform.Foundation.NSURL
@@ -49,5 +50,10 @@ internal actual class InternalHttpRequestBuilder(
             // setValue:forHTTPHeaderField: replaces any existing value for this name
             request.setValue(it.second, forHTTPHeaderField = it.first.header)
         }
+    }
+
+    internal actual fun apply(request: InterceptedRequest) {
+        this.request.setURL(NSURL.URLWithString(request.url))
+        this.request.allHTTPHeaderFields = request.headers.associate { it.first.header to it.second }
     }
 }

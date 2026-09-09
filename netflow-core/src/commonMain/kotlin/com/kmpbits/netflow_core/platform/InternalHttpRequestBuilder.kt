@@ -2,6 +2,7 @@ package com.kmpbits.netflow_core.platform
 
 import com.kmpbits.netflow_core.alias.Headers
 import com.kmpbits.netflow_core.builders.RequestBuilder
+import com.kmpbits.netflow_core.interceptor.InterceptedRequest
 
 internal expect class InternalHttpRequestBuilder {
 
@@ -20,4 +21,11 @@ internal expect class InternalHttpRequestBuilder {
      * before a retry.
      */
     internal fun updateHeaders(builder: RequestBuilder)
+
+    /**
+     * Escreve url e headers de [request] no pedido de plataforma, substituindo
+     * o conjunto de headers por completo (para que uma remoção feita por um
+     * interceptor se reflicta mesmo).
+     */
+    internal fun apply(request: InterceptedRequest)
 }

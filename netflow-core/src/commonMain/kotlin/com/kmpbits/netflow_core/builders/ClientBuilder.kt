@@ -9,6 +9,7 @@ import com.kmpbits.netflow_core.client.NetFlowClientImpl
 import com.kmpbits.netflow_core.enums.HttpHeader
 import com.kmpbits.netflow_core.enums.LogLevel
 import com.kmpbits.netflow_core.exceptions.NetFlowException
+import com.kmpbits.netflow_core.interceptor.NetFlowInterceptor
 import com.kmpbits.netflow_core.platform.InternalHttpClient
 
 @NetFlowMarker
@@ -16,6 +17,7 @@ class ClientBuilder internal constructor() {
     internal val headers: Headers = mutableListOf()
     internal val timeoutBuilder = TimeoutBuilder()
     private val retryBuilder = RetryBuilder()
+    internal val interceptors: MutableList<NetFlowInterceptor> = mutableListOf()
 
     internal var authConfig: AuthConfig? = null
         private set
@@ -117,9 +119,20 @@ class ClientBuilder internal constructor() {
         retryBuilder.also(builder)
     }
 
+    /**
+     * Regista um [NetFlowInterceptor]. A ordem de registo é a ordem de execução:
+     * o primeiro registado é o mais exterior.
+     *
+     * O interceptor corre dentro do ciclo de retry e depois do auth — uma vez por
+     * tentativa, já com o header `Authorization` final.
+     */
+    fun addInterceptor(interceptor: NetFlowInterceptor) {
+        interceptors.add(interceptor)
+    }
+
     internal fun build(): NetFlowClient {
         val client = createClient()
-        return NetFlowClientImpl(client, baseUrl, logLevel, retryBuilder, headers, authConfig)
+        return NetFlowClientImpl(client, baseUrl, logLevel, retryBuilder, headers, authConfig, interceptors.toList())
     }
 
     private fun hasHeader(key: HttpHeader) = headers.find { it.first == key } != null

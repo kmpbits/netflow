@@ -5,6 +5,7 @@ import com.kmpbits.netflow_core.alias.Headers
 import com.kmpbits.netflow_core.builders.RequestBuilder
 import com.kmpbits.netflow_core.enums.HttpHeader
 import com.kmpbits.netflow_core.extensions.urlWithPath
+import com.kmpbits.netflow_core.interceptor.InterceptedRequest
 import okhttp3.Request
 
 internal actual class InternalHttpRequestBuilder(
@@ -49,5 +50,13 @@ internal actual class InternalHttpRequestBuilder(
             // .header(...) replaces any existing value for this name
             requestBuilder.header(it.first.header, it.second)
         }
+    }
+
+    internal actual fun apply(request: InterceptedRequest) {
+        requestBuilder.url(request.url)
+
+        val headers = okhttp3.Headers.Builder()
+        request.headers.forEach { headers.add(it.first.header, it.second) }
+        requestBuilder.headers(headers.build())
     }
 }
