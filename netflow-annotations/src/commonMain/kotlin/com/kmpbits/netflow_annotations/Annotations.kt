@@ -51,6 +51,30 @@ annotation class Body
 annotation class Headers(vararg val value: String)
 
 /**
+ * Send this function's request as `multipart/form-data`. Required on any function
+ * that has a [Part] parameter. Cannot be combined with [Body]. Use with POST, PUT
+ * or PATCH.
+ */
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.BINARY)
+annotation class Multipart
+
+/**
+ * Binds a function parameter to one part of a [Multipart] request body.
+ *
+ * Supported parameter types:
+ * - `FilePart` — a file part (`filename` comes from the value).
+ * - `String` / `Int` / `Long` / `Double` / `Boolean` — a text field.
+ * - any `@Serializable` type — serialized to JSON, sent with `Content-Type: application/json`.
+ *
+ * Empty [name] = use the parameter name. A nullable parameter with a null value omits the part.
+ * [filename] is reserved for a future raw-`ByteArray` form and is currently unused.
+ */
+@Target(AnnotationTarget.VALUE_PARAMETER)
+@Retention(AnnotationRetention.BINARY)
+annotation class Part(val name: String = "", val filename: String = "")
+
+/**
  * Route this function's response through the `responseWrapped*` family — for APIs that
  * return `{ "data": ... }` instead of a plain object/array.
  */
