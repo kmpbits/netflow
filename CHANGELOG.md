@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.10.0]
+
+### Breaking changes
+- **`NetFlowResponse.headers` passa a conter os headers da resposta.** Até 0.9.0 este campo continha, por engano, os headers do *pedido*. Código que dependesse do valor antigo tem de ler os headers do pedido noutro sítio.
+
+### New features
+- **`netflow-core` — interceptors.** `addInterceptor(...)` no `netflowClient { }` regista um `NetFlowInterceptor` escrito uma vez no `commonMain` e que corre nos dois motores:
+  - `chain.request` dá um `InterceptedRequest` imutável (método, url, headers, corpo); `newBuilder()` permite alterar url e headers;
+  - não chamar `chain.proceed(...)` faz curto-circuito e devolve uma resposta sem tocar na rede;
+  - a ordem de registo é a ordem de execução; corre dentro do ciclo de retry e depois do auth, portanto uma vez por tentativa e já com o `Authorization` final;
+  - o `MockNetFlowClient` corre a mesma cadeia, por isso os interceptors testam-se sem rede.
+- **`netflow-core` — certificate pinning.** `pinning { pin("api.exemplo.com", "sha256/…", "sha256/…") }` traduz para `CertificatePinner` no Android e para verificação SPKI num `NSURLSessionDelegate` no iOS. Vários pins por host (declara sempre um de backup para a rotação), `*.host` para um nível de subdomínio, validação na construção do cliente, e falha do pin faz o pedido falhar. Hosts sem pin declarado não são afectados.
+- **`netflow-core` — `followRedirects`.** Configurável no `netflowClient { }`, `false` por omissão nas duas plataformas. Até 0.9.0 o Android não seguia redirects e o iOS seguia.
+
+### Fixes
+- **`netflow-core` (Android)** — removido o `CustomHeaderInterceptor`, que voltava a aplicar os headers do cliente depois de o pedido já os ter, e que ressuscitaria headers removidos por um interceptor.
+- **`netflow-core`** — o construtor de `NetFlowResponse` é público, para que um interceptor possa devolver uma resposta sintética.
+
 ## [0.9.0]
 
 ### New features

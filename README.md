@@ -939,6 +939,89 @@ client.call {
 }.responseFlow<DataDto, Data>(transform = { it.toModel() })
 ```
 
+### Interceptors
+
+Escreve uma vez no `commonMain`, corre nos dois motores.
+
+```kotlin
+val trace = NetFlowInterceptor { chain ->
+    val request = chain.request.newBuilder()
+        .header(Header(HttpHeader.custom("X-Trace-Id"), randomTraceId()))
+        .build()
+
+    chain.proceed(request)
+}
+
+val timing = NetFlowInterceptor { chain ->
+    val start = TimeSource.Monotonic.markNow()
+    val response = chain.proceed(chain.request)
+    log("${chain.request.url} -> ${response.code} em ${start.elapsedNow()}")
+    response
+}
+
+val client = netflowClient {
+    baseUrl = "https://api.exemplo.com"
+    addInterceptor(trace)
+    addInterceptor(timing)
+}
+```
+
+A ordem de registo é a ordem de execução: `trace` é o mais exterior.
+
+Não chamar `chain.proceed(...)` faz curto-circuito — a rede não é tocada:
+
+```kotlin
+val offline = NetFlowInterceptor { chain ->
+    cached(chain.request.url) ?: chain.proceed(chain.request)
+}
+```
+
+O interceptor corre **dentro** do ciclo de retry e **depois** do auth: vê o header
+`Authorization` final e é chamado uma vez por tentativa.
+
+Como a cadeia envolve o motor, o `MockNetFlowClient` corre-a também — os teus interceptors
+testam-se sem rede:
+
+```kotlin
+val client = MockNetFlowClient(interceptors = listOf(trace)) {
+    NetFlowMockResponse.success(body = "[]")
+}
+
+client.call { path = "todos" }.response()
+assertEquals("abc", client.recordedRequests.single()["X-Trace-Id"])
+```
+
+### Certificate pinning
+
+```kotlin
+netflowClient {
+    baseUrl = "https://api.exemplo.com"
+    pinning {
+        pin("api.exemplo.com", "sha256/AAAA…=", "sha256/BBBB…=")  // actual + backup
+        pin("*.exemplo.com", "sha256/CCCC…=")
+    }
+}
+```
+
+Obter o hash SPKI de um host:
+
+```bash
+openssl s_client -connect api.exemplo.com:443 -servername api.exemplo.com < /dev/null 2>/dev/null \
+  | openssl x509 -pubkey -noout \
+  | openssl pkey -pubin -outform der \
+  | openssl dgst -sha256 -binary \
+  | openssl enc -base64
+```
+
+> **Declara sempre um pin de backup para a próxima chave.** Sem ele, a rotação do
+> certificado deixa as apps instaladas sem conseguir ligar, e não há forma de recuperar
+> sem uma nova versão na loja.
+
+No iOS, os tipos de chave suportados são RSA-2048, RSA-4096, EC P-256 e EC P-384; qualquer
+outro tipo é tratado como falha do pin. Vários pins por host, e `*.host` casa exactamente um
+nível de subdomínio. Hosts sem pin declarado não são afectados, e uma falha de pin faz o
+pedido falhar — não há modo report-only.
+
 ---
 
 ## Error handling
