@@ -11,7 +11,7 @@ class ClientBuilderPinningTest {
     private val hashB = "sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBA="
 
     @Test
-    fun `sem bloco pinning o cliente nao tem pins`() {
+    fun `without a pinning block the client has no pins`() {
         val builder = ClientBuilder().apply { baseUrl = "https://example.com" }
         val client = builder.okHttpClientForTest()
 
@@ -19,37 +19,37 @@ class ClientBuilderPinningTest {
     }
 
     @Test
-    fun `o bloco pinning chega ao CertificatePinner`() {
+    fun `the pinning block reaches the CertificatePinner`() {
         val builder = ClientBuilder().apply {
             baseUrl = "https://example.com"
-            pinning { pin("api.exemplo.com", hashA, hashB) }
+            pinning { pin("api.example.com", hashA, hashB) }
         }
         val client = builder.okHttpClientForTest()
 
         assertEquals(2, client.certificatePinner.pins.size)
-        assertTrue(client.certificatePinner.pins.all { it.pattern == "api.exemplo.com" })
+        assertTrue(client.certificatePinner.pins.all { it.pattern == "api.example.com" })
     }
 
     @Test
-    fun `um padrao com wildcard chega intacto ao CertificatePinner`() {
+    fun `a wildcard pattern reaches the CertificatePinner unchanged`() {
         val builder = ClientBuilder().apply {
             baseUrl = "https://example.com"
-            pinning { pin("*.exemplo.com", hashA) }
+            pinning { pin("*.example.com", hashA) }
         }
         val client = builder.okHttpClientForTest()
 
-        assertEquals("*.exemplo.com", client.certificatePinner.pins.single().pattern)
+        assertEquals("*.example.com", client.certificatePinner.pins.single().pattern)
     }
 
     @Test
-    fun `followRedirects e falso por omissao`() {
+    fun `followRedirects is false by default`() {
         val builder = ClientBuilder().apply { baseUrl = "https://example.com" }
 
         assertFalse(builder.okHttpClientForTest().followRedirects)
     }
 
     @Test
-    fun `followRedirects chega ao OkHttpClient quando ligado`() {
+    fun `followRedirects reaches the OkHttpClient when enabled`() {
         val builder = ClientBuilder().apply {
             baseUrl = "https://example.com"
             followRedirects = true

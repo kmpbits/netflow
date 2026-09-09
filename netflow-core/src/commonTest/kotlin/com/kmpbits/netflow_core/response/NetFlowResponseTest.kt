@@ -12,7 +12,7 @@ import kotlin.test.assertTrue
 class NetFlowResponseTest {
 
     @Test
-    fun `pode ser construido a partir de codigo de consumidor`() {
+    fun `can be constructed from consumer code`() {
         val response = NetFlowResponse(
             code = 200,
             headers = listOf(Header(HttpHeader.CACHE_CONTROL, "no-store")),
@@ -25,7 +25,7 @@ class NetFlowResponseTest {
     }
 
     @Test
-    fun `o mock devolve os headers da resposta e nao os do pedido`() = runTest {
+    fun `the mock returns the response headers and not the request headers`() = runTest {
         val client = MockNetFlowClient { NetFlowMockResponse.success(body = "ok", headers = mapOf("X-Request-Id" to "42")) }
 
         val response = client.call { path = "todos" }.response()

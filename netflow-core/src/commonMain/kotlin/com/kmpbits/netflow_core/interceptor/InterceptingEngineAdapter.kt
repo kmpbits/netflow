@@ -7,9 +7,9 @@ import com.kmpbits.netflow_core.platform.InternalHttpRequestBuilder
 import com.kmpbits.netflow_core.response.NetFlowResponse
 
 /**
- * Envolve [delegate] com a cadeia de [interceptors]. Como o `HttpEngineAdapter` é
- * o ponto comum aos dois motores e ao `MockNetFlowClient`, os interceptors correm
- * em todos sem código de plataforma.
+ * Wraps [delegate] with the chain of [interceptors]. Since `HttpEngineAdapter` is
+ * the common seam across both engines and `MockNetFlowClient`, interceptors run
+ * on all of them without any platform code.
  */
 internal class InterceptingEngineAdapter(
     private val delegate: HttpEngineAdapter,

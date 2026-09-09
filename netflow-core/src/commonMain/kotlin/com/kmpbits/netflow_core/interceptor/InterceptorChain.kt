@@ -3,8 +3,9 @@ package com.kmpbits.netflow_core.interceptor
 import com.kmpbits.netflow_core.response.NetFlowResponse
 
 /**
- * Um elo da cadeia. O elo em [index] entrega ao interceptor nessa posição; quando
- * [index] passa o fim da lista, chama [terminal] — o motor real.
+ * One link in the chain. The link at [index] hands off to the interceptor at
+ * that position; once [index] runs past the end of the list, it calls
+ * [terminal] — the real engine.
  */
 internal class InterceptorChain(
     private val interceptors: List<NetFlowInterceptor>,

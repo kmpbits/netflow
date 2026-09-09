@@ -3,10 +3,10 @@ package com.kmpbits.netflow_core.response
 import com.kmpbits.netflow_core.alias.Header
 
 /**
- * Uma resposta HTTP. Construível a partir de código de consumidor para que um
- * `NetFlowInterceptor` possa fazer curto-circuito da cadeia sem tocar na rede.
+ * An HTTP response. Constructible from consumer code so a `NetFlowInterceptor`
+ * can short-circuit the chain without touching the network.
  *
- * [headers] são os headers **da resposta**.
+ * [headers] are the **response's** headers.
  */
 class NetFlowResponse(
     val code: Int,

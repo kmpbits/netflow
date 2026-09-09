@@ -14,7 +14,7 @@ import kotlin.test.assertTrue
 class InterceptorIntegrationTest {
 
     @Test
-    fun `um header acrescentado por interceptor chega ao pedido registado`() = runTest {
+    fun `a header added by an interceptor reaches the recorded request`() = runTest {
         val client = MockNetFlowClient(
             interceptors = listOf(
                 NetFlowInterceptor { chain ->
@@ -34,12 +34,12 @@ class InterceptorIntegrationTest {
     }
 
     @Test
-    fun `um interceptor em curto-circuito impede o registo do pedido`() = runTest {
+    fun `a short-circuiting interceptor prevents the request from being recorded`() = runTest {
         val client = MockNetFlowClient(
             interceptors = listOf(
                 NetFlowInterceptor { NetFlowResponse(200, emptyList(), "cached", null) }
             ),
-        ) { NetFlowMockResponse.success(body = "da rede") }
+        ) { NetFlowMockResponse.success(body = "from the network") }
 
         val response = client.call { path = "todos" }.response()
 
@@ -48,7 +48,7 @@ class InterceptorIntegrationTest {
     }
 
     @Test
-    fun `o interceptor corre uma vez por tentativa de retry`() = runTest {
+    fun `the interceptor runs once per retry attempt`() = runTest {
         var runs = 0
         val client = MockNetFlowClient(
             interceptors = listOf(

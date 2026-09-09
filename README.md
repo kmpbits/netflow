@@ -941,7 +941,7 @@ client.call {
 
 ### Interceptors
 
-Escreve uma vez no `commonMain`, corre nos dois motores.
+Write it once in `commonMain`, it runs on both engines.
 
 ```kotlin
 val trace = NetFlowInterceptor { chain ->
@@ -955,20 +955,20 @@ val trace = NetFlowInterceptor { chain ->
 val timing = NetFlowInterceptor { chain ->
     val start = TimeSource.Monotonic.markNow()
     val response = chain.proceed(chain.request)
-    log("${chain.request.url} -> ${response.code} em ${start.elapsedNow()}")
+    log("${chain.request.url} -> ${response.code} in ${start.elapsedNow()}")
     response
 }
 
 val client = netflowClient {
-    baseUrl = "https://api.exemplo.com"
+    baseUrl = "https://api.example.com"
     addInterceptor(trace)
     addInterceptor(timing)
 }
 ```
 
-A ordem de registo é a ordem de execução: `trace` é o mais exterior.
+Registration order is execution order: `trace` is the outermost.
 
-Não chamar `chain.proceed(...)` faz curto-circuito — a rede não é tocada:
+Not calling `chain.proceed(...)` short-circuits the chain — the network is never touched:
 
 ```kotlin
 val offline = NetFlowInterceptor { chain ->
@@ -976,11 +976,11 @@ val offline = NetFlowInterceptor { chain ->
 }
 ```
 
-O interceptor corre **dentro** do ciclo de retry e **depois** do auth: vê o header
-`Authorization` final e é chamado uma vez por tentativa.
+The interceptor runs **inside** the retry loop and **after** auth: it sees the final
+`Authorization` header and is called once per attempt.
 
-Como a cadeia envolve o motor, o `MockNetFlowClient` corre-a também — os teus interceptors
-testam-se sem rede:
+Since the chain wraps the engine, `MockNetFlowClient` runs it too — your interceptors
+are testable without a network call:
 
 ```kotlin
 val client = MockNetFlowClient(interceptors = listOf(trace)) {
@@ -995,32 +995,32 @@ assertEquals("abc", client.recordedRequests.single()["X-Trace-Id"])
 
 ```kotlin
 netflowClient {
-    baseUrl = "https://api.exemplo.com"
+    baseUrl = "https://api.example.com"
     pinning {
-        pin("api.exemplo.com", "sha256/AAAA…=", "sha256/BBBB…=")  // actual + backup
-        pin("*.exemplo.com", "sha256/CCCC…=")
+        pin("api.example.com", "sha256/AAAA…=", "sha256/BBBB…=")  // active + backup
+        pin("*.example.com", "sha256/CCCC…=")
     }
 }
 ```
 
-Obter o hash SPKI de um host:
+Getting a host's SPKI hash:
 
 ```bash
-openssl s_client -connect api.exemplo.com:443 -servername api.exemplo.com < /dev/null 2>/dev/null \
+openssl s_client -connect api.example.com:443 -servername api.example.com < /dev/null 2>/dev/null \
   | openssl x509 -pubkey -noout \
   | openssl pkey -pubin -outform der \
   | openssl dgst -sha256 -binary \
   | openssl enc -base64
 ```
 
-> **Declara sempre um pin de backup para a próxima chave.** Sem ele, a rotação do
-> certificado deixa as apps instaladas sem conseguir ligar, e não há forma de recuperar
-> sem uma nova versão na loja.
+> **Always declare a backup pin for the next key.** Without one, certificate rotation
+> leaves installed apps unable to connect, with no way to recover short of a new
+> release in the store.
 
-No iOS, os tipos de chave suportados são RSA-2048, RSA-4096, EC P-256 e EC P-384; qualquer
-outro tipo é tratado como falha do pin. Vários pins por host, e `*.host` casa exactamente um
-nível de subdomínio. Hosts sem pin declarado não são afectados, e uma falha de pin faz o
-pedido falhar — não há modo report-only.
+On iOS, the supported key types are RSA-2048, RSA-4096, EC P-256 and EC P-384; any
+other type is treated as a pin failure. Multiple pins per host are supported, and
+`*.host` matches exactly one subdomain level. Hosts with no pin declared are
+unaffected, and a pin failure fails the request — there is no report-only mode.
 
 ---
 

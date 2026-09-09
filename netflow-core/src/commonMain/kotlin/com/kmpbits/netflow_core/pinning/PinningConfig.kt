@@ -8,22 +8,22 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 internal data class Pin(val pattern: String, val hashes: List<String>)
 
 /**
- * Certificate pinning por hash SHA-256 da chave pública (SPKI).
+ * Certificate pinning by SHA-256 hash of the public key (SPKI).
  *
  * ```kotlin
  * netflowClient {
  *     pinning {
- *         pin("api.exemplo.com", "sha256/AAAA…=", "sha256/BBBB…=")
- *         pin("*.exemplo.com", "sha256/CCCC…=")
+ *         pin("api.example.com", "sha256/AAAA…=", "sha256/BBBB…=")
+ *         pin("*.example.com", "sha256/CCCC…=")
  *     }
  * }
  * ```
  *
- * Hosts sem pin declarado não são afectados — mantêm a validação normal do
- * sistema. Uma falha de pin faz o pedido falhar; não há modo report-only.
+ * Hosts with no pin declared are unaffected — they keep the system's normal
+ * validation. A pin failure fails the request; there is no report-only mode.
  *
- * **Declara sempre um pin de backup** para a próxima chave: sem ele, a rotação
- * de certificado deixa as apps instaladas sem conseguir ligar.
+ * **Always declare a backup pin** for the next key: without one, certificate
+ * rotation leaves installed apps unable to connect.
  */
 @NetFlowMarker
 class PinningConfig internal constructor() {
@@ -31,9 +31,9 @@ class PinningConfig internal constructor() {
     internal val pins: MutableList<Pin> = mutableListOf()
 
     /**
-     * @param host `api.exemplo.com` ou `*.exemplo.com` (exactamente um nível de
-     * subdomínio). O padrão `**.` do OkHttp não é suportado.
-     * @param sha256Hashes um ou mais hashes na forma `sha256/<base64 de 32 bytes>`.
+     * @param host `api.example.com` or `*.example.com` (exactly one subdomain
+     * level). OkHttp's `**.` pattern is not supported.
+     * @param sha256Hashes one or more hashes in the form `sha256/<base64 of 32 bytes>`.
      */
     fun pin(host: String, vararg sha256Hashes: String) {
         pins.add(Pin(host, sha256Hashes.toList()))
@@ -42,40 +42,40 @@ class PinningConfig internal constructor() {
 
 private const val PREFIX = "sha256/"
 
-/** Falha cedo, na construção do cliente, em vez de no primeiro pedido. */
+/** Fails early, at client construction time, instead of on the first request. */
 @OptIn(ExperimentalEncodingApi::class)
 internal fun PinningConfig.validate() {
     pins.forEach { pin ->
         if (pin.pattern.isBlank()) {
-            throw NetFlowException("Pinning: o host não pode ser vazio")
+            throw NetFlowException("Pinning: host must not be blank")
         }
         if (pin.hashes.isEmpty()) {
-            throw NetFlowException("Pinning: '${pin.pattern}' não tem nenhum pin declarado")
+            throw NetFlowException("Pinning: '${pin.pattern}' has no pin declared")
         }
         pin.hashes.forEach { hash ->
             if (!hash.startsWith(PREFIX)) {
-                throw NetFlowException("Pinning: '$hash' tem de começar por '$PREFIX'")
+                throw NetFlowException("Pinning: '$hash' must start with '$PREFIX'")
             }
             val decoded = try {
                 Base64.decode(hash.removePrefix(PREFIX))
             } catch (e: IllegalArgumentException) {
-                throw NetFlowException("Pinning: '$hash' não é base64 válido")
+                throw NetFlowException("Pinning: '$hash' is not valid base64")
             }
             if (decoded.size != 32) {
-                throw NetFlowException("Pinning: '$hash' descodifica para ${decoded.size} bytes; um SHA-256 tem 32")
+                throw NetFlowException("Pinning: '$hash' decodes to ${decoded.size} bytes; a SHA-256 has 32")
             }
         }
     }
 }
 
 /**
- * Semântica replicada do `CertificatePinner` do OkHttp: `*.exemplo.com` casa com
- * exactamente um nível de subdomínio, e não com o domínio base.
+ * Semantics replicated from OkHttp's `CertificatePinner`: `*.example.com` matches
+ * exactly one subdomain level, and not the base domain.
  */
 internal fun matchesPattern(pattern: String, host: String): Boolean {
     if (!pattern.startsWith("*.")) return pattern.equals(host, ignoreCase = true)
 
-    val suffix = pattern.substring(1) // ".exemplo.com"
+    val suffix = pattern.substring(1) // ".example.com"
     if (!host.endsWith(suffix, ignoreCase = true)) return false
     if (host.length <= suffix.length) return false
 
@@ -83,6 +83,6 @@ internal fun matchesPattern(pattern: String, host: String): Boolean {
     return label.isNotEmpty() && !label.contains('.')
 }
 
-/** Todos os hashes declarados para [host], de todos os padrões que casam. Vazio = host não fixado. */
+/** All hashes declared for [host], across every matching pattern. Empty = host not pinned. */
 internal fun PinningConfig.hashesFor(host: String): List<String> =
     pins.filter { matchesPattern(it.pattern, host) }.flatMap { it.hashes }

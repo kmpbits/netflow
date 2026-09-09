@@ -9,8 +9,8 @@ internal actual fun ClientBuilder.createClient(): InternalHttpClient =
     InternalHttpClient(okHttpClientForTest())
 
 /**
- * Constrói o `OkHttpClient` configurado. Separado de [createClient] para que os
- * testes possam inspeccionar o cliente sem passar pelo `InternalHttpClient`.
+ * Builds the configured `OkHttpClient`. Separate from [createClient] so tests
+ * can inspect the client without going through `InternalHttpClient`.
  */
 internal fun ClientBuilder.okHttpClientForTest(): OkHttpClient {
     val builder = OkHttpClient.Builder().apply {

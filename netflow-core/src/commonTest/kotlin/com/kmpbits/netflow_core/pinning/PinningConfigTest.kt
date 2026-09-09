@@ -7,79 +7,79 @@ import kotlin.test.assertFailsWith
 
 class PinningConfigTest {
 
-    // SHA-256 de 32 bytes a zero, em base64 — formato válido.
+    // A 32-byte all-zero SHA-256, base64-encoded — valid format.
     private val validHash = "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 
     @Test
-    fun `aceita um pin bem formado`() {
-        val config = PinningConfig().apply { pin("api.exemplo.com", validHash) }
+    fun `accepts a well-formed pin`() {
+        val config = PinningConfig().apply { pin("api.example.com", validHash) }
         config.validate()
 
         assertEquals(1, config.pins.size)
-        assertEquals("api.exemplo.com", config.pins.single().pattern)
+        assertEquals("api.example.com", config.pins.single().pattern)
     }
 
     @Test
-    fun `aceita varios pins para o mesmo host`() {
-        val config = PinningConfig().apply { pin("api.exemplo.com", validHash, validHash) }
+    fun `accepts several pins for the same host`() {
+        val config = PinningConfig().apply { pin("api.example.com", validHash, validHash) }
         config.validate()
 
         assertEquals(2, config.pins.single().hashes.size)
     }
 
     @Test
-    fun `rejeita hash sem o prefixo sha256`() {
-        val config = PinningConfig().apply { pin("api.exemplo.com", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=") }
+    fun `rejects a hash without the sha256 prefix`() {
+        val config = PinningConfig().apply { pin("api.example.com", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=") }
 
         assertFailsWith<NetFlowException> { config.validate() }
     }
 
     @Test
-    fun `rejeita base64 invalido`() {
-        val config = PinningConfig().apply { pin("api.exemplo.com", "sha256/nao-e-base64!!!") }
+    fun `rejects invalid base64`() {
+        val config = PinningConfig().apply { pin("api.example.com", "sha256/not-base64!!!") }
 
         assertFailsWith<NetFlowException> { config.validate() }
     }
 
     @Test
-    fun `rejeita hash com comprimento diferente de 32 bytes`() {
-        val config = PinningConfig().apply { pin("api.exemplo.com", "sha256/AAAA") }
+    fun `rejects a hash whose length is not 32 bytes`() {
+        val config = PinningConfig().apply { pin("api.example.com", "sha256/AAAA") }
 
         assertFailsWith<NetFlowException> { config.validate() }
     }
 
     @Test
-    fun `rejeita host vazio`() {
+    fun `rejects a blank host`() {
         val config = PinningConfig().apply { pin("  ", validHash) }
 
         assertFailsWith<NetFlowException> { config.validate() }
     }
 
     @Test
-    fun `rejeita um host sem nenhum pin`() {
-        val config = PinningConfig().apply { pin("api.exemplo.com") }
+    fun `rejects a host with no pin at all`() {
+        val config = PinningConfig().apply { pin("api.example.com") }
 
         assertFailsWith<NetFlowException> { config.validate() }
     }
 
     @Test
-    fun `hashesFor junta os pins de todos os padroes que casam`() {
+    fun `hashesFor merges the pins from every matching pattern`() {
         val other = "sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBA="
         val config = PinningConfig().apply {
-            pin("api.exemplo.com", validHash)
-            pin("*.exemplo.com", other)
+            pin("api.example.com", validHash)
+            pin("*.example.com", other)
         }
 
-        assertEquals(listOf(validHash, other), config.hashesFor("api.exemplo.com"))
-        assertEquals(emptyList(), config.hashesFor("outro.com"))
+        assertEquals(listOf(validHash, other), config.hashesFor("api.example.com"))
+        assertEquals(emptyList(), config.hashesFor("other.com"))
     }
 
     @Test
-    fun `netflowClient rebenta na construcao com um pin invalido`() {
+    fun `netflowClient blows up at construction with an invalid pin`() {
         assertFailsWith<NetFlowException> {
             com.kmpbits.netflow_core.extensions.netflowClient {
                 baseUrl = "https://example.com"
-                pinning { pin("api.exemplo.com", "sha256/xx") }
+                pinning { pin("api.example.com", "sha256/xx") }
             }
         }
     }

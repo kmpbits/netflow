@@ -23,14 +23,14 @@ import platform.Security.SecTrustEvaluateWithError
 import platform.darwin.NSObject
 
 /**
- * Delegate da sessão. Verifica os pins SPKI **depois** da validação normal da
- * cadeia — o pinning é adicional, nunca substituto: saltar `SecTrustEvaluateWithError`
- * transformaria isto num downgrade de segurança.
+ * The session's delegate. Checks SPKI pins **after** normal chain validation —
+ * pinning is additive, never a substitute: skipping `SecTrustEvaluateWithError`
+ * would turn this into a security downgrade.
  *
- * Hosts sem pin declarado seguem o tratamento por omissão do sistema.
+ * Hosts with no pin declared follow the system's default handling.
  *
- * Nota: o `NSURLSession` retém o delegate fortemente até `invalidateAndCancel()`.
- * Como o cliente vive tipicamente o tempo da app, é aceitável.
+ * Note: `NSURLSession` retains the delegate strongly until `invalidateAndCancel()`.
+ * Since the client typically lives for the app's lifetime, this is acceptable.
  */
 @OptIn(ExperimentalForeignApi::class)
 internal class NetFlowSessionDelegate(
@@ -65,13 +65,13 @@ internal class NetFlowSessionDelegate(
             return
         }
 
-        // 1. Validação normal da cadeia, primeiro e sempre.
+        // 1. Normal chain validation, first and always.
         if (!SecTrustEvaluateWithError(trust, null)) {
             completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, null)
             return
         }
 
-        // 2. Só depois, o pin.
+        // 2. Only then, the pin.
         val chain = SecTrustCopyCertificateChain(trust)
         val matched = if (chain == null) {
             false
@@ -107,7 +107,7 @@ internal class NetFlowSessionDelegate(
         newRequest: NSURLRequest,
         completionHandler: (NSURLRequest?) -> Unit
     ) {
-        // null bloqueia o redirect; devolver newRequest segue-o.
+        // null blocks the redirect; returning newRequest follows it.
         completionHandler(if (followRedirects) newRequest else null)
     }
 }

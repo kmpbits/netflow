@@ -5,11 +5,11 @@ import com.kmpbits.netflow_core.enums.HttpHeader
 import com.kmpbits.netflow_core.enums.HttpMethod
 
 /**
- * O pedido tal como um [NetFlowInterceptor] o vê. Imutável — para o alterar,
- * usa [newBuilder] e devolve o resultado a `chain.proceed(...)`.
+ * The request as seen by a [NetFlowInterceptor]. Immutable — to change it,
+ * use [newBuilder] and pass the result to `chain.proceed(...)`.
  *
- * O corpo é só de leitura: alterá-lo exigiria re-encoding no motor. Se vier a
- * ser preciso, é uma adição compatível.
+ * The body is read-only: changing it would require re-encoding on the engine.
+ * If that turns out to be needed, it's a backward-compatible addition.
  */
 class InterceptedRequest internal constructor(
     val method: HttpMethod,
@@ -29,7 +29,7 @@ class InterceptedRequest internal constructor(
 
         fun url(url: String): Builder = apply { this.url = url }
 
-        /** Adiciona [header], substituindo qualquer valor existente com o mesmo nome. */
+        /** Adds [header], replacing any existing value with the same name. */
         fun header(header: Header): Builder = apply {
             removeHeader(header.first)
             headers.add(header)

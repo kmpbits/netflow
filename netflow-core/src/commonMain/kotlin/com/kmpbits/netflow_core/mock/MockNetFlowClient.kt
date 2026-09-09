@@ -128,9 +128,9 @@ class MockNetFlowClient private constructor(
                     requestBuilder: InternalHttpRequestBuilder,
                     builder: RequestBuilder
                 ): NetFlowResponse {
-                    // Os headers vêm de requestBuilder (InternalHttpRequestBuilder), não de
-                    // builder.headers: um NetFlowInterceptor escreve as suas alterações ali
-                    // via apply(), nunca na lista mutável do RequestBuilder.
+                    // Headers come from requestBuilder (InternalHttpRequestBuilder), not
+                    // builder.headers: a NetFlowInterceptor writes its changes there via
+                    // apply(), never onto the RequestBuilder's mutable list.
                     val mockRequest = NetFlowMockRequest(
                         path = builder.path,
                         method = builder.method,

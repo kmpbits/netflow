@@ -47,9 +47,9 @@ class ClientBuilder internal constructor() {
     var logLevel: LogLevel = LogLevel.None
 
     /**
-     * Seguir automaticamente respostas 3xx. `false` por omissão, igual nas duas
-     * plataformas — o `NSURLSession` segue por omissão e o comportamento é
-     * uniformizado aqui.
+     * Automatically follow 3xx responses. `false` by default, the same on both
+     * platforms — `NSURLSession` follows by default, and this setting
+     * unifies the behavior.
      */
     var followRedirects: Boolean = false
 
@@ -132,19 +132,19 @@ class ClientBuilder internal constructor() {
     }
 
     /**
-     * Regista um [NetFlowInterceptor]. A ordem de registo é a ordem de execução:
-     * o primeiro registado é o mais exterior.
+     * Registers a [NetFlowInterceptor]. Registration order is execution order:
+     * the first one registered is the outermost.
      *
-     * O interceptor corre dentro do ciclo de retry e depois do auth — uma vez por
-     * tentativa, já com o header `Authorization` final.
+     * The interceptor runs inside the retry loop and after auth — once per
+     * attempt, already with the final `Authorization` header.
      */
     fun addInterceptor(interceptor: NetFlowInterceptor) {
         interceptors.add(interceptor)
     }
 
     /**
-     * Configura certificate pinning por SPKI. Ver [PinningConfig].
-     * Omitir deixa o cliente sem pinning (default).
+     * Configures SPKI certificate pinning. See [PinningConfig].
+     * Omit entirely to keep the client pinning-free (default).
      */
     fun pinning(block: PinningConfig.() -> Unit) {
         pinningConfig = PinningConfig().also(block).also { it.validate() }

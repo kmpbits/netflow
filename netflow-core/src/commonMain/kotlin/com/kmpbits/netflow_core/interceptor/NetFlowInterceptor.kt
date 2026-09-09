@@ -3,10 +3,10 @@ package com.kmpbits.netflow_core.interceptor
 import com.kmpbits.netflow_core.response.NetFlowResponse
 
 /**
- * Observa e altera pedidos e respostas, uma vez, nos dois motores.
+ * Observes and alters requests and responses, written once, running on both engines.
  *
- * Corre dentro do ciclo de retry e depois do auth: vê o header `Authorization`
- * final e é chamado uma vez por tentativa.
+ * Runs inside the retry loop and after auth: it sees the final `Authorization`
+ * header and is called once per attempt.
  *
  * ```kotlin
  * val trace = NetFlowInterceptor { chain ->
@@ -22,12 +22,12 @@ fun interface NetFlowInterceptor {
     suspend fun intercept(chain: Chain): NetFlowResponse
 
     interface Chain {
-        /** O pedido tal como chegou a este interceptor. */
+        /** The request as it arrived at this interceptor. */
         val request: InterceptedRequest
 
         /**
-         * Entrega [request] ao resto da cadeia e devolve a resposta. Não chamar
-         * faz curto-circuito: a rede não é tocada.
+         * Hands [request] off to the rest of the chain and returns the response.
+         * Not calling this short-circuits the chain: the network is never touched.
          */
         suspend fun proceed(request: InterceptedRequest): NetFlowResponse
     }

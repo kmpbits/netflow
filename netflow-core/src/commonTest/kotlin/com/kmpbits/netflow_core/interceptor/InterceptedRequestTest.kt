@@ -18,7 +18,7 @@ class InterceptedRequestTest {
     )
 
     @Test
-    fun `header adiciona um header novo`() {
+    fun `header adds a new header`() {
         val result = request().newBuilder()
             .header(Header(HttpHeader.custom("X-Trace-Id"), "abc"))
             .build()
@@ -28,7 +28,7 @@ class InterceptedRequestTest {
     }
 
     @Test
-    fun `header substitui o valor existente do mesmo nome`() {
+    fun `header replaces the existing value for the same name`() {
         val result = request().newBuilder()
             .header(Header(HttpHeader.ACCEPT, "text/plain"))
             .build()
@@ -38,7 +38,7 @@ class InterceptedRequestTest {
     }
 
     @Test
-    fun `header substitui ignorando maiusculas no nome`() {
+    fun `header replaces ignoring case in the name`() {
         val result = request().newBuilder()
             .header(Header(HttpHeader.custom("accept"), "text/plain"))
             .build()
@@ -48,7 +48,7 @@ class InterceptedRequestTest {
     }
 
     @Test
-    fun `removeHeader tira o header ignorando maiusculas`() {
+    fun `removeHeader drops the header ignoring case`() {
         val result = request().newBuilder()
             .removeHeader(HttpHeader.custom("ACCEPT"))
             .build()
@@ -57,18 +57,18 @@ class InterceptedRequestTest {
     }
 
     @Test
-    fun `url substitui o url mantendo o resto`() {
+    fun `url replaces the url while keeping the rest`() {
         val result = request().newBuilder()
-            .url("https://outro.com/x")
+            .url("https://other.com/x")
             .build()
 
-        assertEquals("https://outro.com/x", result.url)
+        assertEquals("https://other.com/x", result.url)
         assertEquals(HttpMethod.Get, result.method)
         assertEquals(1, result.headers.size)
     }
 
     @Test
-    fun `o body atravessa o builder sem alteracao`() {
+    fun `the body passes through the builder unchanged`() {
         val original = InterceptedRequest(
             method = HttpMethod.Post,
             url = "https://example.com/todos",
@@ -80,7 +80,7 @@ class InterceptedRequestTest {
     }
 
     @Test
-    fun `o pedido original nao e alterado pelo builder`() {
+    fun `the original request is not mutated by the builder`() {
         val original = request()
         original.newBuilder().removeHeader(HttpHeader.ACCEPT).build()
 

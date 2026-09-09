@@ -27,10 +27,10 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 /**
- * Cabeçalhos ASN.1 SubjectPublicKeyInfo. O `SecKeyCopyExternalRepresentation`
- * devolve a chave crua; para obter o mesmo hash que o `openssl` e o
- * `CertificatePinner` do OkHttp produzem, é preciso prefixar o cabeçalho do tipo
- * de chave antes de fazer o SHA-256.
+ * ASN.1 SubjectPublicKeyInfo headers. `SecKeyCopyExternalRepresentation` returns
+ * the raw key; to get the same hash that `openssl` and OkHttp's
+ * `CertificatePinner` produce, the key-type header has to be prefixed before
+ * hashing with SHA-256.
  */
 private val RSA_2048_HEADER = byteArrayOf(
     0x30, 0x82.toByte(), 0x01, 0x22, 0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86.toByte(), 0x48,
@@ -56,10 +56,10 @@ private val EC_P384_HEADER = byteArrayOf(
 )
 
 /**
- * O pin SPKI de [certificate], na forma `sha256/<base64>`.
+ * The SPKI pin of [certificate], in the form `sha256/<base64>`.
  *
- * Devolve `null` quando o tipo ou o tamanho da chave não é suportado — quem
- * chama trata `null` como falha do pin (fail closed), nunca como sucesso.
+ * Returns `null` when the key's type or size is unsupported — callers treat
+ * `null` as a pin failure (fail closed), never as success.
  */
 @OptIn(ExperimentalForeignApi::class, ExperimentalEncodingApi::class)
 internal fun spkiSha256(certificate: SecCertificateRef): String? {
@@ -71,8 +71,8 @@ internal fun spkiSha256(certificate: SecCertificateRef): String? {
         val keySizeRef = CFDictionaryGetValue(attributes, kSecAttrKeySizeInBits)
         val keySize = cfNumberToInt(keySizeRef) ?: return null
 
-        // Constantes singleton do framework Security: identidade de ponteiro chega
-        // para as comparar, sem precisar de CFEqual.
+        // Security framework singleton constants: pointer identity is enough to
+        // compare them, no need for CFEqual.
         val header = when {
             keyType == kSecAttrKeyTypeRSA && keySize == 2048 -> RSA_2048_HEADER
             keyType == kSecAttrKeyTypeRSA && keySize == 4096 -> RSA_4096_HEADER

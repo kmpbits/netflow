@@ -23,9 +23,9 @@ internal expect class InternalHttpRequestBuilder {
     internal fun updateHeaders(builder: RequestBuilder)
 
     /**
-     * Escreve url e headers de [request] no pedido de plataforma, substituindo
-     * o conjunto de headers por completo (para que uma remoção feita por um
-     * interceptor se reflicta mesmo).
+     * Writes [request]'s url and headers onto the platform request, replacing
+     * the whole header set (so a removal made by an interceptor actually takes
+     * effect).
      */
     internal fun apply(request: InterceptedRequest)
 }
