@@ -31,9 +31,18 @@ internal actual fun RequestBuilder.build(): InternalHttpRequestBuilder {
             setValue(it.second, forHTTPHeaderField = it.first.header)
         }
 
-        val bodyString = rawBody ?: body?.toJsonString()
-        if (bodyString != null && allowsBody) {
-            HTTPBody = bodyString.toNSData()
+        if (parts.isNotEmpty()) {
+            val boundary = multipartBoundary()
+            setValue(
+                "multipart/form-data; boundary=$boundary",
+                forHTTPHeaderField = "Content-Type",
+            )
+            HTTPBody = buildMultipartBody(parts, boundary)
+        } else {
+            val bodyString = rawBody ?: body?.toJsonString()
+            if (bodyString != null && allowsBody) {
+                HTTPBody = bodyString.toNSData()
+            }
         }
     }
 
