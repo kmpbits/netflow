@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.11.0]
+
+### New features
+- **`netflow-core` — multipart requests.** A `multipart { }` block on `call { }` sends a `multipart/form-data` body: `part(name, value)` / `part(name, value, contentType)` for text fields, `filePart(name, filename, bytes, contentType)` (or `filePart(name, FilePart(...))`) for files, and `jsonPart(name, value)` for a `@Serializable` value sent as JSON. Bytes are held in memory (`ByteArray`). Cannot be combined with `body(...)`; requires POST, PUT or PATCH. On Android it maps to OkHttp's `MultipartBody`; on iOS the body is assembled as `NSData` by hand. `MockNetFlowClient` records the parts on `NetFlowMockRequest.parts`.
+- **`netflow-ksp` — `@Multipart` / `@Part`.** A function annotated `@Multipart` with `@Part` parameters generates the `multipart { }` block. `@Part` accepts `FilePart`, primitives (`String`/`Int`/`Long`/`Double`/`Boolean`), and any `@Serializable` type (sent as JSON). A nullable `@Part` with a null argument omits the part. `@Multipart` cannot be combined with `@Body`, and `@Part` requires `@Multipart` on the function — both are compile-time errors.
+
 ## [0.10.0]
 
 ### Breaking changes

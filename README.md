@@ -20,6 +20,7 @@ Start with **Retrofit-style annotated interfaces** for your straightforward endp
 - Two-type API: separate deserialization type (`ApiType`) from display type (`DisplayType`) — no trailing `.map` needed
 - `wrappedResponse` flag for APIs that return `{ "data": ... }` envelopes
 - **Bearer auth** — automatic token attach, single-flight `401 → refresh → retry`, optional proactive refresh from the JWT `exp`, `authState` flow, pluggable `TokenStorage`
+- `multipart/form-data` uploads — `multipart { }` on the DSL, `@Multipart` / `@Part` on annotated interfaces
 - Local cache integration with observation support
 - Built-in error handling
 - Debug logging with multiple levels (None, Basic, Headers, Body)
@@ -118,16 +119,26 @@ interface TodoApi {
 
     @GET("todos")
     fun todosCall(): NetFlowCall     // request only — compose the response yourself
+
+    @Multipart
+    @POST("todos/{id}/attachments")
+    suspend fun upload(
+        @Path id: Int,
+        @Part("caption") caption: String,
+        @Part("file") file: FilePart,
+    ): AsyncState<Unit>
 }
 
 val api = client.createTodoApi()   // generated extension on NetFlowClient
 ```
 
 **Supported:** `@GET` / `@POST` / `@PUT` / `@DELETE` / `@PATCH`; `@Path`,
-`@Query`, `@Header`, `@Body`; method-level `@Headers("Name: Value", ...)`;
+`@Query`, `@Header`, `@Body`, `@Multipart` + `@Part`; method-level `@Headers("Name: Value", ...)`;
 `@Wrapped` for `{ "data": ... }` envelope responses; `@SkipAuth` to opt a method
 out of the client's `auth { }` (login / sign-up / refresh endpoints). `@Body` accepts any
-`@Serializable` type or `Map<String, Any>`. Return types `Flow<ResultState<T>>`
+`@Serializable` type or `Map<String, Any>`. `@Multipart` sends a `multipart/form-data` body;
+each `@Part` is a `FilePart` (file), a primitive (text field), or a `@Serializable` value
+(JSON field), and a null `@Part` is omitted. `@Multipart` and `@Body` are mutually exclusive. Return types `Flow<ResultState<T>>`
 and `Flow<ResultState<List<T>>>` (non-suspend), `AsyncState<T>` and
 `AsyncState<List<T>>` (suspend), a bare `T` or `List<T>` (suspend, Retrofit-style:
 returns the value or throws `HttpException`), `Flow<PagingData<T>>` (non-suspend,
@@ -257,6 +268,22 @@ val user: User = client.call {
     path = "/users/1"
 }.responseToModel<User>()
 ```
+
+### Multipart upload
+
+```kotlin
+client.call {
+    method = HttpMethod.Post
+    path = "/todos/1/attachments"
+    multipart {
+        part("caption", "before")
+        filePart("file", filename = "shot.png", bytes = imageBytes, contentType = "image/png")
+    }
+}.response()
+```
+
+`multipart { }` holds each part's bytes in memory. It requires POST, PUT or PATCH
+and cannot be combined with `body(...)`.
 
 ---
 

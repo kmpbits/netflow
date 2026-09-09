@@ -22,6 +22,8 @@ internal enum class HttpMethodName(val enumMember: String) {
     GET("Get"), POST("Post"), PUT("Put"), DELETE("Delete"), PATCH("Patch")
 }
 
+internal enum class PartKind { FILE_PART, PRIMITIVE, SERIALIZABLE }
+
 internal data class PagingConfig(val pageQueryName: String, val pageSize: Int) {
     companion object {
         val DEFAULT = PagingConfig(pageQueryName = "page", pageSize = 20)
@@ -80,6 +82,14 @@ internal sealed interface ParamBinding {
     ) : ParamBinding {
         override val wireName: String get() = paramName
     }
+
+    data class PartParam(
+        override val paramName: String,
+        override val wireName: String,
+        override val type: KSType,
+        override val isNullable: Boolean,
+        val kind: PartKind,
+    ) : ParamBinding
 }
 
 internal data class ApiFunction(
@@ -92,6 +102,7 @@ internal data class ApiFunction(
     val parameters: List<ParamBinding>,
     val wrapped: Boolean,
     val skipAuth: Boolean,
+    val multipart: Boolean,
     val staticHeaders: List<Pair<String, String>>,
     val paging: PagingConfig?,
 )
