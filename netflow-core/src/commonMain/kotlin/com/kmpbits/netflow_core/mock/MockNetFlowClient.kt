@@ -13,6 +13,8 @@ import com.kmpbits.netflow_core.client.NetFlowClient
 import com.kmpbits.netflow_core.enums.HttpHeader
 import com.kmpbits.netflow_core.enums.HttpMethod
 import com.kmpbits.netflow_core.enums.LogLevel
+import com.kmpbits.netflow_core.interceptor.InterceptingEngineAdapter
+import com.kmpbits.netflow_core.interceptor.NetFlowInterceptor
 import com.kmpbits.netflow_core.platform.HttpEngineAdapter
 import com.kmpbits.netflow_core.platform.InternalHttpRequestBuilder
 import com.kmpbits.netflow_core.request.NetFlowRequest
@@ -47,14 +49,16 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 class MockNetFlowClient private constructor(
     private val auth: (AuthConfig.() -> Unit)?,
+    private val interceptors: List<NetFlowInterceptor>,
     private val handler: suspend (NetFlowMockRequest) -> NetFlowMockResponse,
     sharedRecords: MutableList<NetFlowMockRequest>?,
 ) : NetFlowClient {
 
     constructor(
         auth: (AuthConfig.() -> Unit)? = null,
+        interceptors: List<NetFlowInterceptor> = emptyList(),
         handler: suspend (NetFlowMockRequest) -> NetFlowMockResponse,
-    ) : this(auth, handler, null)
+    ) : this(auth, interceptors, handler, null)
 
     private val _recordedRequests: MutableList<NetFlowMockRequest> = sharedRecords ?: mutableListOf()
 
@@ -62,7 +66,14 @@ class MockNetFlowClient private constructor(
         TokenHolder(
             config = AuthConfig().apply(block),
             rawClientProvider = {
-                RawNetFlowClient(MockNetFlowClient(auth = null, handler = handler, sharedRecords = _recordedRequests))
+                RawNetFlowClient(
+                    MockNetFlowClient(
+                        auth = null,
+                        interceptors = interceptors,
+                        handler = handler,
+                        sharedRecords = _recordedRequests,
+                    )
+                )
             },
         )
     }
@@ -111,36 +122,42 @@ class MockNetFlowClient private constructor(
         val callBuilder = RequestBuilder("https://mock", RetryBuilder(), mutableListOf()).also(builder)
         val requestBuilder = callBuilder.build()
 
-        val engine = object : HttpEngineAdapter {
-            override suspend fun call(
-                requestBuilder: InternalHttpRequestBuilder,
-                builder: RequestBuilder
-            ): NetFlowResponse {
-                val mockRequest = NetFlowMockRequest(
-                    path = builder.path,
-                    method = builder.method,
-                    body = builder.body,
-                    rawBody = builder.rawBody,
-                    headers = builder.headers.map { it.first.header to it.second }
-                )
-                _recordedRequests.add(mockRequest)
+        val engine = InterceptingEngineAdapter(
+            delegate = object : HttpEngineAdapter {
+                override suspend fun call(
+                    requestBuilder: InternalHttpRequestBuilder,
+                    builder: RequestBuilder
+                ): NetFlowResponse {
+                    // Os headers vêm de requestBuilder (InternalHttpRequestBuilder), não de
+                    // builder.headers: um NetFlowInterceptor escreve as suas alterações ali
+                    // via apply(), nunca na lista mutável do RequestBuilder.
+                    val mockRequest = NetFlowMockRequest(
+                        path = builder.path,
+                        method = builder.method,
+                        body = builder.body,
+                        rawBody = builder.rawBody,
+                        headers = requestBuilder.headers.map { it.first.header to it.second }
+                    )
+                    _recordedRequests.add(mockRequest)
 
-                val mockResponse = handler(mockRequest)
+                    val mockResponse = handler(mockRequest)
 
-                if (mockResponse.delay.inWholeMilliseconds > 0) {
-                    delay(mockResponse.delay)
+                    if (mockResponse.delay.inWholeMilliseconds > 0) {
+                        delay(mockResponse.delay)
+                    }
+
+                    return NetFlowResponse(
+                        code = mockResponse.code,
+                        headers = mockResponse.headers.map { (name, value) ->
+                            Header(HttpHeader.custom(name), value)
+                        },
+                        body = mockResponse.body,
+                        errorBody = mockResponse.errorBody
+                    )
                 }
-
-                return NetFlowResponse(
-                    code = mockResponse.code,
-                    headers = mockResponse.headers.map { (name, value) ->
-                        Header(HttpHeader.custom(name), value)
-                    },
-                    body = mockResponse.body,
-                    errorBody = mockResponse.errorBody
-                )
-            }
-        }
+            },
+            interceptors = interceptors,
+        )
 
         return NetFlowRequest(callBuilder, engine, requestBuilder, LogLevel.None, tokenHolder)
     }
