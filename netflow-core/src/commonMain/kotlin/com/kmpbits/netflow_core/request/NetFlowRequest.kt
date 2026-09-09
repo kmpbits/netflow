@@ -20,9 +20,9 @@ import kotlin.coroutines.cancellation.CancellationException
  * request is not opted out via [RequestBuilder.skipAuth], [response] attaches the
  * bearer token, and on a `401` runs a single-flight refresh and retries once.
  *
- * Note: on Android the client's shared header list is what
- * `CustomHeaderInterceptor` re-applies at request time, and that same list backs
- * [RequestBuilder.headers], so mutating it here keeps the interceptor consistent.
+ * Note: the client's shared header list backs [RequestBuilder.headers] and is
+ * applied to the platform request by `RequestBuilder.build()` on both engines, so
+ * mutating it here (e.g. to attach the auth header) reaches the actual request.
  * Auth tokens are client-global, so this shared mutation is safe.
  */
 class NetFlowRequest internal constructor(
