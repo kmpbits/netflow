@@ -1,9 +1,28 @@
 package com.kmpbits.netflow_ksp.parser
 
+import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSValueParameter
 import com.kmpbits.netflow_ksp.Fqns
 import com.kmpbits.netflow_ksp.model.ParamBinding
 import com.kmpbits.netflow_ksp.model.ParseContext
+import com.kmpbits.netflow_ksp.model.PartKind
+
+private val PART_PRIMITIVE_FQNS = setOf(
+    "kotlin.String", "kotlin.Int", "kotlin.Long", "kotlin.Double", "kotlin.Boolean",
+)
+
+private fun partKindOf(type: KSType): PartKind? {
+    val declaration = type.declaration
+    return when {
+        declaration.qualifiedName?.asString() == Fqns.FILE_PART -> PartKind.FILE_PART
+        declaration.qualifiedName?.asString() in PART_PRIMITIVE_FQNS -> PartKind.PRIMITIVE
+        (declaration as? KSClassDeclaration)?.annotations?.any {
+            it.annotationType.resolve().declaration.qualifiedName?.asString() == Fqns.SERIALIZABLE
+        } == true -> PartKind.SERIALIZABLE
+        else -> null
+    }
+}
 
 internal fun parseParameter(
     parameter: KSValueParameter,
@@ -35,6 +54,18 @@ internal fun parseParameter(
                         ?.declaration?.qualifiedName?.asString() == Fqns.STRING
                 ParamBinding.BodyParam(paramName, type, isNullable, isStringKeyedMap)
             }
+            Fqns.PART -> {
+                val kind = partKindOf(type)
+                if (kind == null) {
+                    ctx.error(
+                        "@Part parameter '$paramName' must be FilePart, a primitive, or an @Serializable type.",
+                        parameter,
+                    )
+                }
+                // Return a binding even on error so parsing doesn't also report
+                // "no binding annotation"; generation is gated on ctx.hasErrors.
+                ParamBinding.PartParam(paramName, wireName, type, isNullable, kind ?: PartKind.PRIMITIVE)
+            }
             else -> null
         }
     }.toList()
@@ -42,7 +73,7 @@ internal fun parseParameter(
     when {
         bindings.isEmpty() -> {
             ctx.error(
-                "Parameter '$paramName' has no NetFlow binding annotation (@Path/@Query/@Header/@Body).",
+                "Parameter '$paramName' has no NetFlow binding annotation (@Path/@Query/@Header/@Body/@Part).",
                 parameter,
             )
             return null

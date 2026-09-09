@@ -31,6 +31,9 @@ internal fun parseApiFunction(
     val skipAuth = declaration.annotations.any {
         it.annotationType.resolve().declaration.qualifiedName?.asString() == Fqns.SKIP_AUTH
     }
+    val multipart = declaration.annotations.any {
+        it.annotationType.resolve().declaration.qualifiedName?.asString() == Fqns.MULTIPART
+    }
 
     val paging = parsePagingConfig(
         declaration,
@@ -42,6 +45,21 @@ internal fun parseApiFunction(
 
     if (parameters.filterIsInstance<ParamBinding.BodyParam>().size > 1) {
         ctx.error("Function '$name' has more than one @Body; at most one @Body is allowed.", declaration)
+    }
+
+    val partParams = parameters.filterIsInstance<ParamBinding.PartParam>()
+    val hasBody = parameters.any { it is ParamBinding.BodyParam }
+    if (partParams.isNotEmpty() && !multipart) {
+        ctx.error(
+            "@Part parameter '${partParams.first().paramName}' requires @Multipart on function '$name'.",
+            declaration,
+        )
+    }
+    if (multipart && hasBody) {
+        ctx.error("@Multipart function '$name' cannot also use @Body.", declaration)
+    }
+    if (multipart && partParams.isEmpty()) {
+        ctx.error("@Multipart function '$name' has no @Part parameters.", declaration)
     }
 
     if (returnShape is ReturnShape.RawCall && wrapped) {
@@ -82,6 +100,7 @@ internal fun parseApiFunction(
         parameters = parameters,
         wrapped = wrapped,
         skipAuth = skipAuth,
+        multipart = multipart,
         staticHeaders = staticHeaders,
         paging = paging,
     )

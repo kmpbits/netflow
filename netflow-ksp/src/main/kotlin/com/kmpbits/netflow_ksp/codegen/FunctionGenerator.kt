@@ -5,6 +5,7 @@ import com.kmpbits.netflow_ksp.Fqns
 import com.kmpbits.netflow_ksp.model.ApiFunction
 import com.kmpbits.netflow_ksp.model.ParamBinding
 import com.kmpbits.netflow_ksp.model.PagingConfig
+import com.kmpbits.netflow_ksp.model.PartKind
 import com.kmpbits.netflow_ksp.model.ReturnShape
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
@@ -20,6 +21,7 @@ private val OPT_IN = ClassName("kotlin", "OptIn")
 private val EXPERIMENTAL_PAGING_API = ClassName("androidx.paging", "ExperimentalPagingApi")
 private val RESPONSE_PAGINATED = MemberName(Fqns.PAGING_DESERIALIZABLES_PKG, "responsePaginated")
 private val PREPARE_CALL = MemberName("com.kmpbits.netflow_core.client", "prepareCall")
+private val MULTIPART_MEMBER = MemberName("com.kmpbits.netflow_core.builders", "multipart")
 private val PLACEHOLDER = Regex("\\{([A-Za-z_][A-Za-z0-9_]*)}")
 
 internal fun buildFunction(fn: ApiFunction): FunSpec {
@@ -48,6 +50,9 @@ internal fun buildFunction(fn: ApiFunction): FunSpec {
     if (fn.skipAuth) code.addStatement("skipAuth()")
     fn.staticHeaders.forEach { (headerName, headerValue) ->
         code.addStatement("header(%T.custom(%S) to %S)", HTTP_HEADER, headerName, headerValue)
+    }
+    if (fn.multipart) {
+        code.add(buildMultipartBlock(fn))
     }
     fn.parameters.forEach { param ->
         buildParamStatement(param)?.let { code.addStatement("%L", it) }
@@ -136,6 +141,29 @@ private fun buildParamStatement(param: ParamBinding): CodeBlock? = when (param) 
             )
         }
     is ParamBinding.BodyParam -> CodeBlock.of("body(%N)", param.paramName)
+    is ParamBinding.PartParam -> null // emitted by buildMultipartBlock
+}
+
+/** The `multipart { … }` sub-block: one statement per `@Part`, nullable parts guarded. */
+private fun buildMultipartBlock(fn: ApiFunction): CodeBlock {
+    val block = CodeBlock.builder()
+    block.beginControlFlow("%M", MULTIPART_MEMBER)
+    fn.parameters.filterIsInstance<ParamBinding.PartParam>().forEach { part ->
+        val statement = when (part.kind) {
+            PartKind.FILE_PART -> CodeBlock.of("filePart(%S, %N)", part.wireName, part.paramName)
+            PartKind.PRIMITIVE -> CodeBlock.of("part(%S, %N)", part.wireName, part.paramName)
+            PartKind.SERIALIZABLE -> CodeBlock.of("jsonPart(%S, %N)", part.wireName, part.paramName)
+        }
+        if (part.isNullable) {
+            block.beginControlFlow("if (%N != null)", part.paramName)
+            block.addStatement("%L", statement)
+            block.endControlFlow()
+        } else {
+            block.addStatement("%L", statement)
+        }
+    }
+    block.endControlFlow()
+    return block.build()
 }
 
 private fun List<CodeBlock>.joinToCodeWith(separator: String): CodeBlock =
