@@ -41,6 +41,10 @@ class RequestBuilder internal constructor(
     @PublishedApi
     internal var rawBody: String? = null
 
+    internal val parts: MutableList<MultipartPart> = mutableListOf()
+
+    internal var multipartSubtype: String = "form-data"
+
     /**
      * The method of the request.
      * @see [HttpMethod]

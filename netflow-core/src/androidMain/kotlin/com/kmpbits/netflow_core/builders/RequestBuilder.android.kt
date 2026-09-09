@@ -11,6 +11,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.internal.http.HttpMethod as OkHttpMethod
 
 internal actual fun RequestBuilder.build(): InternalHttpRequestBuilder {
+    validateMultipart()
+
     val requestBuilder = Request.Builder()
         .url(
             urlWithPath(
@@ -26,11 +28,15 @@ internal actual fun RequestBuilder.build(): InternalHttpRequestBuilder {
     }
 
     val method = method.toName()
-    val bodyString = rawBody ?: body?.toJson()
-    if (OkHttpMethod.requiresRequestBody(method) && bodyString == null) {
-        throw NetFlowException("Request Body is required for $method method")
+    val requestBody = if (parts.isNotEmpty()) {
+        buildMultipartRequestBody()
+    } else {
+        val bodyString = rawBody ?: body?.toJson()
+        if (OkHttpMethod.requiresRequestBody(method) && bodyString == null) {
+            throw NetFlowException("Request Body is required for $method method")
+        }
+        bodyString?.toRequestBody("application/json; charset=utf-8".toMediaType())
     }
-    val requestBody = bodyString?.toRequestBody("application/json; charset=utf-8".toMediaType())
 
     requestBuilder.method(method, requestBody)
 

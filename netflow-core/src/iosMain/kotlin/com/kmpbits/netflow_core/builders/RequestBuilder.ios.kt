@@ -13,6 +13,8 @@ import platform.Foundation.setHTTPMethod
 import platform.Foundation.setValue
 
 internal actual fun RequestBuilder.build(): InternalHttpRequestBuilder {
+    validateMultipart()
+
     val completeUrlString = urlWithPath(
         baseUrl = baseUrl,
         path = path,
