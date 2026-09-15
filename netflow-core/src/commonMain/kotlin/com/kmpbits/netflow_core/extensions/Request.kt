@@ -16,6 +16,8 @@ internal fun createUrl(
     baseUrl: String,
     path: String
 ): String {
+    if (path.startsWith("http://") || path.startsWith("https://")) return path
+
     val cleanBaseUrl = baseUrl.trimEnd('/')
     val cleanPath = path.trimStart('/')
 
