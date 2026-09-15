@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.12.0]
+
+### New features
+- **`netflow-ksp` — `@Url`, `@QueryMap`, `@HeaderMap`.** `@GET`/`@POST`/`@PUT`/`@DELETE`/`@PATCH` now default their `path` to `""`, so a bare `@GET` reads naturally alongside `@Url`. `@Url` on a `String` parameter replaces the request's full URL (base URL + path), skipping `baseUrl` when the value is already an absolute `http://`/`https://` URL; it requires an empty method path and is incompatible with `@Path`. `@QueryMap` / `@HeaderMap` bind a `Map<String, Any?>` parameter as dynamic query parameters / headers on top of any individual `@Query`/`@Header` parameters — a `null` map omits all entries, a `null` value omits that one entry. At most one `@Url`, one `@QueryMap`, and one `@HeaderMap` per function.
+- **`netflow-core`.** `createUrl` now returns an already-absolute `http://`/`https://` path unchanged instead of prefixing it with `baseUrl` — the mechanism `@Url` relies on, also usable directly from the `call {}` DSL by setting `path` to a full URL. `NetFlowMockRequest` gained a `parameters` field so tests can assert on query parameters added via `parameter(...)`, `@Query`, or `@QueryMap`.
+
 ## [0.11.0]
 
 ### New features

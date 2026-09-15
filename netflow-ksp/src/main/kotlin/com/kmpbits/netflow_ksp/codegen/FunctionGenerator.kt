@@ -147,7 +147,7 @@ private fun buildParamStatement(param: ParamBinding): CodeBlock? = when (param) 
     is ParamBinding.PartParam -> null // emitted by buildMultipartBlock
     is ParamBinding.UrlParam -> null // consumed by buildPathExpression's `path = ...`
     is ParamBinding.QueryMapParam -> CodeBlock.of(
-        "%N?.forEach { (k, v) -> if (v != null) parameter(k, v) }",
+        "%N?.forEach { (k, v) -> if (v != null) parameter(k to v) }",
         param.paramName,
     )
     is ParamBinding.HeaderMapParam -> CodeBlock.of(

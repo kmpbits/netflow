@@ -4,6 +4,7 @@ import androidx.paging.PagingData
 import com.kmpbits.netflow_annotations.Body
 import com.kmpbits.netflow_annotations.DELETE
 import com.kmpbits.netflow_annotations.GET
+import com.kmpbits.netflow_annotations.HeaderMap
 import com.kmpbits.netflow_annotations.Headers
 import com.kmpbits.netflow_annotations.Multipart
 import com.kmpbits.netflow_annotations.NetFlowApi
@@ -12,7 +13,9 @@ import com.kmpbits.netflow_annotations.Paginated
 import com.kmpbits.netflow_annotations.Part
 import com.kmpbits.netflow_annotations.Path
 import com.kmpbits.netflow_annotations.Query
+import com.kmpbits.netflow_annotations.QueryMap
 import com.kmpbits.netflow_annotations.SkipAuth
+import com.kmpbits.netflow_annotations.Url
 import com.kmpbits.netflow_annotations.Wrapped
 import com.kmpbits.netflow_core.builders.FilePart
 import com.kmpbits.netflow_core.request.NetFlowCall
@@ -62,6 +65,15 @@ interface TodoApi {
 
     @GET("todos")
     suspend fun getTodoModels(): List<TodoDto>                  // -> responseToModel<List<TodoDto>>()
+
+    @GET
+    suspend fun fetchFromUrl(@Url url: String): AsyncState<TodoDto>
+
+    @GET("todos")
+    suspend fun searchTodos(
+        @QueryMap filters: Map<String, Any?>?,
+        @HeaderMap extraHeaders: Map<String, Any?>?,
+    ): AsyncState<List<TodoDto>>
 
     @Multipart
     @POST("todos/{todoId}/attachments")

@@ -127,18 +127,32 @@ interface TodoApi {
         @Part("caption") caption: String,
         @Part("file") file: FilePart,
     ): AsyncState<Unit>
+
+    @GET
+    suspend fun download(@Url url: String): AsyncState<ByteArray>
+
+    @GET("todos")
+    suspend fun search(
+        @QueryMap filters: Map<String, Any?>?,
+        @HeaderMap extraHeaders: Map<String, Any?>?,
+    ): AsyncState<List<TodoDto>>
 }
 
 val api = client.createTodoApi()   // generated extension on NetFlowClient
 ```
 
-**Supported:** `@GET` / `@POST` / `@PUT` / `@DELETE` / `@PATCH`; `@Path`,
-`@Query`, `@Header`, `@Body`, `@Multipart` + `@Part`; method-level `@Headers("Name: Value", ...)`;
+**Supported:** `@GET` / `@POST` / `@PUT` / `@DELETE` / `@PATCH` (path defaults to
+`""`, for use with `@Url`); `@Path`, `@Query`, `@Header`, `@Body`, `@Multipart` +
+`@Part`, `@Url`, `@QueryMap` / `@HeaderMap`; method-level `@Headers("Name: Value", ...)`;
 `@Wrapped` for `{ "data": ... }` envelope responses; `@SkipAuth` to opt a method
 out of the client's `auth { }` (login / sign-up / refresh endpoints). `@Body` accepts any
 `@Serializable` type or `Map<String, Any>`. `@Multipart` sends a `multipart/form-data` body;
 each `@Part` is a `FilePart` (file), a primitive (text field), or a `@Serializable` value
-(JSON field), and a null `@Part` is omitted. `@Multipart` and `@Body` are mutually exclusive. Return types `Flow<ResultState<T>>`
+(JSON field), and a null `@Part` is omitted. `@Multipart` and `@Body` are mutually exclusive.
+`@Url` on a `String` parameter replaces the full request URL — it needs an empty method path
+and no `@Path` on the same function. `@QueryMap` / `@HeaderMap` bind a `Map<String, Any?>` as
+dynamic query parameters / headers on top of any individual `@Query`/`@Header`; a null map
+omits everything, a null value omits that entry. Return types `Flow<ResultState<T>>`
 and `Flow<ResultState<List<T>>>` (non-suspend), `AsyncState<T>` and
 `AsyncState<List<T>>` (suspend), a bare `T` or `List<T>` (suspend, Retrofit-style:
 returns the value or throws `HttpException`), `Flow<PagingData<T>>` (non-suspend,
@@ -147,9 +161,8 @@ network-only paging), and `NetFlowCall` (the request without a response strategy
 take an override string (`@Query("user_id") userId: Int`); a null `@Query` /
 `@Header` value is omitted from the request.
 
-**Not yet supported:** dynamic `@Url`, `@QueryMap` / `@HeaderMap`, and the
-`onNetworkSuccess` / `local {}` cache hooks (including remote+local paging). Use
-the `call {}` DSL directly for those.
+**Not yet supported:** the `onNetworkSuccess` / `local {}` cache hooks (including
+remote+local paging). Use the `call {}` DSL directly for those.
 
 ### Mapping to domain types
 
