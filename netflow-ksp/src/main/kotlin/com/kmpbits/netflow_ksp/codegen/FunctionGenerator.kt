@@ -98,6 +98,9 @@ private fun responseCall(shape: ReturnShape, wrapped: Boolean): Pair<MemberName,
 
 /** The right-hand side of `path = ...` — a string literal or a `"a/" + id + "/b"` expression. */
 private fun buildPathExpression(fn: ApiFunction): CodeBlock {
+    val urlParam = fn.parameters.filterIsInstance<ParamBinding.UrlParam>().firstOrNull()
+    if (urlParam != null) return CodeBlock.of("%N", urlParam.paramName)
+
     val template = fn.pathTemplate
     val matches = PLACEHOLDER.findAll(template).toList()
     if (matches.isEmpty()) return CodeBlock.of("%S", template)
@@ -143,8 +146,14 @@ private fun buildParamStatement(param: ParamBinding): CodeBlock? = when (param) 
     is ParamBinding.BodyParam -> CodeBlock.of("body(%N)", param.paramName)
     is ParamBinding.PartParam -> null // emitted by buildMultipartBlock
     is ParamBinding.UrlParam -> null // consumed by buildPathExpression's `path = ...`
-    is ParamBinding.QueryMapParam -> null // Task 4 replaces this with the forEach loop
-    is ParamBinding.HeaderMapParam -> null // Task 4 replaces this with the forEach loop
+    is ParamBinding.QueryMapParam -> CodeBlock.of(
+        "%N?.forEach { (k, v) -> if (v != null) parameter(k, v) }",
+        param.paramName,
+    )
+    is ParamBinding.HeaderMapParam -> CodeBlock.of(
+        "%N?.forEach { (k, v) -> if (v != null) header(%T.custom(k) to v.toString()) }",
+        param.paramName, HTTP_HEADER,
+    )
 }
 
 /** The `multipart { … }` sub-block: one statement per `@Part`, nullable parts guarded. */
