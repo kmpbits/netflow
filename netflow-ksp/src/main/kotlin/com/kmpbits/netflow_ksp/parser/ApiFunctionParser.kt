@@ -62,6 +62,30 @@ internal fun parseApiFunction(
         ctx.error("@Multipart function '$name' has no @Part parameters.", declaration)
     }
 
+    val urlParams = parameters.filterIsInstance<ParamBinding.UrlParam>()
+    val pathParamsForUrlCheck = parameters.filterIsInstance<ParamBinding.PathParam>()
+    if (urlParams.size > 1) {
+        ctx.error("Function '$name' has more than one @Url; at most one is allowed.", declaration)
+    }
+    if (urlParams.isNotEmpty() && pathParamsForUrlCheck.isNotEmpty()) {
+        ctx.error("Function '$name' cannot combine @Url with @Path.", declaration)
+    }
+    if (urlParams.isNotEmpty() && pathTemplate.isNotEmpty()) {
+        ctx.error("Function '$name' has @Url — its @GET/@POST/... path must be empty.", declaration)
+    }
+    if (urlParams.isEmpty() && pathTemplate.isEmpty()) {
+        ctx.error("Function '$name' has an empty path and no @Url parameter.", declaration)
+    }
+
+    val queryMapParams = parameters.filterIsInstance<ParamBinding.QueryMapParam>()
+    if (queryMapParams.size > 1) {
+        ctx.error("Function '$name' has more than one @QueryMap; at most one is allowed.", declaration)
+    }
+    val headerMapParams = parameters.filterIsInstance<ParamBinding.HeaderMapParam>()
+    if (headerMapParams.size > 1) {
+        ctx.error("Function '$name' has more than one @HeaderMap; at most one is allowed.", declaration)
+    }
+
     if (returnShape is ReturnShape.RawCall && wrapped) {
         ctx.error(
             "Function '$name' returns NetFlowCall — @Wrapped is the caller's response-strategy choice, not the interface's.",

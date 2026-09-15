@@ -12,6 +12,11 @@ private val PART_PRIMITIVE_FQNS = setOf(
     "kotlin.String", "kotlin.Int", "kotlin.Long", "kotlin.Double", "kotlin.Boolean",
 )
 
+private fun isStringKeyedMap(type: KSType): Boolean =
+    type.declaration.qualifiedName?.asString() == Fqns.MAP &&
+        type.arguments.firstOrNull()?.type?.resolve()
+            ?.declaration?.qualifiedName?.asString() == Fqns.STRING
+
 private fun partKindOf(type: KSType): PartKind? {
     val declaration = type.declaration
     return when {
@@ -49,10 +54,7 @@ internal fun parseParameter(
             Fqns.QUERY -> ParamBinding.QueryParam(paramName, wireName, type, isNullable)
             Fqns.HEADER -> ParamBinding.HeaderParam(paramName, wireName, type, isNullable)
             Fqns.BODY -> {
-                val isStringKeyedMap = type.declaration.qualifiedName?.asString() == Fqns.MAP &&
-                    type.arguments.firstOrNull()?.type?.resolve()
-                        ?.declaration?.qualifiedName?.asString() == Fqns.STRING
-                ParamBinding.BodyParam(paramName, type, isNullable, isStringKeyedMap)
+                ParamBinding.BodyParam(paramName, type, isNullable, isStringKeyedMap(type))
             }
             Fqns.PART -> {
                 val kind = partKindOf(type)
@@ -65,6 +67,24 @@ internal fun parseParameter(
                 // Return a binding even on error so parsing doesn't also report
                 // "no binding annotation"; generation is gated on ctx.hasErrors.
                 ParamBinding.PartParam(paramName, wireName, type, isNullable, kind ?: PartKind.PRIMITIVE)
+            }
+            Fqns.URL -> {
+                if (isNullable || type.declaration.qualifiedName?.asString() != Fqns.STRING) {
+                    ctx.error("@Url parameter '$paramName' must be a non-null String.", parameter)
+                }
+                ParamBinding.UrlParam(paramName, type)
+            }
+            Fqns.QUERY_MAP -> {
+                if (!isStringKeyedMap(type)) {
+                    ctx.error("@QueryMap parameter '$paramName' must be a Map<String, *>.", parameter)
+                }
+                ParamBinding.QueryMapParam(paramName, type, isNullable)
+            }
+            Fqns.HEADER_MAP -> {
+                if (!isStringKeyedMap(type)) {
+                    ctx.error("@HeaderMap parameter '$paramName' must be a Map<String, *>.", parameter)
+                }
+                ParamBinding.HeaderMapParam(paramName, type, isNullable)
             }
             else -> null
         }

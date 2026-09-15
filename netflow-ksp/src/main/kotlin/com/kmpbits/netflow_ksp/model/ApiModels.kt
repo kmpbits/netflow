@@ -90,6 +90,30 @@ internal sealed interface ParamBinding {
         override val isNullable: Boolean,
         val kind: PartKind,
     ) : ParamBinding
+
+    data class UrlParam(
+        override val paramName: String,
+        override val type: KSType,
+    ) : ParamBinding {
+        override val wireName: String get() = paramName
+        override val isNullable: Boolean get() = false
+    }
+
+    data class QueryMapParam(
+        override val paramName: String,
+        override val type: KSType,
+        override val isNullable: Boolean,
+    ) : ParamBinding {
+        override val wireName: String get() = paramName
+    }
+
+    data class HeaderMapParam(
+        override val paramName: String,
+        override val type: KSType,
+        override val isNullable: Boolean,
+    ) : ParamBinding {
+        override val wireName: String get() = paramName
+    }
 }
 
 internal data class ApiFunction(

@@ -43,11 +43,7 @@ internal fun parseHttpMethod(
     val path = annotation.arguments
         .firstOrNull { it.name?.asString() == "path" }?.value as? String
         ?: (annotation.arguments.firstOrNull()?.value as? String)
-
-    if (path.isNullOrBlank()) {
-        ctx.error("Function '$name' has an empty path.", fn)
-        return null
-    }
+        ?: ""
 
     return method to path
 }
