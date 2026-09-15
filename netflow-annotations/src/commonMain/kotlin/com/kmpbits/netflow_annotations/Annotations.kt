@@ -7,23 +7,23 @@ annotation class NetFlowApi
 
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.BINARY)
-annotation class GET(val path: String)
+annotation class GET(val path: String = "")
 
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.BINARY)
-annotation class POST(val path: String)
+annotation class POST(val path: String = "")
 
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.BINARY)
-annotation class PUT(val path: String)
+annotation class PUT(val path: String = "")
 
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.BINARY)
-annotation class DELETE(val path: String)
+annotation class DELETE(val path: String = "")
 
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.BINARY)
-annotation class PATCH(val path: String)
+annotation class PATCH(val path: String = "")
 
 /** Binds a function parameter to a `{name}` placeholder in the path. Empty [name] = use the parameter name. */
 @Target(AnnotationTarget.VALUE_PARAMETER)
@@ -73,6 +73,35 @@ annotation class Multipart
 @Target(AnnotationTarget.VALUE_PARAMETER)
 @Retention(AnnotationRetention.BINARY)
 annotation class Part(val name: String = "", val filename: String = "")
+
+/**
+ * Binds a function parameter (non-null `String`) as the full request URL,
+ * replacing `baseUrl` + path entirely. The method's own path (`@GET`/`@POST`/...)
+ * must be left empty, and `@Path` cannot be used on the same function — there is
+ * no template to fill placeholders into. At most one `@Url` per function.
+ */
+@Target(AnnotationTarget.VALUE_PARAMETER)
+@Retention(AnnotationRetention.BINARY)
+annotation class Url
+
+/**
+ * Binds a function parameter (`Map<String, Any?>`) as a set of dynamic query
+ * parameters, added on top of any individual `@Query` parameters. A `null` map
+ * omits all of them; a `null` value omits that one entry — same semantics as a
+ * nullable `@Query`. At most one `@QueryMap` per function.
+ */
+@Target(AnnotationTarget.VALUE_PARAMETER)
+@Retention(AnnotationRetention.BINARY)
+annotation class QueryMap
+
+/**
+ * Binds a function parameter (`Map<String, Any?>`) as a set of dynamic headers,
+ * added on top of any individual `@Header` parameters. Same null semantics as
+ * [QueryMap]. At most one `@HeaderMap` per function.
+ */
+@Target(AnnotationTarget.VALUE_PARAMETER)
+@Retention(AnnotationRetention.BINARY)
+annotation class HeaderMap
 
 /**
  * Route this function's response through the `responseWrapped*` family — for APIs that
