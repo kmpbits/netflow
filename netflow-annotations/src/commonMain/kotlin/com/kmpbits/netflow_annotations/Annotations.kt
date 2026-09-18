@@ -75,6 +75,16 @@ annotation class Multipart
 annotation class Part(val name: String = "", val filename: String = "")
 
 /**
+ * Binds a `(sent: Long, total: Long) -> Unit` function parameter as the upload-progress
+ * callback for a [Multipart] request — wired into the generated `multipart { }` block's
+ * `onProgress { }`. Requires [Multipart] on the function. At most one `@Progress` per
+ * function.
+ */
+@Target(AnnotationTarget.VALUE_PARAMETER)
+@Retention(AnnotationRetention.BINARY)
+annotation class Progress
+
+/**
  * Binds a function parameter (non-null `String`) as the full request URL,
  * replacing `baseUrl` + path entirely. The method's own path (`@GET`/`@POST`/...)
  * must be left empty, and `@Path` cannot be used on the same function — there is
