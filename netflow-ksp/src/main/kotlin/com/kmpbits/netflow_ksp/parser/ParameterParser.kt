@@ -17,6 +17,14 @@ private fun isStringKeyedMap(type: KSType): Boolean =
         type.arguments.firstOrNull()?.type?.resolve()
             ?.declaration?.qualifiedName?.asString() == Fqns.STRING
 
+private fun isProgressCallback(type: KSType): Boolean {
+    if (type.declaration.qualifiedName?.asString() != "kotlin.Function2") return false
+    val args = type.arguments
+    if (args.size != 3) return false
+    fun argFqn(index: Int) = args[index].type?.resolve()?.declaration?.qualifiedName?.asString()
+    return argFqn(0) == "kotlin.Long" && argFqn(1) == "kotlin.Long" && argFqn(2) == "kotlin.Unit"
+}
+
 private fun partKindOf(type: KSType): PartKind? {
     val declaration = type.declaration
     return when {
@@ -67,6 +75,15 @@ internal fun parseParameter(
                 // Return a binding even on error so parsing doesn't also report
                 // "no binding annotation"; generation is gated on ctx.hasErrors.
                 ParamBinding.PartParam(paramName, wireName, type, isNullable, kind ?: PartKind.PRIMITIVE)
+            }
+            Fqns.PROGRESS -> {
+                if (!isProgressCallback(type)) {
+                    ctx.error(
+                        "@Progress parameter '$paramName' must be of type (Long, Long) -> Unit.",
+                        parameter,
+                    )
+                }
+                ParamBinding.ProgressParam(paramName, type, isNullable)
             }
             Fqns.URL -> {
                 if (isNullable || type.declaration.qualifiedName?.asString() != Fqns.STRING) {

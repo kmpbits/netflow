@@ -13,6 +13,7 @@ internal object Fqns {
     const val BODY = "com.kmpbits.netflow_annotations.Body"
     const val MULTIPART = "com.kmpbits.netflow_annotations.Multipart"
     const val PART = "com.kmpbits.netflow_annotations.Part"
+    const val PROGRESS = "com.kmpbits.netflow_annotations.Progress"
     const val FILE_PART = "com.kmpbits.netflow_core.builders.FilePart"
     const val SERIALIZABLE = "kotlinx.serialization.Serializable"
     const val URL = "com.kmpbits.netflow_annotations.Url"

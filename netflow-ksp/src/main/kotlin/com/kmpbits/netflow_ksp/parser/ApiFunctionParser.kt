@@ -62,6 +62,17 @@ internal fun parseApiFunction(
         ctx.error("@Multipart function '$name' has no @Part parameters.", declaration)
     }
 
+    val progressParams = parameters.filterIsInstance<ParamBinding.ProgressParam>()
+    if (progressParams.isNotEmpty() && !multipart) {
+        ctx.error(
+            "@Progress parameter '${progressParams.first().paramName}' requires @Multipart on function '$name'.",
+            declaration,
+        )
+    }
+    if (progressParams.size > 1) {
+        ctx.error("Function '$name' has more than one @Progress; at most one is allowed.", declaration)
+    }
+
     val urlParams = parameters.filterIsInstance<ParamBinding.UrlParam>()
     val pathParamsForUrlCheck = parameters.filterIsInstance<ParamBinding.PathParam>()
     if (urlParams.size > 1) {

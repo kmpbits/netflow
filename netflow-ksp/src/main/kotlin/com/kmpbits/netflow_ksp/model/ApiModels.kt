@@ -91,6 +91,14 @@ internal sealed interface ParamBinding {
         val kind: PartKind,
     ) : ParamBinding
 
+    data class ProgressParam(
+        override val paramName: String,
+        override val type: KSType,
+        override val isNullable: Boolean,
+    ) : ParamBinding {
+        override val wireName: String get() = paramName
+    }
+
     data class UrlParam(
         override val paramName: String,
         override val type: KSType,
