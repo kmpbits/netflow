@@ -20,6 +20,19 @@ class RequestBuilderMultipartAndroidTest {
             }
         }
 
+    private fun multipartRequestBuilderWithProgress(
+        onProgress: (sent: Long, total: Long) -> Unit,
+    ): RequestBuilder =
+        RequestBuilder("https://example.com", RetryBuilder(), mutableListOf()).apply {
+            path = "upload"
+            method = HttpMethod.Post
+            multipart {
+                part("description", "My photo")
+                filePart("file", filename = "photo.jpg", bytes = ByteArray(50_000), contentType = "image/jpeg")
+                onProgress(onProgress)
+            }
+        }
+
     @Test
     fun build_produces_a_multipart_form_body_with_one_part_per_entry() {
         val internal = multipartRequestBuilder().build()
@@ -54,5 +67,25 @@ class RequestBuilderMultipartAndroidTest {
         val buffer = Buffer()
         body.part(0).body.writeTo(buffer)
         assertEquals("My photo", buffer.readUtf8())
+    }
+
+    @Test
+    fun writeTo_reports_incremental_progress_up_to_the_total_content_length() {
+        val calls = mutableListOf<Pair<Long, Long>>()
+        val body = multipartRequestBuilderWithProgress { sent, total -> calls.add(sent to total) }
+            .build().request.body!!
+
+        val total = body.contentLength()
+        body.writeTo(Buffer())
+
+        assertTrue(calls.isNotEmpty())
+        assertEquals(total, calls.last().first)
+        assertTrue(calls.all { it.second == total })
+    }
+
+    @Test
+    fun no_onProgress_leaves_the_plain_MultipartBody_unwrapped() {
+        val body = multipartRequestBuilder().build().request.body
+        assertTrue(body is MultipartBody)
     }
 }
