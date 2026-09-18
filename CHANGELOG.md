@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.13.0]
+
+### New features
+- **`netflow-core` — upload progress for multipart requests.** `multipart { onProgress { sent, total -> } }` reports byte-level upload progress: a counting `RequestBody` wrapper on Android, the `NSURLSessionTaskDelegate` `didSendBodyData` callback (routed per-request through `NetFlowSessionDelegate`) on iOS. The callback fires on whatever thread the platform delivers it on — same as `preCall` — and is not part of `Flow<ResultState<T>>`.
+- **`netflow-ksp` — `@Progress`.** A `(Long, Long) -> Unit` parameter annotated `@Progress` on a `@Multipart` function is wired into the generated `multipart { }` block's `onProgress { }`. Requires `@Multipart`; at most one `@Progress` per function.
+
 ## [0.12.0]
 
 ### New features

@@ -148,7 +148,9 @@ val api = client.createTodoApi()   // generated extension on NetFlowClient
 out of the client's `auth { }` (login / sign-up / refresh endpoints). `@Body` accepts any
 `@Serializable` type or `Map<String, Any>`. `@Multipart` sends a `multipart/form-data` body;
 each `@Part` is a `FilePart` (file), a primitive (text field), or a `@Serializable` value
-(JSON field), and a null `@Part` is omitted. `@Multipart` and `@Body` are mutually exclusive.
+(JSON field), and a null `@Part` is omitted. An optional `@Progress` parameter
+(`(Long, Long) -> Unit`) reports upload byte progress; it requires `@Multipart`.
+`@Multipart` and `@Body` are mutually exclusive.
 `@Url` on a `String` parameter replaces the full request URL — it needs an empty method path
 and no `@Path` on the same function. `@QueryMap` / `@HeaderMap` bind a `Map<String, Any?>` as
 dynamic query parameters / headers on top of any individual `@Query`/`@Header`; a null map
@@ -291,12 +293,15 @@ client.call {
     multipart {
         part("caption", "before")
         filePart("file", filename = "shot.png", bytes = imageBytes, contentType = "image/png")
+        onProgress { sent, total -> println("$sent / $total") }
     }
 }.response()
 ```
 
 `multipart { }` holds each part's bytes in memory. It requires POST, PUT or PATCH
-and cannot be combined with `body(...)`.
+and cannot be combined with `body(...)`. `onProgress { sent, total -> }` is optional
+and reports upload byte progress; it fires on whatever thread the platform delivers
+it on, so hop to your UI thread yourself if you're updating UI from it.
 
 ---
 
