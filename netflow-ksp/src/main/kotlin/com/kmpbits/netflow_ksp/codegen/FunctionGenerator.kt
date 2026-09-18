@@ -145,6 +145,7 @@ private fun buildParamStatement(param: ParamBinding): CodeBlock? = when (param) 
         }
     is ParamBinding.BodyParam -> CodeBlock.of("body(%N)", param.paramName)
     is ParamBinding.PartParam -> null // emitted by buildMultipartBlock
+    is ParamBinding.ProgressParam -> null // emitted by buildMultipartBlock
     is ParamBinding.UrlParam -> null // consumed by buildPathExpression's `path = ...`
     is ParamBinding.QueryMapParam -> CodeBlock.of(
         "%N?.forEach { (k, v) -> if (v != null) parameter(k to v) }",
@@ -156,7 +157,7 @@ private fun buildParamStatement(param: ParamBinding): CodeBlock? = when (param) 
     )
 }
 
-/** The `multipart { … }` sub-block: one statement per `@Part`, nullable parts guarded. */
+/** The `multipart { … }` sub-block: one statement per `@Part`, nullable parts guarded, then `@Progress`. */
 private fun buildMultipartBlock(fn: ApiFunction): CodeBlock {
     val block = CodeBlock.builder()
     block.beginControlFlow("%M", MULTIPART_MEMBER)
@@ -168,6 +169,16 @@ private fun buildMultipartBlock(fn: ApiFunction): CodeBlock {
         }
         if (part.isNullable) {
             block.beginControlFlow("if (%N != null)", part.paramName)
+            block.addStatement("%L", statement)
+            block.endControlFlow()
+        } else {
+            block.addStatement("%L", statement)
+        }
+    }
+    fn.parameters.filterIsInstance<ParamBinding.ProgressParam>().forEach { progress ->
+        val statement = CodeBlock.of("onProgress(%N)", progress.paramName)
+        if (progress.isNullable) {
+            block.beginControlFlow("if (%N != null)", progress.paramName)
             block.addStatement("%L", statement)
             block.endControlFlow()
         } else {
