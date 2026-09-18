@@ -12,6 +12,7 @@ import com.kmpbits.netflow_annotations.POST
 import com.kmpbits.netflow_annotations.Paginated
 import com.kmpbits.netflow_annotations.Part
 import com.kmpbits.netflow_annotations.Path
+import com.kmpbits.netflow_annotations.Progress
 import com.kmpbits.netflow_annotations.Query
 import com.kmpbits.netflow_annotations.QueryMap
 import com.kmpbits.netflow_annotations.SkipAuth
@@ -74,6 +75,14 @@ interface TodoApi {
         @QueryMap filters: Map<String, Any?>?,
         @HeaderMap extraHeaders: Map<String, Any?>?,
     ): AsyncState<List<TodoDto>>
+
+    @Multipart
+    @POST("todos/{todoId}/attachments")
+    suspend fun uploadTodoAttachmentWithProgress(
+        @Path todoId: Int,
+        @Part("file") file: FilePart,
+        @Progress onProgress: ((Long, Long) -> Unit)?,
+    ): AsyncState<UploadResponse>
 
     @Multipart
     @POST("todos/{todoId}/attachments")
