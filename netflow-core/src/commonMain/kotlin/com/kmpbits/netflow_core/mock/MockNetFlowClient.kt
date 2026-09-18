@@ -139,6 +139,7 @@ class MockNetFlowClient private constructor(
                         headers = requestBuilder.headers.map { it.first.header to it.second },
                         parts = builder.parts.toList().ifEmpty { null },
                         parameters = builder.parameters.toList(),
+                        onProgress = builder.onProgress,
                     )
                     _recordedRequests.add(mockRequest)
 

@@ -9,6 +9,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class RequestBuilderMultipartTest {
@@ -108,5 +109,35 @@ class RequestBuilderMultipartTest {
                 multipart { part("", "y") }
             }.response()
         }
+    }
+
+    @Test
+    fun onProgress_set_inside_multipart_reaches_the_recorded_mock_request() = runTest {
+        val c = client()
+        var seen: Pair<Long, Long>? = null
+
+        c.call {
+            path = "upload"; method = HttpMethod.Post
+            multipart {
+                part("description", "My photo")
+                onProgress { sent, total -> seen = sent to total }
+            }
+        }.response()
+
+        val callback = c.recordedRequests.single().onProgress
+        assertNotNull(callback)
+        callback(7, 42)
+        assertEquals(7L to 42L, seen)
+    }
+
+    @Test
+    fun no_onProgress_call_leaves_the_recorded_mock_request_onProgress_null() = runTest {
+        val c = client()
+        c.call {
+            path = "upload"; method = HttpMethod.Post
+            multipart { part("x", "y") }
+        }.response()
+
+        assertNull(c.recordedRequests.single().onProgress)
     }
 }

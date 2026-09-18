@@ -14,6 +14,18 @@ class MultipartBuilder internal constructor() {
 
     internal val parts: MutableList<MultipartPart> = mutableListOf()
 
+    internal var progressCallback: ((sent: Long, total: Long) -> Unit)? = null
+        private set
+
+    /**
+     * Reports upload byte progress for this multipart body. Fires on whatever thread the
+     * platform delivers it on (OkHttp's write thread on Android, the session's private
+     * delegate queue on iOS) — hop to `Dispatchers.Main` yourself if updating UI.
+     */
+    fun onProgress(callback: (sent: Long, total: Long) -> Unit) {
+        progressCallback = callback
+    }
+
     /** A text form field. [value] is sent as `value.toString()`, no `Content-Type`. */
     fun part(name: String, value: Any) {
         requireName(name)
@@ -78,4 +90,5 @@ fun RequestBuilder.multipart(block: MultipartBuilder.() -> Unit) {
     if (builder.parts.isEmpty()) throw NetFlowException("Multipart body has no parts")
     parts.clear()
     parts.addAll(builder.parts)
+    onProgress = builder.progressCallback
 }

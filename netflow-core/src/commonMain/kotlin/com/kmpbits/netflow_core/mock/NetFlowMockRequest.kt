@@ -11,6 +11,7 @@ data class NetFlowMockRequest(
     val headers: List<Pair<String, String>>,
     val parts: List<MultipartPart>? = null,
     val parameters: List<Pair<String, Any?>> = emptyList(),
+    val onProgress: ((Long, Long) -> Unit)? = null,
 ) {
     /** Case-insensitive header lookup, e.g. `request["Authorization"]`. */
     operator fun get(name: String): String? =

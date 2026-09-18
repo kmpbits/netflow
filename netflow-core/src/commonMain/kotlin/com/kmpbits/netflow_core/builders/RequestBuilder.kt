@@ -45,6 +45,8 @@ class RequestBuilder internal constructor(
 
     internal var multipartSubtype: String = "form-data"
 
+    internal var onProgress: ((sent: Long, total: Long) -> Unit)? = null
+
     /**
      * The method of the request.
      * @see [HttpMethod]
