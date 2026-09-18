@@ -12,11 +12,12 @@ internal actual fun ClientBuilder.createClient(): InternalHttpClient {
         timeoutIntervalForResource = timeoutBuilder.connectionTimeout.toDouble(DurationUnit.SECONDS)
     }
 
+    val delegate = NetFlowSessionDelegate(pinningConfig, followRedirects)
     val session = NSURLSession.sessionWithConfiguration(
         configuration = config,
-        delegate = NetFlowSessionDelegate(pinningConfig, followRedirects),
+        delegate = delegate,
         delegateQueue = null,
     )
 
-    return InternalHttpClient(session)
+    return InternalHttpClient(session, delegate)
 }

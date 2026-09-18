@@ -5,25 +5,31 @@ import com.kmpbits.netflow_core.builders.RequestBuilder
 import com.kmpbits.netflow_core.builders.extensions.toByteArray
 import com.kmpbits.netflow_core.enums.HttpHeader
 import com.kmpbits.netflow_core.exceptions.HttpException
+import com.kmpbits.netflow_core.pinning.NetFlowSessionDelegate
 import com.kmpbits.netflow_core.response.NetFlowResponse
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.convert
 import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.Foundation.NSHTTPURLResponse
 import platform.Foundation.NSURLSession
+import platform.Foundation.NSURLSessionDataTask
 import platform.Foundation.dataTaskWithRequest
 import kotlin.coroutines.resumeWithException
 
 internal actual class InternalHttpClient(
-    private val session: NSURLSession
+    private val session: NSURLSession,
+    private val delegate: NetFlowSessionDelegate,
 ) {
 
     @OptIn(ExperimentalForeignApi::class)
     actual suspend fun call(requestBuilder: InternalHttpRequestBuilder, builder: RequestBuilder): NetFlowResponse {
         return suspendCancellableCoroutine { continuation ->
-            val task = session.dataTaskWithRequest(
+            lateinit var task: NSURLSessionDataTask
+
+            task = session.dataTaskWithRequest(
                 request = requestBuilder.request,
                 completionHandler = { data, response, error ->
+                    delegate.clearProgress(task)
                     when {
                         error != null -> {
                             continuation.resumeWithException(HttpException(error.code.convert(), error.localizedDescription))
@@ -52,7 +58,10 @@ internal actual class InternalHttpClient(
                 }
             )
 
+            builder.onProgress?.let { delegate.registerProgress(task, it) }
+
             continuation.invokeOnCancellation {
+                delegate.clearProgress(task)
                 task.cancel()
             }
 
