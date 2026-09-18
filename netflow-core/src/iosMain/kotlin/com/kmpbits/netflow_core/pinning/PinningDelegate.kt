@@ -40,6 +40,16 @@ internal class NetFlowSessionDelegate(
     platform.Foundation.NSURLSessionDelegateProtocol,
     platform.Foundation.NSURLSessionTaskDelegateProtocol {
 
+    private val progressCallbacks = mutableMapOf<NSURLSessionTask, (Long, Long) -> Unit>()
+
+    internal fun registerProgress(task: NSURLSessionTask, callback: (Long, Long) -> Unit) {
+        progressCallbacks[task] = callback
+    }
+
+    internal fun clearProgress(task: NSURLSessionTask) {
+        progressCallbacks.remove(task)
+    }
+
     override fun URLSession(
         session: NSURLSession,
         didReceiveChallenge: NSURLAuthenticationChallenge,
@@ -98,6 +108,16 @@ internal class NetFlowSessionDelegate(
         } else {
             completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, null)
         }
+    }
+
+    override fun URLSession(
+        session: NSURLSession,
+        task: NSURLSessionTask,
+        didSendBodyData: Long,
+        totalBytesSent: Long,
+        totalBytesExpectedToSend: Long,
+    ) {
+        progressCallbacks[task]?.invoke(totalBytesSent, totalBytesExpectedToSend)
     }
 
     override fun URLSession(
