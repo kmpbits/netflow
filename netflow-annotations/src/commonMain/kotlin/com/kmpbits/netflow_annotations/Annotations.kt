@@ -141,3 +141,13 @@ annotation class Paginated(
     val pageQueryName: String = "page",
     val pageSize: Int = 20,
 )
+
+/**
+ * Receive the response body as it arrives instead of buffering it — for large downloads or
+ * line/chunk-oriented responses. The function must return `Flow<ByteArray>` and must not be
+ * `suspend`. A non-2xx status makes the flow throw `HttpException`; a failure after the first
+ * chunk is propagated, never retried. Cannot be combined with [Multipart], [Wrapped] or [Paginated].
+ */
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.BINARY)
+annotation class Streaming

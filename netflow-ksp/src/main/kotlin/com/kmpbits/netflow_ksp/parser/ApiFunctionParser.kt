@@ -34,6 +34,9 @@ internal fun parseApiFunction(
     val multipart = declaration.annotations.any {
         it.annotationType.resolve().declaration.qualifiedName?.asString() == Fqns.MULTIPART
     }
+    val streaming = declaration.annotations.any {
+        it.annotationType.resolve().declaration.qualifiedName?.asString() == Fqns.STREAMING
+    }
 
     val paging = parsePagingConfig(
         declaration,
@@ -110,6 +113,19 @@ internal fun parseApiFunction(
                 "Use AsyncState<T> with @Wrapped, or return NetFlowCall.",
             declaration,
         )
+    }
+
+    if (streaming && returnShape !is ReturnShape.Stream) {
+        ctx.error("Function '$name' is @Streaming and must return Flow<ByteArray>.", declaration)
+    }
+    if (!streaming && returnShape is ReturnShape.Stream) {
+        ctx.error("Function '$name' returns Flow<ByteArray> — annotate it with @Streaming.", declaration)
+    }
+    if (streaming && multipart) {
+        ctx.error("Function '$name' cannot combine @Streaming with @Multipart.", declaration)
+    }
+    if (streaming && wrapped) {
+        ctx.error("Function '$name' cannot combine @Streaming with @Wrapped.", declaration)
     }
 
     val placeholders = PLACEHOLDER.findAll(pathTemplate).map { it.groupValues[1] }.toSet()

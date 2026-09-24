@@ -22,6 +22,8 @@ internal object Fqns {
     const val HEADERS = "com.kmpbits.netflow_annotations.Headers"
     const val WRAPPED = "com.kmpbits.netflow_annotations.Wrapped"
     const val SKIP_AUTH = "com.kmpbits.netflow_annotations.SkipAuth"
+    const val STREAMING = "com.kmpbits.netflow_annotations.Streaming"
+    const val BYTE_ARRAY = "kotlin.ByteArray"
     const val PAGINATED = "com.kmpbits.netflow_annotations.Paginated"
     const val PAGING_DATA = "androidx.paging.PagingData"
     const val PAGING_MODEL = "com.kmpbits.netflow_paging.model.PagingModel"

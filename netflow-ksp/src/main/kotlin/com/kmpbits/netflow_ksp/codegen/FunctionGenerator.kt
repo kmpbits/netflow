@@ -20,6 +20,7 @@ private val HTTP_HEADER = ClassName(Fqns.ENUMS_PKG, "HttpHeader")
 private val OPT_IN = ClassName("kotlin", "OptIn")
 private val EXPERIMENTAL_PAGING_API = ClassName("androidx.paging", "ExperimentalPagingApi")
 private val RESPONSE_PAGINATED = MemberName(Fqns.PAGING_DESERIALIZABLES_PKG, "responsePaginated")
+private val RESPONSE_STREAM = MemberName(Fqns.DESERIALIZABLES_PKG, "responseStream")
 private val PREPARE_CALL = MemberName("com.kmpbits.netflow_core.client", "prepareCall")
 private val MULTIPART_MEMBER = MemberName("com.kmpbits.netflow_core.builders", "multipart")
 private val PLACEHOLDER = Regex("\\{([A-Za-z_][A-Za-z0-9_]*)}")
@@ -70,6 +71,7 @@ internal fun buildFunction(fn: ApiFunction): FunSpec {
             if (fn.wrapped) code.addStatement("wrappedResponse = true")
             code.endControlFlow()
         }
+        is ReturnShape.Stream -> code.add(".%M()\n", RESPONSE_STREAM)
         is ReturnShape.RawCall -> {
             // no response strategy — the chain ends at the prepareCall { } block
         }
@@ -92,6 +94,7 @@ private fun responseCall(shape: ReturnShape, wrapped: Boolean): Pair<MemberName,
         is ReturnShape.Model -> "responseToModel"
         is ReturnShape.Paginated -> error("Paginated is handled separately in buildFunction")
         is ReturnShape.RawCall -> error("RawCall is handled separately in buildFunction")
+        is ReturnShape.Stream -> error("Stream is handled separately in buildFunction")
     }
     return MemberName(Fqns.DESERIALIZABLES_PKG, name) to shape.payloadType!!
 }

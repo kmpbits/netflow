@@ -38,9 +38,10 @@ internal fun parseReturnShape(
             }
             val inner = firstArg(returnType)
             if (inner == null) {
-                ctx.error("Function '$name' must return Flow<ResultState<T>> or Flow<PagingData<T>>.", fn)
+                ctx.error("Function '$name' must return Flow<ResultState<T>>, Flow<PagingData<T>> or (with @Streaming) Flow<ByteArray>.", fn)
                 return null
             }
+            if (fqnOf(inner) == Fqns.BYTE_ARRAY) return ReturnShape.Stream
             when (fqnOf(inner)) {
                 Fqns.RESULT_STATE -> {
                     val payload = firstArg(inner) ?: run {
@@ -69,7 +70,7 @@ internal fun parseReturnShape(
                     ReturnShape.Paginated(payload)
                 }
                 else -> {
-                    ctx.error("Function '$name' must return Flow<ResultState<T>> or Flow<PagingData<T>>.", fn)
+                    ctx.error("Function '$name' must return Flow<ResultState<T>>, Flow<PagingData<T>> or (with @Streaming) Flow<ByteArray>.", fn)
                     return null
                 }
             }

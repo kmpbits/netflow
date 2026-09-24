@@ -41,6 +41,11 @@ internal sealed interface ReturnShape {
     /** A bare model / `List<model>` return on a suspend function -> `responseToModel<T>()`. */
     data class Model(override val payloadType: KSType) : ReturnShape
 
+    /** `Flow<ByteArray>` on a `@Streaming` function -> `responseStream()`. */
+    data object Stream : ReturnShape {
+        override val payloadType: KSType? get() = null
+    }
+
     data class Paginated(override val payloadType: KSType) : ReturnShape
     data object RawCall : ReturnShape {
         override val payloadType: KSType? get() = null

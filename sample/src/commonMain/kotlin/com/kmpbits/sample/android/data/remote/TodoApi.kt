@@ -16,6 +16,7 @@ import com.kmpbits.netflow_annotations.Progress
 import com.kmpbits.netflow_annotations.Query
 import com.kmpbits.netflow_annotations.QueryMap
 import com.kmpbits.netflow_annotations.SkipAuth
+import com.kmpbits.netflow_annotations.Streaming
 import com.kmpbits.netflow_annotations.Url
 import com.kmpbits.netflow_annotations.Wrapped
 import com.kmpbits.netflow_core.builders.FilePart
@@ -92,6 +93,17 @@ interface TodoApi {
         @Part("file") file: FilePart,
         @Part("meta") meta: CreateTodoRequest?,
     ): AsyncState<UploadResponse>
+
+    @Streaming
+    @GET("todos/export")
+    fun exportTodos(): Flow<ByteArray>
+
+    @Streaming
+    @GET("todos/{todoId}/attachment")
+    fun downloadTodoAttachment(
+        @Path todoId: Int,
+        @Query("format") format: String,
+    ): Flow<ByteArray>
 
     @GET("todos")
     suspend fun todosCallSuspend(): NetFlowCall                 // suspend + NetFlowCall
