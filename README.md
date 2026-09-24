@@ -150,7 +150,7 @@ out of the client's `auth { }` (login / sign-up / refresh endpoints). `@Body` ac
 `@Serializable` type or `Map<String, Any>`. `@Multipart` sends a `multipart/form-data` body;
 each `@Part` is a `FilePart` (file), a primitive (text field), or a `@Serializable` value
 (JSON field), and a null `@Part` is omitted. An optional `@Progress` parameter
-(`(Long, Long) -> Unit`) reports upload byte progress; it requires `@Multipart`.
+(`(Long, Long) -> Unit`) reports upload byte progress on `@Multipart`, or download progress on `@Streaming`.
 `@Multipart` and `@Body` are mutually exclusive.
 `@Streaming` on a non-suspend function returning `Flow<ByteArray>` streams the response body
 (see [Streaming](#streaming)); it cannot be combined with `@Multipart`, `@Wrapped` or `@Paginated`.
@@ -337,6 +337,24 @@ until you collect it, and cancelling the collector cancels the request.
   `2xx` emits its body as a single UTF-8 chunk and any other status throws
   `HttpException`.
 - Chunks are raw bytes: decoding lines, NDJSON or SSE is up to you.
+
+**Download progress.** `onDownloadProgress { received, total -> }` (or, on an annotated
+interface, a `@Progress onProgress: ((Long, Long) -> Unit)?` parameter on the `@Streaming`
+function) reports the cumulative bytes as they arrive from the network:
+
+```kotlin
+client.call {
+    path = "files/report.zip"
+    onDownloadProgress { received, total ->
+        if (total > 0) println("${received * 100 / total}%") else println("$received bytes")
+    }
+}.responseStream().collect { chunk -> output.write(chunk) }
+```
+
+`total` is the `Content-Length`, or `-1` when the server sent none (chunked or
+transparently compressed responses). The callback fires on whatever thread the platform
+delivers data on, restarts from 0 if the request is retried, and isn't called for a
+non-2xx response. The multipart block's `onProgress` remains upload-only.
 
 ---
 
@@ -824,7 +842,7 @@ fun `delete removes item from local database`() = runTest {
 | `NetFlowMockResponse.error(code, errorBody)` | custom | Client error |
 | `NetFlowMockResponse.notFound()` | `404` | Not found |
 | `NetFlowMockResponse.serverError(errorBody)` | `500` | Server error |
-| `NetFlowMockResponse.stream(chunks)` | `200` | Chunks emitted by a streaming call (a plain `success(body)` streams as one chunk) |
+| `NetFlowMockResponse.stream(chunks)` | `200` | Chunks emitted by a streaming call (a plain `success(body)` streams as one chunk; a `Content-Length` header feeds `onDownloadProgress`'s total) |
 
 All helpers accept an optional `delay: Duration` parameter.
 
