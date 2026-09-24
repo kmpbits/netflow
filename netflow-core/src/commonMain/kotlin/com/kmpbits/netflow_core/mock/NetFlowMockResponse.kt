@@ -9,6 +9,8 @@ data class NetFlowMockResponse(
     val errorBody: String? = null,
     val delay: Duration = 0.milliseconds,
     val headers: Map<String, String> = emptyMap(),
+    /** Chunks emitted by `stream()`. When null, a streamed 2xx emits [body] as a single chunk. */
+    val chunks: List<ByteArray>? = null,
 ) {
     companion object {
         fun success(
@@ -23,6 +25,12 @@ data class NetFlowMockResponse(
             delay: Duration = 0.milliseconds,
             headers: Map<String, String> = emptyMap(),
         ) = NetFlowMockResponse(code = code, errorBody = errorBody, delay = delay, headers = headers)
+
+        fun stream(
+            chunks: List<ByteArray>,
+            delay: Duration = 0.milliseconds,
+            headers: Map<String, String> = emptyMap(),
+        ) = NetFlowMockResponse(code = 200, delay = delay, headers = headers, chunks = chunks)
 
         fun notFound(delay: Duration = 0.milliseconds) =
             NetFlowMockResponse(code = 404, errorBody = "Not found", delay = delay)

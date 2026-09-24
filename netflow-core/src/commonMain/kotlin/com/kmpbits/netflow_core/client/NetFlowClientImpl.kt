@@ -71,6 +71,9 @@ internal class NetFlowClientImpl(
             delegate = object : HttpEngineAdapter {
                 override suspend fun call(requestBuilder: InternalHttpRequestBuilder, builder: RequestBuilder) =
                     client.call(requestBuilder, builder)
+
+                override fun stream(requestBuilder: InternalHttpRequestBuilder, builder: RequestBuilder) =
+                    client.stream(requestBuilder, builder)
             },
             interceptors = interceptors,
         )

@@ -13,6 +13,7 @@ import com.kmpbits.netflow_core.client.NetFlowClient
 import com.kmpbits.netflow_core.enums.HttpHeader
 import com.kmpbits.netflow_core.enums.HttpMethod
 import com.kmpbits.netflow_core.enums.LogLevel
+import com.kmpbits.netflow_core.exceptions.HttpException
 import com.kmpbits.netflow_core.interceptor.InterceptingEngineAdapter
 import com.kmpbits.netflow_core.interceptor.NetFlowInterceptor
 import com.kmpbits.netflow_core.platform.HttpEngineAdapter
@@ -20,9 +21,11 @@ import com.kmpbits.netflow_core.platform.InternalHttpRequestBuilder
 import com.kmpbits.netflow_core.request.NetFlowRequest
 import com.kmpbits.netflow_core.response.NetFlowResponse
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flow
 
 /**
  * A [NetFlowClient] implementation for testing. Intercepts all requests and
@@ -118,6 +121,24 @@ class MockNetFlowClient private constructor(
         }
     }
 
+    private fun record(requestBuilder: InternalHttpRequestBuilder, builder: RequestBuilder): NetFlowMockRequest {
+        // Headers come from requestBuilder (InternalHttpRequestBuilder), not
+        // builder.headers: a NetFlowInterceptor writes its changes there via
+        // apply(), never onto the RequestBuilder's mutable list.
+        val mockRequest = NetFlowMockRequest(
+            path = builder.path,
+            method = builder.method,
+            body = builder.body,
+            rawBody = builder.rawBody,
+            headers = requestBuilder.headers.map { it.first.header to it.second },
+            parts = builder.parts.toList().ifEmpty { null },
+            parameters = builder.parameters.toList(),
+            onProgress = builder.onProgress,
+        )
+        _recordedRequests.add(mockRequest)
+        return mockRequest
+    }
+
     override fun call(builder: RequestBuilder.() -> Unit): NetFlowRequest {
         val callBuilder = RequestBuilder("https://mock", RetryBuilder(), mutableListOf()).also(builder)
         val requestBuilder = callBuilder.build()
@@ -128,20 +149,7 @@ class MockNetFlowClient private constructor(
                     requestBuilder: InternalHttpRequestBuilder,
                     builder: RequestBuilder
                 ): NetFlowResponse {
-                    // Headers come from requestBuilder (InternalHttpRequestBuilder), not
-                    // builder.headers: a NetFlowInterceptor writes its changes there via
-                    // apply(), never onto the RequestBuilder's mutable list.
-                    val mockRequest = NetFlowMockRequest(
-                        path = builder.path,
-                        method = builder.method,
-                        body = builder.body,
-                        rawBody = builder.rawBody,
-                        headers = requestBuilder.headers.map { it.first.header to it.second },
-                        parts = builder.parts.toList().ifEmpty { null },
-                        parameters = builder.parameters.toList(),
-                        onProgress = builder.onProgress,
-                    )
-                    _recordedRequests.add(mockRequest)
+                    val mockRequest = record(requestBuilder, builder)
 
                     val mockResponse = handler(mockRequest)
 
@@ -157,6 +165,25 @@ class MockNetFlowClient private constructor(
                         body = mockResponse.body,
                         errorBody = mockResponse.errorBody
                     )
+                }
+
+                override fun stream(
+                    requestBuilder: InternalHttpRequestBuilder,
+                    builder: RequestBuilder
+                ): Flow<ByteArray> = flow {
+                    val mockResponse = handler(record(requestBuilder, builder))
+
+                    if (mockResponse.delay.inWholeMilliseconds > 0) delay(mockResponse.delay)
+
+                    if (mockResponse.code !in 200..299) {
+                        throw HttpException(mockResponse.code, mockResponse.errorBody)
+                    }
+                    val chunks = mockResponse.chunks
+                    if (chunks != null) {
+                        chunks.forEach { emit(it) }
+                    } else {
+                        mockResponse.body?.let { emit(it.encodeToByteArray()) }
+                    }
                 }
             },
             interceptors = interceptors,

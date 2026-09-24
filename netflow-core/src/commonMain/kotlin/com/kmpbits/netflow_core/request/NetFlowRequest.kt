@@ -6,11 +6,15 @@ import com.kmpbits.netflow_core.builders.RequestBuilder
 import com.kmpbits.netflow_core.enums.HttpHeader
 import com.kmpbits.netflow_core.enums.HttpMethod
 import com.kmpbits.netflow_core.enums.LogLevel
+import com.kmpbits.netflow_core.exceptions.HttpException
 import com.kmpbits.netflow_core.logging.Logging
 import com.kmpbits.netflow_core.platform.HttpEngineAdapter
 import com.kmpbits.netflow_core.platform.InternalHttpRequestBuilder
 import com.kmpbits.netflow_core.response.NetFlowResponse
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
@@ -74,6 +78,60 @@ class NetFlowRequest internal constructor(
             res = dispatchWithRetry()
         }
         return res
+    }
+
+    /**
+     * Streams the response body as it arrives. Auth and retry apply only **before the first byte**:
+     * once a chunk has been emitted a failure is propagated, never replayed. Non-2xx throws
+     * [HttpException]; a 401 triggers one single-flight token refresh and retry, like [response].
+     * Only the request is logged (there is no buffered response to log).
+     */
+    fun stream(): Flow<ByteArray> = flow {
+        val holder = tokenHolder
+        if (holder == null || builder.skipAuth) {
+            emitAll(streamWithRetry())
+            return@flow
+        }
+
+        holder.ensureSeeded()
+        holder.ensureFresh()
+
+        val accessUsed = holder.currentAccess()
+        applyAuthHeader(holder.scheme, accessUsed)
+
+        var started = false
+        try {
+            streamWithRetry().collect { started = true; emit(it) }
+        } catch (e: HttpException) {
+            if (e.code != 401 || started || refreshedOnce) throw e
+            refreshedOnce = true
+            val new = holder.refresh(accessUsed) ?: throw e
+            applyAuthHeader(holder.scheme, new.accessToken)
+            emitAll(streamWithRetry())
+        }
+    }
+
+    private fun streamWithRetry(): Flow<ByteArray> = flow {
+        val retryBuilder = builder.retryBuilder
+        val attempts = retryBuilder.times.times
+        var attempt = 0
+
+        while (true) {
+            logRequest(attempt)
+            var emitted = false
+            try {
+                client.stream(requestBuilder, builder).collect { emitted = true; emit(it) }
+                return@flow
+            } catch (e: Exception) {
+                // HttpException is a server answer, not a transport failure: never retried (same as call()).
+                if (e is CancellationException || emitted || e is HttpException) throw e
+
+                val shouldRetry = retryBuilder.retryOn?.invoke(e) ?: true
+                attempt++
+                if (!shouldRetry || attempt >= attempts) throw e
+                delay(retryBuilder.delay)
+            }
+        }
     }
 
     private fun applyAuthHeader(scheme: String, token: String?) {
