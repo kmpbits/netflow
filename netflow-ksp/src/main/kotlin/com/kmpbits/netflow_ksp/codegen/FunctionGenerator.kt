@@ -58,6 +58,16 @@ internal fun buildFunction(fn: ApiFunction): FunSpec {
     fn.parameters.forEach { param ->
         buildParamStatement(param)?.let { code.addStatement("%L", it) }
     }
+    if (fn.returnShape is ReturnShape.Stream) {
+        // On a @Streaming function @Progress is the download callback (on @Multipart it is the upload one).
+        fn.parameters.filterIsInstance<ParamBinding.ProgressParam>().forEach { progress ->
+            if (progress.isNullable) {
+                code.addStatement("if (%N != null) onDownloadProgress(%N)", progress.paramName, progress.paramName)
+            } else {
+                code.addStatement("onDownloadProgress(%N)", progress.paramName)
+            }
+        }
+    }
     code.endControlFlow()
 
     when (val shape = fn.returnShape) {

@@ -66,9 +66,9 @@ internal fun parseApiFunction(
     }
 
     val progressParams = parameters.filterIsInstance<ParamBinding.ProgressParam>()
-    if (progressParams.isNotEmpty() && !multipart) {
+    if (progressParams.isNotEmpty() && !multipart && !streaming) {
         ctx.error(
-            "@Progress parameter '${progressParams.first().paramName}' requires @Multipart on function '$name'.",
+            "@Progress parameter '${progressParams.first().paramName}' requires @Multipart or @Streaming on function '$name'.",
             declaration,
         )
     }

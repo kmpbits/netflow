@@ -105,6 +105,13 @@ interface TodoApi {
         @Query("format") format: String,
     ): Flow<ByteArray>
 
+    @Streaming
+    @GET("todos/{todoId}/attachment")
+    fun downloadTodoAttachmentWithProgress(
+        @Path todoId: Int,
+        @Progress onProgress: ((Long, Long) -> Unit)?,
+    ): Flow<ByteArray>
+
     @GET("todos")
     suspend fun todosCallSuspend(): NetFlowCall                 // suspend + NetFlowCall
 

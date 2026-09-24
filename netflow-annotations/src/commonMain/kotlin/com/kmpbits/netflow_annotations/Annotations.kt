@@ -75,10 +75,13 @@ annotation class Multipart
 annotation class Part(val name: String = "", val filename: String = "")
 
 /**
- * Binds a `(sent: Long, total: Long) -> Unit` function parameter as the upload-progress
- * callback for a [Multipart] request — wired into the generated `multipart { }` block's
- * `onProgress { }`. Requires [Multipart] on the function. At most one `@Progress` per
- * function.
+ * Binds a `(Long, Long) -> Unit` function parameter as a progress callback. At most one
+ * `@Progress` per function, and it needs [Multipart] or [Streaming] on the function:
+ *
+ * - on a [Multipart] request it is the **upload** callback `(sent, total)`, wired into the
+ *   generated `multipart { }` block's `onProgress { }`;
+ * - on a [Streaming] function it is the **download** callback `(received, total)`, wired into
+ *   `onDownloadProgress { }`. `total` is `-1` when the server sent no `Content-Length`.
  */
 @Target(AnnotationTarget.VALUE_PARAMETER)
 @Retention(AnnotationRetention.BINARY)

@@ -11,6 +11,8 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 class TodoApiStreamingTest {
 
@@ -43,5 +45,32 @@ class TodoApiStreamingTest {
         val req = client.recordedRequests.single()
         assertEquals("todos/5/attachment", req.path)
         assertEquals(listOf("format" to "zip"), req.parameters)
+    }
+
+    @Test
+    fun generated_progress_param_on_a_streaming_function_reports_download_progress() = runTest {
+        val client = MockNetFlowClient {
+            NetFlowMockResponse.stream(
+                listOf(byteArrayOf(1, 2), byteArrayOf(3)),
+                headers = mapOf("Content-Length" to "3"),
+            )
+        }
+        val seen = mutableListOf<Pair<Long, Long>>()
+
+        client.createTodoApi()
+            .downloadTodoAttachmentWithProgress(todoId = 1, onProgress = { r, t -> seen += r to t })
+            .toList()
+
+        assertEquals(listOf(2L to 3L, 3L to 3L), seen)
+        assertNotNull(client.recordedRequests.single().onDownloadProgress)
+    }
+
+    @Test
+    fun generated_null_progress_on_a_streaming_function_leaves_the_callback_unset() = runTest {
+        val client = MockNetFlowClient { NetFlowMockResponse.stream(listOf(byteArrayOf(1))) }
+
+        client.createTodoApi().downloadTodoAttachmentWithProgress(todoId = 1, onProgress = null).toList()
+
+        assertNull(client.recordedRequests.single().onDownloadProgress)
     }
 }
