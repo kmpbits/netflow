@@ -3,8 +3,13 @@ package com.kmpbits.netflow_core.platform
 import com.kmpbits.netflow_core.alias.Header
 import com.kmpbits.netflow_core.builders.RequestBuilder
 import com.kmpbits.netflow_core.enums.HttpHeader
+import com.kmpbits.netflow_core.exceptions.HttpException
 import com.kmpbits.netflow_core.response.NetFlowResponse
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 
@@ -36,4 +41,24 @@ internal actual class InternalHttpClient(
             )
         }
     }
+
+    actual fun stream(requestBuilder: InternalHttpRequestBuilder, builder: RequestBuilder): Flow<ByteArray> =
+        callbackFlow {
+            val call = client.newCall(requestBuilder.request)
+            launch(Dispatchers.IO) {
+                try {
+                    call.execute().use { response ->
+                        if (!response.isSuccessful) {
+                            throw HttpException(response.code, response.body?.string().orEmpty())
+                        }
+                        response.body?.source()?.readChunks { send(it) }
+                    }
+                    close()
+                } catch (e: Throwable) {
+                    close(e)
+                }
+            }
+            // Collector cancelled (or channel closed): abort the call so a blocked read unblocks.
+            awaitClose { call.cancel() }
+        }
 }
