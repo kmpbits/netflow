@@ -17,6 +17,10 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
  * never block), so once [capacity] chunks are waiting [onSuspend] is invoked once — the caller
  * pauses the network task — and [onResume] once the consumer has drained to half of [capacity].
  *
+ * [onProgress] gets the cumulative bytes received (and the content length, `-1` if unknown) as each
+ * chunk arrives from the network, before it is handed to the collector. It is not called for a
+ * non-2xx body.
+ *
  * A non-2xx status is turned into an [HttpException] carrying the accumulated body; its chunks are
  * never emitted. A completion error is delivered after the chunks already received.
  */
@@ -25,16 +29,21 @@ internal class StreamCollector(
     private val capacity: Int = DEFAULT_CAPACITY,
     private val onSuspend: () -> Unit,
     private val onResume: () -> Unit,
+    private val onProgress: ((received: Long, total: Long) -> Unit)? = null,
 ) {
     private val channel = Channel<ByteArray>(Channel.UNLIMITED)
     private val pending = AtomicInt(0)
     private val paused = AtomicBoolean(false)
 
     private var failedCode: Int? = null
+    private var contentLength = -1L
+    private var received = 0L
     private val errorChunks = mutableListOf<ByteArray>()
 
-    fun onResponse(code: Int) {
+    /** [contentLength] is the expected body size, or `-1` when unknown. */
+    fun onResponse(code: Int, contentLength: Long = -1L) {
         if (code !in 200..299) failedCode = code
+        this.contentLength = contentLength
     }
 
     fun onData(bytes: ByteArray) {
@@ -42,6 +51,8 @@ internal class StreamCollector(
             errorChunks += bytes
             return
         }
+        received += bytes.size
+        onProgress?.invoke(received, contentLength)
         channel.trySend(bytes)
         if (pending.addAndFetch(1) >= capacity && paused.compareAndSet(false, true)) {
             onSuspend()

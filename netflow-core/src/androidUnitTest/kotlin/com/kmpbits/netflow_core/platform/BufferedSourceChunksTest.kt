@@ -28,4 +28,19 @@ class BufferedSourceChunksTest {
 
         assertTrue(chunks.isEmpty())
     }
+
+    @Test
+    fun `reports cumulative progress after each read with the given total`() = runTest {
+        val source = Buffer().write(ByteArray(10) { it.toByte() })
+        val seen = mutableListOf<Pair<Long, Long>>()
+
+        source.readChunks(chunkSize = 4, total = 10, onProgress = { r, t -> seen += r to t }) {}
+
+        assertEquals(listOf(4L to 10L, 8L to 10L, 10L to 10L), seen)
+    }
+
+    @Test
+    fun `progress is optional`() = runTest {
+        Buffer().write(byteArrayOf(1, 2)).readChunks(chunkSize = 4) {}
+    }
 }

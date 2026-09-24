@@ -102,4 +102,41 @@ class StreamCollectorTest {
 
         assertEquals(0, suspends)
     }
+
+    @Test
+    fun `reports cumulative progress with the content length`() = runTest {
+        val seen = mutableListOf<Pair<Long, Long>>()
+        val c = StreamCollector(onSuspend = {}, onResume = {}, onProgress = { r, t -> seen += r to t })
+        c.onResponse(200, contentLength = 10)
+        c.onData(byteArrayOf(1, 2, 3))
+        c.onData(byteArrayOf(4, 5))
+        c.onComplete(null)
+        c.flow.toList()
+
+        assertEquals(listOf(3L to 10L, 5L to 10L), seen)
+    }
+
+    @Test
+    fun `an unknown content length is reported as minus one`() = runTest {
+        val seen = mutableListOf<Pair<Long, Long>>()
+        val c = StreamCollector(onSuspend = {}, onResume = {}, onProgress = { r, t -> seen += r to t })
+        c.onResponse(200)
+        c.onData(byteArrayOf(1))
+        c.onComplete(null)
+        c.flow.toList()
+
+        assertEquals(listOf(1L to -1L), seen)
+    }
+
+    @Test
+    fun `no progress is reported for a non-2xx body`() = runTest {
+        val seen = mutableListOf<Pair<Long, Long>>()
+        val c = StreamCollector(onSuspend = {}, onResume = {}, onProgress = { r, t -> seen += r to t })
+        c.onResponse(500, contentLength = 4)
+        c.onData(byteArrayOf(1, 2, 3, 4))
+        c.onComplete(null)
+        assertFailsWith<HttpException> { c.flow.toList() }
+
+        assertTrue(seen.isEmpty())
+    }
 }

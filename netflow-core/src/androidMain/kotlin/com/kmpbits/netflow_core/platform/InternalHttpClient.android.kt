@@ -51,7 +51,11 @@ internal actual class InternalHttpClient(
                         if (!response.isSuccessful) {
                             throw HttpException(response.code, response.body?.string().orEmpty())
                         }
-                        response.body?.source()?.readChunks { send(it) }
+                        val body = response.body
+                        body?.source()?.readChunks(
+                            total = body.contentLength(),
+                            onProgress = builder.downloadProgress,
+                        ) { send(it) }
                     }
                     close()
                 } catch (e: Throwable) {

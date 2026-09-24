@@ -78,6 +78,7 @@ internal actual class InternalHttpClient(
         val collector = StreamCollector(
             onSuspend = { task.suspend() },
             onResume = { task.resume() }, // suspend/resume are counted by NSURLSession; this pairs with onSuspend
+            onProgress = builder.downloadProgress,
         )
         task = session.dataTaskWithRequest(requestBuilder.request)
         delegate.registerStream(task, collector)

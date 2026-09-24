@@ -170,4 +170,37 @@ class NetFlowStreamTest {
 
         assertEquals(null, seenAuth)
     }
+
+    @Test
+    fun `onDownloadProgress receives the cumulative bytes and the content length`() = runTest {
+        val seen = mutableListOf<Pair<Long, Long>>()
+        val client = MockNetFlowClient {
+            NetFlowMockResponse.stream(chunks, headers = mapOf("Content-Length" to "3"))
+        }
+
+        client.call { path = "files"; onDownloadProgress { r, t -> seen += r to t } }.stream().toList()
+
+        assertEquals(listOf(2L to 3L, 3L to 3L), seen)
+    }
+
+    @Test
+    fun `onDownloadProgress reports minus one when the mock has no content length`() = runTest {
+        val seen = mutableListOf<Pair<Long, Long>>()
+        val client = MockNetFlowClient { NetFlowMockResponse.stream(chunks) }
+
+        client.call { path = "files"; onDownloadProgress { r, t -> seen += r to t } }.stream().toList()
+
+        assertEquals(listOf(2L to -1L, 3L to -1L), seen)
+    }
+
+    @Test
+    fun `the callback is recorded on the mock request`() = runTest {
+        val client = MockNetFlowClient { NetFlowMockResponse.stream(chunks) }
+
+        client.call { path = "files"; onDownloadProgress { _, _ -> } }.stream().toList()
+        client.call { path = "files" }.stream().toList()
+
+        assertTrue(client.recordedRequests[0].onDownloadProgress != null)
+        assertEquals(null, client.recordedRequests[1].onDownloadProgress)
+    }
 }

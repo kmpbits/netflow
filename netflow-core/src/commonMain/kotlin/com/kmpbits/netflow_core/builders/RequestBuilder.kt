@@ -47,6 +47,19 @@ class RequestBuilder internal constructor(
 
     internal var onProgress: ((sent: Long, total: Long) -> Unit)? = null
 
+    internal var downloadProgress: ((received: Long, total: Long) -> Unit)? = null
+
+    /**
+     * Reports download progress of a streamed response ([com.kmpbits.netflow_core.deserializables.responseStream]).
+     * [callback] gets the cumulative bytes received and the expected total, or `-1` when the server
+     * sent no `Content-Length` (chunked or transparently compressed responses). It fires on
+     * whatever thread the platform delivers data on, restarts from 0 on a retried attempt, and is
+     * not used by buffered responses. For uploads see the multipart block's `onProgress`.
+     */
+    fun onDownloadProgress(callback: (received: Long, total: Long) -> Unit) {
+        downloadProgress = callback
+    }
+
     /**
      * The method of the request.
      * @see [HttpMethod]

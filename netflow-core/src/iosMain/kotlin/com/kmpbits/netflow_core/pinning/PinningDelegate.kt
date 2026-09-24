@@ -88,7 +88,8 @@ internal class NetFlowSessionDelegate(
         completionHandler: (NSURLSessionResponseDisposition) -> Unit,
     ) {
         val status = (didReceiveResponse as? NSHTTPURLResponse)?.statusCode?.toInt()
-        if (status != null) collectorFor(dataTask)?.onResponse(status)
+        // expectedContentLength is -1 (NSURLResponseUnknownLength) when the server sent none.
+        if (status != null) collectorFor(dataTask)?.onResponse(status, didReceiveResponse.expectedContentLength)
         // Must be called for every data task the session delegate sees, streaming or not.
         completionHandler(NSURLSessionResponseAllow)
     }

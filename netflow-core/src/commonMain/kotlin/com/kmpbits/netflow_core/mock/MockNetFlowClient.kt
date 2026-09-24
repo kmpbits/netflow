@@ -134,6 +134,7 @@ class MockNetFlowClient private constructor(
             parts = builder.parts.toList().ifEmpty { null },
             parameters = builder.parameters.toList(),
             onProgress = builder.onProgress,
+            onDownloadProgress = builder.downloadProgress,
         )
         _recordedRequests.add(mockRequest)
         return mockRequest
@@ -178,11 +179,16 @@ class MockNetFlowClient private constructor(
                     if (mockResponse.code !in 200..299) {
                         throw HttpException(mockResponse.code, mockResponse.errorBody)
                     }
+                    val total = mockResponse.headers.entries
+                        .firstOrNull { it.key.equals("Content-Length", ignoreCase = true) }
+                        ?.value?.toLongOrNull() ?: -1L
                     val chunks = mockResponse.chunks
-                    if (chunks != null) {
-                        chunks.forEach { emit(it) }
-                    } else {
-                        mockResponse.body?.let { emit(it.encodeToByteArray()) }
+                        ?: listOfNotNull(mockResponse.body?.encodeToByteArray())
+                    var received = 0L
+                    chunks.forEach {
+                        received += it.size
+                        builder.downloadProgress?.invoke(received, total)
+                        emit(it)
                     }
                 }
             },
