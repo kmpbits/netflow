@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.0]
+
+### New features
+- **`netflow-core` — response streaming.** `call { … }.responseStream()` (also `NetFlowRequest.responseStream()`) returns a `Flow<ByteArray>` of the response body as it arrives, without buffering it: OkHttp's `body.source()` on Android, an `NSURLSessionDataDelegate` on iOS (with `suspend()`/`resume()` backpressure so a slow collector does not balloon memory). A non-2xx status makes the flow throw `HttpException(code, errorBody)`; a failure mid-stream propagates. Auth (bearer + one 401 refresh) and retry apply only **before the first byte** — delivered chunks are never replayed. Request interceptors run; a stream has no buffered response for them to inspect, so they must return `chain.proceed(...)`'s response unchanged (a short-circuited 2xx emits its body as a single UTF-8 chunk, any other status throws `HttpException`).
+- **`netflow-ksp` — `@Streaming`.** A non-suspend function annotated `@Streaming` returning `Flow<ByteArray>` generates `….responseStream()`. Compile-time errors: return type other than `Flow<ByteArray>`, `Flow<ByteArray>` without `@Streaming`, and `@Streaming` combined with `@Multipart`, `@Wrapped` or `@Paginated`.
+- **`MockNetFlowClient` — streaming.** `NetFlowMockResponse.stream(chunks)` emits configurable chunks; a plain `success(body)` streams its body as one chunk.
+
 ## [0.13.0]
 
 ### New features

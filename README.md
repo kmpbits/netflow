@@ -21,6 +21,7 @@ Start with **Retrofit-style annotated interfaces** for your straightforward endp
 - `wrappedResponse` flag for APIs that return `{ "data": ... }` envelopes
 - **Bearer auth** — automatic token attach, single-flight `401 → refresh → retry`, optional proactive refresh from the JWT `exp`, `authState` flow, pluggable `TokenStorage`
 - `multipart/form-data` uploads — `multipart { }` on the DSL, `@Multipart` / `@Part` on annotated interfaces
+- **Response streaming** — `Flow<ByteArray>` of the body as it arrives, unbuffered (`@Streaming` on annotated interfaces, `responseStream()` on the DSL)
 - Local cache integration with observation support
 - Built-in error handling
 - Debug logging with multiple levels (None, Basic, Headers, Body)
@@ -151,6 +152,8 @@ each `@Part` is a `FilePart` (file), a primitive (text field), or a `@Serializab
 (JSON field), and a null `@Part` is omitted. An optional `@Progress` parameter
 (`(Long, Long) -> Unit`) reports upload byte progress; it requires `@Multipart`.
 `@Multipart` and `@Body` are mutually exclusive.
+`@Streaming` on a non-suspend function returning `Flow<ByteArray>` streams the response body
+(see [Streaming](#streaming)); it cannot be combined with `@Multipart`, `@Wrapped` or `@Paginated`.
 `@Url` on a `String` parameter replaces the full request URL — it needs an empty method path
 and no `@Path` on the same function. `@QueryMap` / `@HeaderMap` bind a `Map<String, Any?>` as
 dynamic query parameters / headers on top of any individual `@Query`/`@Header`; a null map
@@ -302,6 +305,38 @@ client.call {
 and cannot be combined with `body(...)`. `onProgress { sent, total -> }` is optional
 and reports upload byte progress; it fires on whatever thread the platform delivers
 it on, so hop to your UI thread yourself if you're updating UI from it.
+
+### Streaming
+
+```kotlin
+@NetFlowApi
+interface FilesApi {
+    @Streaming
+    @GET("files/{id}")
+    fun download(@Path id: String): Flow<ByteArray>
+}
+
+api.download("report.zip")
+    .catch { e -> if (e is HttpException) showError(e.code) else throw e }
+    .collect { chunk -> output.write(chunk) }
+```
+
+Or from the DSL: `client.call { path = "files/report.zip" }.responseStream()`.
+
+The body is delivered in chunks as it arrives instead of being buffered in memory
+(OkHttp's `body.source()` on Android, an `NSURLSessionDataDelegate` on iOS, which
+pauses the task when the collector falls behind). The flow is cold: nothing is sent
+until you collect it, and cancelling the collector cancels the request.
+
+- A non-2xx status makes the flow throw `HttpException(code, errorBody)`; a failure
+  mid-stream is propagated as-is.
+- Auth (bearer attach + one `401 → refresh → retry`) and `retry { }` apply only
+  **before the first byte**. Once a chunk has been delivered it is never replayed.
+- Interceptors run on the request. A stream has no buffered response for them to
+  inspect, so return `chain.proceed(...)`'s response unchanged; a short-circuited
+  `2xx` emits its body as a single UTF-8 chunk and any other status throws
+  `HttpException`.
+- Chunks are raw bytes: decoding lines, NDJSON or SSE is up to you.
 
 ---
 
@@ -789,6 +824,7 @@ fun `delete removes item from local database`() = runTest {
 | `NetFlowMockResponse.error(code, errorBody)` | custom | Client error |
 | `NetFlowMockResponse.notFound()` | `404` | Not found |
 | `NetFlowMockResponse.serverError(errorBody)` | `500` | Server error |
+| `NetFlowMockResponse.stream(chunks)` | `200` | Chunks emitted by a streaming call (a plain `success(body)` streams as one chunk) |
 
 All helpers accept an optional `delay: Duration` parameter.
 
