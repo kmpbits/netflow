@@ -1,19 +1,30 @@
 package com.kmpbits.netflow_core.pinning
 
+import com.kmpbits.netflow_core.builders.extensions.toByteArray
+import com.kmpbits.netflow_core.exceptions.HttpException
+import com.kmpbits.netflow_core.platform.StreamCollector
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.convert
 import platform.CoreFoundation.CFArrayGetCount
 import platform.CoreFoundation.CFArrayGetValueAtIndex
 import platform.CoreFoundation.CFRelease
+import platform.Foundation.NSData
+import platform.Foundation.NSError
 import platform.Foundation.NSHTTPURLResponse
+import platform.Foundation.NSLock
 import platform.Foundation.NSURLAuthenticationChallenge
 import platform.Foundation.NSURLAuthenticationMethodServerTrust
 import platform.Foundation.NSURLCredential
 import platform.Foundation.NSURLRequest
+import platform.Foundation.NSURLResponse
 import platform.Foundation.NSURLSession
 import platform.Foundation.NSURLSessionAuthChallengeCancelAuthenticationChallenge
 import platform.Foundation.NSURLSessionAuthChallengeDisposition
 import platform.Foundation.NSURLSessionAuthChallengePerformDefaultHandling
 import platform.Foundation.NSURLSessionAuthChallengeUseCredential
+import platform.Foundation.NSURLSessionDataTask
+import platform.Foundation.NSURLSessionResponseAllow
+import platform.Foundation.NSURLSessionResponseDisposition
 import platform.Foundation.NSURLSessionTask
 import platform.Foundation.credentialForTrust
 import platform.Foundation.serverTrust
@@ -38,7 +49,8 @@ internal class NetFlowSessionDelegate(
     private val followRedirects: Boolean,
 ) : NSObject(),
     platform.Foundation.NSURLSessionDelegateProtocol,
-    platform.Foundation.NSURLSessionTaskDelegateProtocol {
+    platform.Foundation.NSURLSessionTaskDelegateProtocol,
+    platform.Foundation.NSURLSessionDataDelegateProtocol {
 
     private val progressCallbacks = mutableMapOf<NSURLSessionTask, (Long, Long) -> Unit>()
 
@@ -48,6 +60,47 @@ internal class NetFlowSessionDelegate(
 
     internal fun clearProgress(task: NSURLSessionTask) {
         progressCallbacks.remove(task)
+    }
+
+    // The map is touched from the caller's thread (register/clear) and the delegate queue (callbacks).
+    private val streamLock = NSLock()
+    private val streamCollectors = mutableMapOf<NSURLSessionTask, StreamCollector>()
+
+    internal fun registerStream(task: NSURLSessionTask, collector: StreamCollector) {
+        streamLock.lock()
+        try { streamCollectors[task] = collector } finally { streamLock.unlock() }
+    }
+
+    internal fun clearStream(task: NSURLSessionTask) {
+        streamLock.lock()
+        try { streamCollectors.remove(task) } finally { streamLock.unlock() }
+    }
+
+    private fun collectorFor(task: NSURLSessionTask): StreamCollector? {
+        streamLock.lock()
+        try { return streamCollectors[task] } finally { streamLock.unlock() }
+    }
+
+    override fun URLSession(
+        session: NSURLSession,
+        dataTask: NSURLSessionDataTask,
+        didReceiveResponse: NSURLResponse,
+        completionHandler: (NSURLSessionResponseDisposition) -> Unit,
+    ) {
+        val status = (didReceiveResponse as? NSHTTPURLResponse)?.statusCode?.toInt()
+        if (status != null) collectorFor(dataTask)?.onResponse(status)
+        // Must be called for every data task the session delegate sees, streaming or not.
+        completionHandler(NSURLSessionResponseAllow)
+    }
+
+    override fun URLSession(session: NSURLSession, dataTask: NSURLSessionDataTask, didReceiveData: NSData) {
+        collectorFor(dataTask)?.onData(didReceiveData.toByteArray())
+    }
+
+    override fun URLSession(session: NSURLSession, task: NSURLSessionTask, didCompleteWithError: NSError?) {
+        collectorFor(task)?.onComplete(
+            didCompleteWithError?.let { HttpException(it.code.convert(), it.localizedDescription) }
+        )
     }
 
     override fun URLSession(

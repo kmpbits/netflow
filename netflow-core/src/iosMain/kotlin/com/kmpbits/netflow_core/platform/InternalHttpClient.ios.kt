@@ -5,12 +5,12 @@ import com.kmpbits.netflow_core.builders.RequestBuilder
 import com.kmpbits.netflow_core.builders.extensions.toByteArray
 import com.kmpbits.netflow_core.enums.HttpHeader
 import com.kmpbits.netflow_core.exceptions.HttpException
-import com.kmpbits.netflow_core.exceptions.NetFlowException
 import com.kmpbits.netflow_core.pinning.NetFlowSessionDelegate
 import com.kmpbits.netflow_core.response.NetFlowResponse
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.convert
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.Foundation.NSHTTPURLResponse
@@ -72,6 +72,21 @@ internal actual class InternalHttpClient(
         }
     }
 
-    actual fun stream(requestBuilder: InternalHttpRequestBuilder, builder: RequestBuilder): Flow<ByteArray> =
-        flow { throw NetFlowException("Streaming is not implemented on iOS yet") }
+    @OptIn(ExperimentalForeignApi::class)
+    actual fun stream(requestBuilder: InternalHttpRequestBuilder, builder: RequestBuilder): Flow<ByteArray> = flow {
+        lateinit var task: NSURLSessionDataTask
+        val collector = StreamCollector(
+            onSuspend = { task.suspend() },
+            onResume = { task.resume() }, // suspend/resume are counted by NSURLSession; this pairs with onSuspend
+        )
+        task = session.dataTaskWithRequest(requestBuilder.request)
+        delegate.registerStream(task, collector)
+        try {
+            task.resume()
+            emitAll(collector.flow)
+        } finally {
+            delegate.clearStream(task)
+            task.cancel()
+        }
+    }
 }
