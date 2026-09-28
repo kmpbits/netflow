@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0]
+
+### New features
+- **`netflow-ksp` — `@NetFlowApi(wrapped = true)`.** Sets the default response-wrapping behavior for every function in the interface; a function's own `@Wrapped` (now `@Wrapped(value: Boolean = true)`) overrides it, so `@Wrapped(false)` opts a single function out when the interface defaults to wrapped.
+- **`netflow-ksp` — `@Authorization`, `@AcceptLanguage`.** Dedicated header parameter annotations: `@Authorization` binds a `String` parameter to `Authorization: Bearer <value>`, `@AcceptLanguage` binds one to `Accept-Language`. Both follow `@Header`'s semantics — a null value omits the header.
+
 ## [0.14.0]
 
 ### New features

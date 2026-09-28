@@ -144,18 +144,24 @@ private fun buildParamStatement(param: ParamBinding): CodeBlock? = when (param) 
         } else {
             CodeBlock.of("parameter(%S to %N)", param.wireName, param.paramName)
         }
-    is ParamBinding.HeaderParam ->
+    is ParamBinding.HeaderParam -> {
+        val valueExpr = if (param.valuePrefix.isEmpty()) {
+            CodeBlock.of("%N.toString()", param.paramName)
+        } else {
+            CodeBlock.of("%S + %N.toString()", param.valuePrefix, param.paramName)
+        }
         if (param.isNullable) {
             CodeBlock.of(
-                "if (%N != null) header(%T.custom(%S) to %N.toString())",
-                param.paramName, HTTP_HEADER, param.wireName, param.paramName,
+                "if (%N != null) header(%T.custom(%S) to %L)",
+                param.paramName, HTTP_HEADER, param.wireName, valueExpr,
             )
         } else {
             CodeBlock.of(
-                "header(%T.custom(%S) to %N.toString())",
-                HTTP_HEADER, param.wireName, param.paramName,
+                "header(%T.custom(%S) to %L)",
+                HTTP_HEADER, param.wireName, valueExpr,
             )
         }
+    }
     is ParamBinding.BodyParam -> CodeBlock.of("body(%N)", param.paramName)
     is ParamBinding.PartParam -> null // emitted by buildMultipartBlock
     is ParamBinding.ProgressParam -> null // emitted by buildMultipartBlock

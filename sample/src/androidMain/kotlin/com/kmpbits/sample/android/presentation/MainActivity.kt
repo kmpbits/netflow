@@ -19,6 +19,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -93,32 +95,40 @@ class MainActivity : ComponentActivity() {
                         is LoadState.Error -> Text(
                             (todos.loadState.refresh as LoadState.Error).error.message ?: "Error"
                         )
-                        else -> LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 16.dp),
-                            contentPadding = values,
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            items(
-                                count = todos.itemCount,
-                                key = todos.itemKey { it.id }
-                            ) { index ->
-                                val todo = todos[index] ?: return@items
-                                TodoItem(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .animateItem()
-                                        .clickable {
-                                            idClicked = todo.id
-                                            viewModel.onAction(TodoAction.ShowAddUpdateDialog(todo))
+                        else -> {
+                            val listState = rememberLazyListState()
+                            val firstItemId = if (todos.itemCount > 0) todos[0]?.id else null
+                            LaunchedEffect(firstItemId) {
+                                if (firstItemId != null) listState.animateScrollToItem(0)
+                            }
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 16.dp),
+                                contentPadding = values,
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                items(
+                                    count = todos.itemCount,
+                                    key = todos.itemKey { it.id }
+                                ) { index ->
+                                    val todo = todos[index] ?: return@items
+                                    TodoItem(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .animateItem()
+                                            .clickable {
+                                                idClicked = todo.id
+                                                viewModel.onAction(TodoAction.ShowAddUpdateDialog(todo))
+                                            },
+                                        todo = todo,
+                                        onCheckChanged = {
+                                            viewModel.onAction(TodoAction.UpdateTodoCheck(todo))
                                         },
-                                    todo = todo,
-                                    onCheckChanged = {
-                                        viewModel.onAction(TodoAction.UpdateTodoCheck(todo))
-                                    },
-                                    onDelete = { viewModel.onAction(TodoAction.DeleteTodo(todo.id)) }
-                                )
+                                        onDelete = { viewModel.onAction(TodoAction.DeleteTodo(todo.id)) }
+                                    )
+                                }
                             }
                         }
                     }

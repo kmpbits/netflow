@@ -61,6 +61,10 @@ internal fun parseParameter(
             }
             Fqns.QUERY -> ParamBinding.QueryParam(paramName, wireName, type, isNullable)
             Fqns.HEADER -> ParamBinding.HeaderParam(paramName, wireName, type, isNullable)
+            Fqns.AUTHORIZATION ->
+                ParamBinding.HeaderParam(paramName, "Authorization", type, isNullable, valuePrefix = "Bearer ")
+            Fqns.ACCEPT_LANGUAGE ->
+                ParamBinding.HeaderParam(paramName, "Accept-Language", type, isNullable)
             Fqns.BODY -> {
                 ParamBinding.BodyParam(paramName, type, isNullable, isStringKeyedMap(type))
             }

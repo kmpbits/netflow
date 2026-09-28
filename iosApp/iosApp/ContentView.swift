@@ -14,37 +14,46 @@ struct ContentView: View {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    List {
-                        ForEach(viewModel.todos, id: \.id) { todo in
-                            TodoItemView(
-                                todo: todo,
-                                onCheckChanged: { _ in
-                                    viewModel.toggleTodoCheck(todo: todo)
-                                },
-                                onDelete: {
-                                    viewModel.deleteTodo(id: todo.id)
+                    ScrollViewReader { scrollProxy in
+                        List {
+                            ForEach(viewModel.todos, id: \.id) { todo in
+                                TodoItemView(
+                                    todo: todo,
+                                    onCheckChanged: { _ in
+                                        viewModel.toggleTodoCheck(todo: todo)
+                                    },
+                                    onDelete: {
+                                        viewModel.deleteTodo(id: todo.id)
+                                    }
+                                )
+                                .id(todo.id)
+                                .onTapGesture {
+                                    editingTodoId = todo.id
+                                    viewModel.showEditDialog(todo: todo)
                                 }
-                            )
-                            .onTapGesture {
-                                editingTodoId = todo.id
-                                viewModel.showEditDialog(todo: todo)
+                                .onAppear {
+                                    if todo.id == viewModel.todos.last?.id {
+                                        viewModel.loadNextPage()
+                                    }
+                                }
                             }
-                            .onAppear {
-                                if todo.id == viewModel.todos.last?.id {
-                                    viewModel.loadNextPage()
+
+                            if viewModel.isLoading {
+                                HStack {
+                                    Spacer()
+                                    ProgressView()
+                                    Spacer()
                                 }
                             }
                         }
-
-                        if viewModel.isLoading {
-                            HStack {
-                                Spacer()
-                                ProgressView()
-                                Spacer()
+                        .listStyle(.plain)
+                        .onChange(of: viewModel.todos.first?.id) { newFirstId in
+                            guard let newFirstId else { return }
+                            withAnimation {
+                                scrollProxy.scrollTo(newFirstId, anchor: .top)
                             }
                         }
                     }
-                    .listStyle(.plain)
                 }
             }
             .navigationTitle("Todo List")

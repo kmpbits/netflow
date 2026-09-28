@@ -1,9 +1,14 @@
 package com.kmpbits.netflow_annotations
 
-/** Marks an interface whose functions NetFlow's KSP processor turns into an implementation. */
+/**
+ * Marks an interface whose functions NetFlow's KSP processor turns into an implementation.
+ *
+ * [wrapped] sets the default response-wrapping behavior for every function in the interface;
+ * a function's own [Wrapped] annotation, when present, overrides it.
+ */
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.BINARY)
-annotation class NetFlowApi
+annotation class NetFlowApi(val wrapped: Boolean = false)
 
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.BINARY)
@@ -39,6 +44,16 @@ annotation class Query(val name: String = "")
 @Target(AnnotationTarget.VALUE_PARAMETER)
 @Retention(AnnotationRetention.BINARY)
 annotation class Header(val name: String = "")
+
+/** Binds a `String` function parameter to `Authorization: Bearer <value>`. A null value omits the header. */
+@Target(AnnotationTarget.VALUE_PARAMETER)
+@Retention(AnnotationRetention.BINARY)
+annotation class Authorization
+
+/** Binds a `String` function parameter to the `Accept-Language` header. A null value omits it. */
+@Target(AnnotationTarget.VALUE_PARAMETER)
+@Retention(AnnotationRetention.BINARY)
+annotation class AcceptLanguage
 
 /** Binds a function parameter as the request body. Any `@Serializable` type, or `Map<String, Any>`. At most one per function. */
 @Target(AnnotationTarget.VALUE_PARAMETER)
@@ -119,10 +134,14 @@ annotation class HeaderMap
 /**
  * Route this function's response through the `responseWrapped*` family — for APIs that
  * return `{ "data": ... }` instead of a plain object/array.
+ *
+ * With no argument (or `@Wrapped(true)`) it forces wrapping on for this function, overriding
+ * `@NetFlowApi(wrapped = ...)`. `@Wrapped(false)` forces it off — use it to opt a single
+ * function out when the interface defaults to `wrapped = true`.
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.BINARY)
-annotation class Wrapped
+annotation class Wrapped(val value: Boolean = true)
 
 /**
  * Opt this function out of automatic auth (see the client's `auth { }` block): no

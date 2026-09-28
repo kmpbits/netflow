@@ -19,7 +19,7 @@ countTodos:
 SELECT count(*) FROM TodoEntity;
 
 getTodosPaged:
-SELECT * FROM TodoEntity LIMIT :limit OFFSET :offset;
+SELECT * FROM TodoEntity ORDER BY id DESC LIMIT :limit OFFSET :offset;
 
 insertTodo:
 INSERT OR REPLACE INTO TodoEntity (id, userId, title, completed, page, lastUpdatedTimestamp)

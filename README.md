@@ -143,10 +143,15 @@ val api = client.createTodoApi()   // generated extension on NetFlowClient
 ```
 
 **Supported:** `@GET` / `@POST` / `@PUT` / `@DELETE` / `@PATCH` (path defaults to
-`""`, for use with `@Url`); `@Path`, `@Query`, `@Header`, `@Body`, `@Multipart` +
+`""`, for use with `@Url`); `@Path`, `@Query`, `@Header`, `@Authorization`,
+`@AcceptLanguage`, `@Body`, `@Multipart` +
 `@Part`, `@Url`, `@QueryMap` / `@HeaderMap`; method-level `@Headers("Name: Value", ...)`;
 `@Wrapped` for `{ "data": ... }` envelope responses; `@SkipAuth` to opt a method
-out of the client's `auth { }` (login / sign-up / refresh endpoints). `@Body` accepts any
+out of the client's `auth { }` (login / sign-up / refresh endpoints). `@Authorization`
+binds a `String` parameter to `Authorization: Bearer <value>`; `@AcceptLanguage` binds one
+to `Accept-Language`; both follow `@Header`'s null-omits-the-header semantics.
+`@NetFlowApi(wrapped = true)` makes every function in the interface wrapped by default —
+a function's own `@Wrapped` / `@Wrapped(false)` overrides it. `@Body` accepts any
 `@Serializable` type or `Map<String, Any>`. `@Multipart` sends a `multipart/form-data` body;
 each `@Part` is a `FilePart` (file), a primitive (text field), or a `@Serializable` value
 (JSON field), and a null `@Part` is omitted. An optional `@Progress` parameter

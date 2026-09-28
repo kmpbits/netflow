@@ -77,6 +77,7 @@ internal sealed interface ParamBinding {
         override val wireName: String,
         override val type: KSType,
         override val isNullable: Boolean,
+        val valuePrefix: String = "",
     ) : ParamBinding
 
     data class BodyParam(

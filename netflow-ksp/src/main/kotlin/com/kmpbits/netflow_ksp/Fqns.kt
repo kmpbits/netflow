@@ -10,6 +10,8 @@ internal object Fqns {
     const val PATH = "com.kmpbits.netflow_annotations.Path"
     const val QUERY = "com.kmpbits.netflow_annotations.Query"
     const val HEADER = "com.kmpbits.netflow_annotations.Header"
+    const val AUTHORIZATION = "com.kmpbits.netflow_annotations.Authorization"
+    const val ACCEPT_LANGUAGE = "com.kmpbits.netflow_annotations.AcceptLanguage"
     const val BODY = "com.kmpbits.netflow_annotations.Body"
     const val MULTIPART = "com.kmpbits.netflow_annotations.Multipart"
     const val PART = "com.kmpbits.netflow_annotations.Part"

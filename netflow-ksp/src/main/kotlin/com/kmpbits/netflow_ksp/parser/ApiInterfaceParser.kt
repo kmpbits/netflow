@@ -5,6 +5,7 @@ import com.google.devtools.ksp.isAbstract
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.kmpbits.netflow_ksp.Fqns
 import com.kmpbits.netflow_ksp.model.ApiInterface
 import com.kmpbits.netflow_ksp.model.ParseContext
 
@@ -22,9 +23,13 @@ internal fun parseApiInterface(
         return null
     }
 
+    val interfaceWrapped = declaration.annotations
+        .firstOrNull { it.annotationType.resolve().declaration.qualifiedName?.asString() == Fqns.NET_FLOW_API }
+        ?.arguments?.firstOrNull { it.name?.asString() == "wrapped" }?.value as? Boolean ?: false
+
     val functions = declaration.getDeclaredFunctions()
         .filter { it.isAbstract }
-        .mapNotNull { fn -> parseApiFunction(fn, resolver, ctx) }
+        .mapNotNull { fn -> parseApiFunction(fn, resolver, ctx, interfaceWrapped) }
         .toList()
 
     return ApiInterface(

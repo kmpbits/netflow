@@ -15,6 +15,7 @@ internal fun parseApiFunction(
     declaration: KSFunctionDeclaration,
     resolver: Resolver,
     ctx: ParseContext,
+    interfaceWrapped: Boolean,
 ): ApiFunction? {
     val name = declaration.simpleName.asString()
     val isSuspend = Modifier.SUSPEND in declaration.modifiers
@@ -25,8 +26,13 @@ internal fun parseApiFunction(
     val returnShape = parseReturnShape(declaration, isSuspend, ctx) ?: return null
 
     val staticHeaders = parseStaticHeaders(declaration, ctx)
-    val wrapped = declaration.annotations.any {
+    val wrappedAnnotation = declaration.annotations.firstOrNull {
         it.annotationType.resolve().declaration.qualifiedName?.asString() == Fqns.WRAPPED
+    }
+    val wrapped = if (wrappedAnnotation != null) {
+        (wrappedAnnotation.arguments.firstOrNull { it.name?.asString() == "value" }?.value as? Boolean) ?: true
+    } else {
+        interfaceWrapped
     }
     val skipAuth = declaration.annotations.any {
         it.annotationType.resolve().declaration.qualifiedName?.asString() == Fqns.SKIP_AUTH
