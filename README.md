@@ -9,6 +9,66 @@ Start with **annotated interfaces** for your straightforward endpoints, then dro
 
 ---
 
+## Architecture
+
+Both entry points end up on the same pipeline. Annotations are KSP-generated
+code that calls the exact same `RequestBuilder` the DSL builds by hand:
+
+```
+ Annotated interface           call {} DSL
+@NetFlowApi / @GET(...)      client.call { ... }
+         │                           │
+         │ KSP generates            │
+         ▼                           ▼
+┌──────────────────────────────────────────┐
+│              RequestBuilder              │
+│  method, path, headers, body, params...  │
+└────────────────────┬─────────────────────┘
+                      ▼
+┌──────────────────────────────────────────┐
+│               NetFlowRequest             │
+│ .responseFlow / .responseAsync / ...     │
+└────────────────────┬─────────────────────┘
+                      ▼
+┌──────────────────────────────────────────┐
+│         InterceptingEngineAdapter        │
+│  your NetFlowInterceptor chain, runs     │
+│  again on every retried attempt          │
+└────────────────────┬─────────────────────┘
+                      ▼
+┌──────────────────────────────────────────┐
+│                TokenHolder               │
+│  auth { }: attach bearer, single-flight  │
+│  401 → refresh → retry (no-op without    │
+│  auth { } configured)                    │
+└────────────────────┬─────────────────────┘
+                      ▼
+┌──────────────────────────────────────────┐
+│             HttpEngineAdapter            │
+│    the only piece that ever changes      │
+└──────┬─────────────────────────┬─────────┘
+       ▼                         ▼
+ NetFlowClientImpl        MockNetFlowClient
+ (real network)           (test double)
+       │                         │
+       ▼                         ▼
+ InternalHttpClient       handler(request) →
+ OkHttp (Android)         NetFlowMockResponse
+ NSURLSession (iOS)
+```
+
+`MockNetFlowClient` is a second `NetFlowClient` implementation, not a wrapper
+around the real one. It runs requests through the exact same
+`InterceptingEngineAdapter` and `TokenHolder`, so interceptors, retry, and auth
+are exercised in tests exactly as in production. Only the bottom step changes:
+instead of `InternalHttpClient` hitting OkHttp/NSURLSession, your `handler`
+function receives a `NetFlowMockRequest` and returns a `NetFlowMockResponse`
+directly, no network involved. Every call is also recorded, so
+`assertCalled(...)` / `assertCalledTimes(...)` / `assertNotCalled(...)` can
+check what was sent without touching a socket.
+
+---
+
 ## Features
 
 - Kotlin Multiplatform support (Android and iOS)
