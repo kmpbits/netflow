@@ -1,7 +1,7 @@
 # NetFlow KMP
 A networking layer for Kotlin Multiplatform: one client, one state model, and one testing story across plain API calls, local-cache / offline-first flows, and Jetpack Paging 3.
 
-Start with **Retrofit-style annotated interfaces** for your straightforward endpoints — then drop to the `call {}` DSL on the *same* client, for the *same* API, when an endpoint needs caching, offline reads, or paging. The annotations are the familiar front door; the DSL is the engine behind it.
+Start with **annotated interfaces** for your straightforward endpoints, then drop to the `call {}` DSL on the *same* client, for the *same* API, when an endpoint needs caching, offline reads, or paging. The annotations are the familiar front door; the DSL is the engine behind it.
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.kmpbits/netflow-core.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.kmpbits/netflow-core)
 [![Tests](https://github.com/kmpbits/netflow/actions/workflows/test.yml/badge.svg)](https://github.com/kmpbits/netflow/actions/workflows/test.yml)
@@ -12,20 +12,20 @@ Start with **Retrofit-style annotated interfaces** for your straightforward endp
 ## Features
 
 - Kotlin Multiplatform support (Android and iOS)
-- **Annotated interfaces** (Retrofit-style, KSP-generated, no reflection) as the on-ramp — and the `call {}` DSL for everything annotations can't express
+- **Annotated interfaces** (Retrofit-style, KSP-generated, no reflection) as the on-ramp, and the `call {}` DSL for everything annotations can't express
 - Multiple response strategies:
   - Flow (with UI state handling)
   - Async (suspending, one-shot)
   - Paginated (Jetpack Paging 3 via `netflow-paging`)
-- Two-type API: separate deserialization type (`ApiType`) from display type (`DisplayType`) — no trailing `.map` needed
+- Two-type API: separate deserialization type (`ApiType`) from display type (`DisplayType`), no trailing `.map` needed
 - `wrappedResponse` flag for APIs that return `{ "data": ... }` envelopes
-- **Bearer auth** — automatic token attach, single-flight `401 → refresh → retry`, optional proactive refresh from the JWT `exp`, `authState` flow, pluggable `TokenStorage`
-- `multipart/form-data` uploads — `multipart { }` on the DSL, `@Multipart` / `@Part` on annotated interfaces
-- **Response streaming** — `Flow<ByteArray>` of the body as it arrives, unbuffered (`@Streaming` on annotated interfaces, `responseStream()` on the DSL)
+- **Bearer auth**: automatic token attach, single-flight `401 → refresh → retry`, optional proactive refresh from the JWT `exp`, `authState` flow, pluggable `TokenStorage`
+- `multipart/form-data` uploads: `multipart { }` on the DSL, `@Multipart` / `@Part` on annotated interfaces
+- **Response streaming**: `Flow<ByteArray>` of the body as it arrives, unbuffered (`@Streaming` on annotated interfaces, `responseStream()` on the DSL)
 - Local cache integration with observation support
 - Built-in error handling
 - Debug logging with multiple levels (None, Basic, Headers, Body)
-- `MockNetFlowClient` for testing — no real network calls, with response delays and request history
+- `MockNetFlowClient` for testing: no real network calls, with response delays and request history
 - iOS paging support via `PagingCollectionViewController`
 
 ---
@@ -68,15 +68,15 @@ dependencies {
 
 Declare your API as an annotated interface (Retrofit-style) and let a KSP
 processor generate the implementation. Works on all Kotlin Multiplatform
-targets — no runtime reflection.
+targets, no runtime reflection.
 
 **This is the on-ramp, not a separate library.** Use annotations for the plain
-request/response endpoints — the 80% case. The generated interface returns the
+request/response endpoints, the 80% case. The generated interface returns the
 same `ResultState` / `AsyncState` / `PagingData` types the DSL uses, runs on the
 same `NetFlowClient`, and is tested with the same `MockNetFlowClient`. When an
 endpoint needs local caching, offline reads, `onNetworkSuccess` side effects, or
-remote+local paging, write that one method with `client.call { … }` — nothing
-else changes. You never juggle two HTTP stacks or two state models.
+remote+local paging, write that one method with `client.call { … }` instead;
+nothing else changes. You never juggle two HTTP stacks or two state models.
 
 ```kotlin
 plugins {
@@ -119,7 +119,7 @@ interface TodoApi {
     fun pagedTodos(): Flow<PagingData<TodoDto>>
 
     @GET("todos")
-    fun todosCall(): NetFlowCall     // request only — compose the response yourself
+    fun todosCall(): NetFlowCall     // request only, compose the response yourself
 
     @Multipart
     @POST("todos/{id}/attachments")
@@ -142,34 +142,35 @@ interface TodoApi {
 val api = client.createTodoApi()   // generated extension on NetFlowClient
 ```
 
-**Supported:** `@GET` / `@POST` / `@PUT` / `@DELETE` / `@PATCH` (path defaults to
-`""`, for use with `@Url`); `@Path`, `@Query`, `@Header`, `@Authorization`,
-`@AcceptLanguage`, `@Body`, `@Multipart` +
-`@Part`, `@Url`, `@QueryMap` / `@HeaderMap`; method-level `@Headers("Name: Value", ...)`;
-`@Wrapped` for `{ "data": ... }` envelope responses; `@SkipAuth` to opt a method
-out of the client's `auth { }` (login / sign-up / refresh endpoints). `@Authorization`
-binds a `String` parameter to `Authorization: Bearer <value>`; `@AcceptLanguage` binds one
-to `Accept-Language`; both follow `@Header`'s null-omits-the-header semantics.
-`@NetFlowApi(wrapped = true)` makes every function in the interface wrapped by default —
-a function's own `@Wrapped` / `@Wrapped(false)` overrides it. `@Body` accepts any
-`@Serializable` type or `Map<String, Any>`. `@Multipart` sends a `multipart/form-data` body;
-each `@Part` is a `FilePart` (file), a primitive (text field), or a `@Serializable` value
-(JSON field), and a null `@Part` is omitted. An optional `@Progress` parameter
-(`(Long, Long) -> Unit`) reports upload byte progress on `@Multipart`, or download progress on `@Streaming`.
-`@Multipart` and `@Body` are mutually exclusive.
-`@Streaming` on a non-suspend function returning `Flow<ByteArray>` streams the response body
-(see [Streaming](#streaming)); it cannot be combined with `@Multipart`, `@Wrapped` or `@Paginated`.
-`@Url` on a `String` parameter replaces the full request URL — it needs an empty method path
-and no `@Path` on the same function. `@QueryMap` / `@HeaderMap` bind a `Map<String, Any?>` as
-dynamic query parameters / headers on top of any individual `@Query`/`@Header`; a null map
-omits everything, a null value omits that entry. Return types `Flow<ResultState<T>>`
-and `Flow<ResultState<List<T>>>` (non-suspend), `AsyncState<T>` and
-`AsyncState<List<T>>` (suspend), a bare `T` or `List<T>` (suspend, Retrofit-style:
-returns the value or throws `HttpException`), `Flow<PagingData<T>>` (non-suspend,
-network-only paging), and `NetFlowCall` (the request without a response strategy,
-`suspend` or not, compose it in the repository). `@Query` / `@Header` names default to the parameter name and
-take an override string (`@Query("user_id") userId: Int`); a null `@Query` /
-`@Header` value is omitted from the request.
+**Supported annotations**
+
+| Annotation | Target | Notes |
+|---|---|---|
+| `@GET` / `@POST` / `@PUT` / `@DELETE` / `@PATCH` | function | path defaults to `""`, for use with `@Url` |
+| `@Path` | parameter | binds to a `{name}` placeholder in the path |
+| `@Query` | parameter | name defaults to the parameter name, override with `@Query("user_id")`; a null value omits it |
+| `@Header` | parameter | same naming and null-omits-it rules as `@Query` |
+| `@Authorization` | parameter (`String`) | binds to `Authorization: Bearer <value>`; a null value omits the header |
+| `@AcceptLanguage` | parameter (`String`) | binds to `Accept-Language`; a null value omits the header |
+| `@Headers("Name: Value", ...)` | function | static headers |
+| `@Body` | parameter | any `@Serializable` type or `Map<String, Any>` |
+| `@Wrapped` | function | routes the response through the `{ "data": ... }` envelope; `@Wrapped(false)` overrides an interface-level `@NetFlowApi(wrapped = true)` |
+| `@SkipAuth` | function | opts out of the client's `auth { }` (login, sign-up, refresh endpoints) |
+| `@Multipart` + `@Part` | function + parameter | sends a `multipart/form-data` body; each `@Part` is a `FilePart` (file), a primitive (text field), or a `@Serializable` value (JSON field); a null `@Part` is omitted; mutually exclusive with `@Body` |
+| `@Progress` | parameter (`(Long, Long) -> Unit`) | reports upload progress on `@Multipart`, or download progress on `@Streaming` |
+| `@Streaming` | function, non-suspend, returns `Flow<ByteArray>` | streams the response body (see [Streaming](#streaming)); cannot combine with `@Multipart`, `@Wrapped`, or `@Paginated` |
+| `@Url` | parameter (`String`) | replaces the full request URL; needs an empty method path and no `@Path` on the same function |
+| `@QueryMap` / `@HeaderMap` | parameter (`Map<String, Any?>`) | dynamic query parameters / headers on top of any individual `@Query`/`@Header`; a null map omits everything, a null value omits that entry |
+
+**Supported return types**
+
+| Return type | Suspend | Behavior |
+|---|---|---|
+| `Flow<ResultState<T>>` / `Flow<ResultState<List<T>>>` | no | reactive, non-suspending |
+| `AsyncState<T>` / `AsyncState<List<T>>` | yes | one-shot |
+| bare `T` / `List<T>` | yes | Retrofit-style: returns the value or throws `HttpException` |
+| `Flow<PagingData<T>>` | no | network-only paging |
+| `NetFlowCall` | either | the request without a response strategy; compose it yourself in the repository |
 
 **Not yet supported:** the `onNetworkSuccess` / `local {}` cache hooks (including
 remote+local paging). Use the `call {}` DSL directly for those.
@@ -177,7 +178,7 @@ remote+local paging). Use the `call {}` DSL directly for those.
 ### Mapping to domain types
 
 Annotated functions return the API DTO. Map to your domain model in the
-repository with the `map` helpers from `netflow-core` — `AsyncState.map`,
+repository with the `map` helpers from `netflow-core`: `AsyncState.map`,
 `ResultState.map`, and `Flow.map`:
 
 ```kotlin
@@ -194,7 +195,7 @@ class TodoRepository(client: NetFlowClient) {
 ```
 
 This is deliberate: the two-type `transform` stays one layer out of the
-annotations, so the mapping is always explicit and compiler-checked — the same
+annotations, so the mapping is always explicit and compiler-checked, the same
 guarantee the `call {}` DSL gives with its required `transform` parameter.
 
 ### Paging
@@ -215,12 +216,12 @@ fun pagedPosts(tag: String?) = api.pagedPosts(tag).map { it.map { dto -> dto.toM
 ```
 
 Remote + local paging (`RemoteMediator`, local `PagingSource`, insert/delete
-callbacks) stays on the `call {}` DSL — `responsePaginated { localSource(...) }`.
+callbacks) stays on the `call {}` DSL: `responsePaginated { localSource(...) }`.
 
 ### Composing the response yourself (`NetFlowCall`)
 
 Return `NetFlowCall` and the generated method stops at the request. Finish it in
-the repository with any `responseX` function — this is how you add a local cache
+the repository with any `responseX` function: this is how you add a local cache
 or `onNetworkSuccess` side effects to an annotated endpoint:
 
 ```kotlin
@@ -235,7 +236,7 @@ fun getTodos(): Flow<ResultState<Todo>> =
     }
 ```
 
-`@Wrapped` / `@Paginated` are not allowed on a `NetFlowCall` method — those are
+`@Wrapped` / `@Paginated` are not allowed on a `NetFlowCall` method; those are
 choices you make on the `responseX` call. The method can be `suspend` or not; the
 `responseX` you compose on the result is already suspending either way.
 `client.prepareCall { … }` builds a `NetFlowCall` from the hand-written DSL too.
@@ -256,7 +257,7 @@ suspend fun getTodos(): List<TodoDto>
 ```
 
 It returns the DTO, same as every other shape, so map to your domain type in the
-repository. `@Wrapped` isn't supported here — use `AsyncState<T>` with `@Wrapped`
+repository. `@Wrapped` isn't supported here; use `AsyncState<T>` with `@Wrapped`
 for envelope APIs, or return `NetFlowCall`. `Unit` isn't allowed either; use
 `AsyncState<Unit>`.
 
@@ -365,7 +366,7 @@ non-2xx response. The multipart block's `onProgress` remains upload-only.
 
 ## Working with Flow
 
-### Same type — single type parameter, no transform needed
+### Same type: single type parameter, no transform needed
 
 When your DTO and domain model are the same type, pass only one type parameter:
 
@@ -375,9 +376,9 @@ val flow = client.call {
 }.responseFlow<UserDto>()
 ```
 
-### Different types — transform is required
+### Different types: transform is required
 
-When `ApiType` and `DisplayType` differ, pass `transform` as the first argument. The compiler enforces this — forgetting it is a build error, not a runtime crash.
+When `ApiType` and `DisplayType` differ, pass `transform` as the first argument. The compiler enforces this: forgetting it is a build error, not a runtime crash.
 
 ```kotlin
 val flow = client.call {
@@ -400,7 +401,7 @@ val usersFlow = client.call {
 }
 ```
 
-The `transform` inside `local()` maps from the database entity type directly to `DisplayType` — it drives what gets shown while the network call is in flight. The `transform` on the function maps the network `ApiType` to `DisplayType` once the response arrives.
+The `transform` inside `local()` maps from the database entity type directly to `DisplayType`, driving what gets shown while the network call is in flight. The `transform` on the function maps the network `ApiType` to `DisplayType` once the response arrives.
 
 ### Offline-only
 
@@ -476,7 +477,7 @@ suspend fun deleteUser(id: Int): AsyncState<Unit> {
 }
 ```
 
-### Different types — transform is required
+### Different types: transform is required
 
 ```kotlin
 suspend fun getUser(id: Int): AsyncState<User> {
@@ -543,9 +544,9 @@ There are two ways to configure the local data source.
 
 ---
 
-#### Option A — `localQuery` (recommended, no custom PagingSource needed)
+#### Option A: `localQuery` (recommended, no custom PagingSource needed)
 
-Pass `countQuery`, `itemsQuery`, and an `invalidation` flow. The library creates and manages the `PagingSource` internally. The `invalidation` flow triggers a reload whenever the underlying data changes — SQLDelight users pass `query.asFlow()`, Room users pass their `Flow<List<T>>`.
+Pass `countQuery`, `itemsQuery`, and an `invalidation` flow. The library creates and manages the `PagingSource` internally. The `invalidation` flow triggers a reload whenever the underlying data changes: SQLDelight users pass `query.asFlow()`, Room users pass their `Flow<List<T>>`.
 
 ```kotlin
 fun getPosts(): Flow<PagingData<Post>> = client.call {
@@ -575,7 +576,7 @@ fun getPosts(): Flow<PagingData<Post>> = client.call {
 
 ---
 
-#### Option B — `localSource` / `localSourceLong` (custom PagingSource)
+#### Option B: `localSource` / `localSourceLong` (custom PagingSource)
 
 Use this when you need full control over how data is loaded locally. You provide your own `PagingSource<Int, E>` (or `PagingSource<Long, E>` via `localSourceLong`).
 
@@ -622,7 +623,7 @@ fun getPosts(): Flow<PagingData<Post>> = client.call {
 }
 ```
 
-For SQLDelight sources that use `Long` keys (e.g. `QueryPagingSource`), use `localSourceLong` instead — keys are bridged to `Int` internally.
+For SQLDelight sources that use `Long` keys (e.g. `QueryPagingSource`), use `localSourceLong` instead; keys are bridged to `Int` internally.
 
 ---
 
@@ -671,7 +672,7 @@ LazyColumn {
 
 ### Consuming on iOS (SwiftUI)
 
-`netflow-paging` ships `PagingCollectionViewController` — a KMP class that bridges paging data to Swift. It is designed to be used with [SKIE](https://skie.touchlab.co) for async sequence support.
+`netflow-paging` ships `PagingCollectionViewController`, a KMP class that bridges paging data to Swift. It is designed to be used with [SKIE](https://skie.touchlab.co) for async sequence support.
 
 **ViewModel (Swift)**
 
@@ -1072,7 +1073,7 @@ val client = netflowClient {
 
 Registration order is execution order: `trace` is the outermost.
 
-Not calling `chain.proceed(...)` short-circuits the chain — the network is never touched:
+Not calling `chain.proceed(...)` short-circuits the chain: the network is never touched:
 
 ```kotlin
 val offline = NetFlowInterceptor { chain ->
@@ -1083,7 +1084,7 @@ val offline = NetFlowInterceptor { chain ->
 The interceptor runs **inside** the retry loop and **after** auth: it sees the final
 `Authorization` header and is called once per attempt.
 
-Since the chain wraps the engine, `MockNetFlowClient` runs it too — your interceptors
+Since the chain wraps the engine, `MockNetFlowClient` runs it too, so your interceptors
 are testable without a network call:
 
 ```kotlin
@@ -1124,13 +1125,13 @@ openssl s_client -connect api.example.com:443 -servername api.example.com < /dev
 On iOS, the supported key types are RSA-2048, RSA-4096, EC P-256 and EC P-384; any
 other type is treated as a pin failure. Multiple pins per host are supported, and
 `*.host` matches exactly one subdomain level. Hosts with no pin declared are
-unaffected, and a pin failure fails the request — there is no report-only mode.
+unaffected, and a pin failure fails the request; there is no report-only mode.
 
 ---
 
 ## Error handling
 
-`responseToModel` is the only extension that throws — all other extensions return a sealed state.
+`responseToModel` is the only extension that throws; all other extensions return a sealed state.
 
 ```kotlin
 try {
@@ -1160,16 +1161,6 @@ single {
     }
 }
 ```
-
----
-
-## Roadmap
-
-- Integration tests for the platform HTTP engines (OkHttp / NSURLSession) and coverage reporting (Kover)
-- Multipart / form-data support
-- WebSocket support — a `client.socket { }` returning a connection-state Flow, in the same house style as `responseFlow`
-- Auth: custom `refreshOn { }` predicate (refresh on 403 or an error-body match, not just 401)
-- `SettingsTokenStorage` variants for DataStore / SQLDelight
 
 ---
 
