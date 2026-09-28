@@ -12,7 +12,7 @@ Start with **annotated interfaces** for your straightforward endpoints, then dro
 ## Features
 
 - Kotlin Multiplatform support (Android and iOS)
-- **Annotated interfaces** (Retrofit-style, KSP-generated, no reflection) as the on-ramp, and the `call {}` DSL for everything annotations can't express
+- **Annotated interfaces** (KSP-generated, no reflection) as the on-ramp, and the `call {}` DSL for everything annotations can't express
 - Multiple response strategies:
   - Flow (with UI state handling)
   - Async (suspending, one-shot)
@@ -66,7 +66,7 @@ dependencies {
 
 ### Annotations module (optional)
 
-Declare your API as an annotated interface (Retrofit-style) and let a KSP
+Declare your API as an annotated interface and let a KSP
 processor generate the implementation. Works on all Kotlin Multiplatform
 targets, no runtime reflection.
 
@@ -168,7 +168,7 @@ val api = client.createTodoApi()   // generated extension on NetFlowClient
 |---|---|---|
 | `Flow<ResultState<T>>` / `Flow<ResultState<List<T>>>` | no | reactive, non-suspending |
 | `AsyncState<T>` / `AsyncState<List<T>>` | yes | one-shot |
-| bare `T` / `List<T>` | yes | Retrofit-style: returns the value or throws `HttpException` |
+| bare `T` / `List<T>` | yes | returns the value or throws `HttpException` |
 | `Flow<PagingData<T>>` | no | network-only paging |
 | `NetFlowCall` | either | the request without a response strategy; compose it yourself in the repository |
 
@@ -245,7 +245,7 @@ choices you make on the `responseX` call. The method can be `suspend` or not; th
 
 A `suspend` function returning a plain type maps to `responseToModel<T>()`: you
 get the deserialized value, or an `HttpException` on a non-2xx response. This is
-the Retrofit default style, for code that prefers `try/catch` (or a global
+the default style, for code that prefers `try/catch` (or a global
 handler) over a sealed state.
 
 ```kotlin
