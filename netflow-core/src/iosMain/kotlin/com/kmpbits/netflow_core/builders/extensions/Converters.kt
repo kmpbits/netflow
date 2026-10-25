@@ -38,6 +38,8 @@ internal fun String.toNSData(): NSData {
 @OptIn(ExperimentalForeignApi::class)
 internal fun NSData.toByteArray(): ByteArray {
     val size = this.length.toInt()
+    // An empty body (204, HEAD...) has no element 0 to point at: refTo(0) would throw.
+    if (size == 0) return ByteArray(0)
     val bytes = ByteArray(size)
     memcpy(bytes.refTo(0), this.bytes, size.convert())
     return bytes
