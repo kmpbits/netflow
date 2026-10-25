@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.1]
+
+### Fixes
+- **`netflow-core` (iOS)** — a response with an empty body (e.g. `204 No Content`) no longer crashes with `ArrayIndexOutOfBoundsException`: `NSData.toByteArray()` returns an empty `ByteArray` instead of calling `refTo(0)` on a zero-length array.
+
 ## [1.0.0]
 
 ### New features
