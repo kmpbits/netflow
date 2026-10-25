@@ -43,13 +43,12 @@ internal actual class InternalHttpClient(
 
                             continuation.resumeWith(
                                 Result.success(
-                                    NetFlowResponse(
+                                    buildNetFlowResponse(
                                         code = statusCode,
                                         headers = response.allHeaderFields.map { (name, value) ->
                                             Header(HttpHeader.custom(name.toString()), value.toString())
                                         },
-                                        body = bodyByteArray.decodeToString(),
-                                        errorBody = null
+                                        payload = bodyByteArray.decodeToString()
                                     )
                                 )
                             )

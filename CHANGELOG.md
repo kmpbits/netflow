@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.2]
+
+### Fixes
+- **`netflow-core` (iOS)** — non-2xx responses now carry their payload in `errorBody` (and a null `body`), matching Android. Before, the iOS engine always set `errorBody = null`, so `HttpException`, `ErrorResponse.errorBody` and `toError()` lost the server's error payload.
+
 ## [1.0.1]
 
 ### Fixes
